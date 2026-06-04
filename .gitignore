@@ -1,0 +1,6 @@
+target/
+data/
+.m2/
+.tools/
+*.log
+*.xlsx

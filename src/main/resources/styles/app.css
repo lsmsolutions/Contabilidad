@@ -1,0 +1,1952 @@
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-background-color: #f4f6f3;
+    -fx-text-fill: #1d2a2d;
+}
+
+.sidebar {
+    -fx-background-color: #061a2e;
+    -fx-padding: 24 18;
+    -fx-border-color: transparent #143a58 transparent transparent;
+}
+
+.sidebar-scroll {
+    -fx-background-color: #061a2e;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.sidebar-scroll > .viewport {
+    -fx-background-color: #061a2e;
+}
+
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14.5px;
+    -fx-font-weight: 700;
+    -fx-alignment: center-left;
+    -fx-padding: 11 14;
+    -fx-background-radius: 6;
+}
+
+.nav-button:hover {
+    -fx-background-color: #0f3454;
+    -fx-text-fill: #8ee0ff;
+}
+
+.submenu {
+    -fx-padding: 0 0 4 18;
+}
+
+.subnav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #c6d8e4;
+    -fx-font-size: 13px;
+    -fx-font-weight: 400;
+    -fx-alignment: center-left;
+    -fx-padding: 7 12;
+    -fx-background-radius: 6;
+}
+
+.subnav-button:hover {
+    -fx-background-color: #0f3454;
+    -fx-text-fill: #ffffff;
+}
+
+.primary {
+    -fx-background-color: #1d5b46;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 9 16;
+}
+
+.page {
+    -fx-background-color: #f4f6f3;
+}
+
+.heading {
+    -fx-font-size: 28px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #18362e;
+}
+
+.dark-hub-page {
+    -fx-background-color: #061a2e;
+    -fx-min-height: 900;
+}
+
+.dark-hub-page .heading {
+    -fx-text-fill: #ffffff;
+}
+
+.dark-page-scroll {
+    -fx-background-color: #061a2e;
+    -fx-background-insets: 0;
+}
+
+.dark-page-scroll > .viewport {
+    -fx-background-color: #061a2e;
+}
+
+.dark-hub-page .section-subtitle {
+    -fx-text-fill: #c5d8e4;
+}
+
+.dark-hub-page .bank-account-hub {
+    -fx-background-color: #0b2742;
+    -fx-border-color: #16476c;
+}
+
+.dark-hub-page .monthly-card {
+    -fx-background-color: #0f3454;
+    -fx-border-color: #1d5f8a;
+}
+
+.dark-hub-page .monthly-card:hover {
+    -fx-background-color: #143f63;
+    -fx-border-color: #55a6d8;
+}
+
+.dark-hub-page .monthly-card-title {
+    -fx-text-fill: #ffffff;
+}
+
+.dark-hub-page .monthly-card-line {
+    -fx-text-fill: #c5d8e4;
+}
+
+.dark-hub-page .button {
+    -fx-background-color: #143f63;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #2c6f9a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.dark-hub-page .button:hover {
+    -fx-background-color: #1d5f8a;
+}
+
+.dark-hub-page .primary {
+    -fx-background-color: #1c6b53;
+    -fx-border-color: #2d8a6d;
+}
+
+.metric-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 18;
+    -fx-min-height: 112;
+}
+
+.card-title {
+    -fx-font-size: 13px;
+    -fx-text-fill: #61706b;
+}
+
+.card-value {
+    -fx-font-size: 26px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #173d32;
+}
+
+.dashboard-section {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 16;
+    -fx-border-width: 1;
+}
+
+.dashboard-page {
+    -fx-background-color: #061a2e;
+}
+
+.dashboard-page .heading {
+    -fx-text-fill: #f4f8fb;
+}
+
+.dashboard-dark-panel {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.dashboard-panel {
+    -fx-background-color: #0b2742;
+    -fx-border-color: #16476c;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 14;
+}
+
+.dashboard-panel-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #f4f8fb;
+}
+
+.dashboard-payments-table {
+    -fx-hgap: 18;
+    -fx-vgap: 8;
+}
+
+.dashboard-table-header {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #8fb3ca;
+}
+
+.dashboard-table-text {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #ffffff;
+    -fx-min-width: 150;
+}
+
+.dashboard-table-muted {
+    -fx-font-size: 13px;
+    -fx-text-fill: #b7cfdd;
+    -fx-min-width: 90;
+}
+
+.dashboard-table-date {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #ff6b6b;
+    -fx-min-width: 110;
+}
+
+.dashboard-table-amount {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #8ee0ff;
+    -fx-min-width: 140;
+    -fx-alignment: center-left;
+}
+
+.dashboard-bank-accounts {
+    -fx-spacing: 12;
+}
+
+.dashboard-bank-card {
+    -fx-background-color: #0f3454;
+    -fx-border-color: #1d5f8a;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-min-width: 190;
+}
+
+.dashboard-bank-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #ffffff;
+}
+
+.dashboard-bank-period {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9fc3d6;
+}
+
+.dashboard-bank-pdf {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9fc3d6;
+    -fx-padding: 0 0 0 2;
+}
+
+.dashboard-bank-deposit-bar {
+    -fx-background-color: #4caf7a;
+    -fx-background-radius: 5 5 0 0;
+}
+
+.dashboard-bank-withdrawal-bar {
+    -fx-background-color: #d45d5d;
+    -fx-background-radius: 5 5 0 0;
+}
+
+.dashboard-bank-bar-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #bdd4e2;
+}
+
+.dashboard-bank-bar-value {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #ffffff;
+}
+
+.dashboard-chart-row {
+    -fx-spacing: 14;
+}
+
+.dashboard-chart-row .dashboard-panel {
+    -fx-min-width: 420;
+    -fx-pref-width: 520;
+}
+
+.dashboard-page .chart {
+    -fx-background-color: transparent;
+}
+
+.dashboard-page .chart-plot-background {
+    -fx-background-color: #092138;
+}
+
+.dashboard-page .axis {
+    -fx-tick-label-fill: #b7cfdd;
+}
+
+.dashboard-page .axis-label {
+    -fx-text-fill: #b7cfdd;
+}
+
+.dashboard-page .chart-legend {
+    -fx-background-color: transparent;
+}
+
+.dashboard-page .chart-legend-item {
+    -fx-text-fill: #dcebf3;
+}
+
+.dashboard-empty {
+    -fx-text-fill: #c5d8e4;
+    -fx-font-size: 14px;
+}
+
+.section-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: 700;
+}
+
+.section-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #66736e;
+}
+
+.house-expenses-header {
+    -fx-spacing: 12;
+}
+
+.house-expenses-total {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 8 14;
+    -fx-min-width: 155;
+    -fx-alignment: center-right;
+}
+
+.house-expenses-total-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #66736e;
+}
+
+.house-expenses-total-value {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #18362e;
+}
+
+.house-expenses-table {
+    -fx-min-height: 560;
+    -fx-pref-height: 720;
+}
+
+.bank-section {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #b9ddda;
+}
+
+.bank-section .section-title {
+    -fx-text-fill: #0c6367;
+}
+
+.bank-card {
+    -fx-border-color: #89c9c6;
+    -fx-border-width: 1 1 1 5;
+}
+
+.bank-card .card-value {
+    -fx-text-fill: #0c6367;
+}
+
+.nyl-section {
+    -fx-background-color: #f3f6ec;
+    -fx-border-color: #d2dfb6;
+}
+
+.nyl-section .section-title {
+    -fx-text-fill: #586b1f;
+}
+
+.nyl-card {
+    -fx-border-color: #b9cc78;
+    -fx-border-width: 1 1 1 5;
+}
+
+.nyl-card .card-value {
+    -fx-text-fill: #586b1f;
+}
+
+.reconciliation-section {
+    -fx-background-color: #fff8e9;
+    -fx-border-color: #ead39b;
+}
+
+.reconciliation-section .section-title {
+    -fx-text-fill: #805c14;
+}
+
+.reconciliation-card {
+    -fx-border-color: #d7ad4a;
+    -fx-border-width: 1 1 1 5;
+}
+
+.reconciliation-card .card-value {
+    -fx-text-fill: #805c14;
+}
+
+.alert-section {
+    -fx-background-color: #fff1f1;
+    -fx-border-color: #e6a4a4;
+}
+
+.alert-section .section-title {
+    -fx-text-fill: #7a2e2e;
+}
+
+.alert-section .section-subtitle {
+    -fx-text-fill: #6f3a3a;
+}
+
+.table-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-height: 360;
+}
+
+.agent-ledger-table {
+    -fx-border-color: #8ea0bf;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-min-height: 620;
+}
+
+.agent-ledger-table .column-header,
+.agent-ledger-table .filler {
+    -fx-background-color: #2f5597;
+}
+
+.agent-ledger-table .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-table .table-cell {
+    -fx-border-color: #aeb9cf;
+    -fx-border-width: 0 1 1 0;
+    -fx-alignment: CENTER_RIGHT;
+    -fx-padding: 5 7;
+}
+
+.agent-ledger-table .table-column:first-visible .table-cell,
+.agent-ledger-table .table-cell:first-child {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.agent-ledger-credit-header,
+.agent-ledger-deduction-header,
+.agent-ledger-withdrawal-header {
+    -fx-background-color: #1f2d4e;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-section-row {
+    -fx-background-color: #2f5597;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-input-row {
+    -fx-background-color: #ebf3fc;
+}
+
+.agent-ledger-total-row {
+    -fx-background-color: #d9e1f2;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-credit-total {
+    -fx-background-color: #375623;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-deduction-total {
+    -fx-background-color: #994800;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-withdrawal-total,
+.agent-ledger-net-total {
+    -fx-background-color: #1f3b68;
+    -fx-font-weight: 700;
+}
+
+.agent-ledger-credit-header .table-cell,
+.agent-ledger-deduction-header .table-cell,
+.agent-ledger-withdrawal-header .table-cell,
+.agent-ledger-section-row .table-cell,
+.agent-ledger-credit-total .table-cell,
+.agent-ledger-deduction-total .table-cell,
+.agent-ledger-withdrawal-total .table-cell,
+.agent-ledger-net-total .table-cell {
+    -fx-text-fill: white;
+}
+
+.chart {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+}
+
+.review-warning {
+    -fx-background-color: #fff8e9;
+    -fx-border-color: #d7ad4a;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+}
+
+.review-warning-title {
+    -fx-font-weight: 700;
+    -fx-text-fill: #805c14;
+}
+
+.review-ok {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #89c9c6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+    -fx-text-fill: #0c6367;
+}
+
+.processing-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 48;
+    -fx-min-height: 360;
+}
+
+.processing-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #173d32;
+}
+
+.processing-detail {
+    -fx-font-size: 14px;
+    -fx-text-fill: #61706b;
+    -fx-max-width: 520;
+    -fx-text-alignment: center;
+}
+
+.month-legend {
+    -fx-padding: 2 0 2 0;
+}
+
+.month-chip {
+    -fx-background-radius: 999;
+    -fx-padding: 6 12;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.month-1, .table-row-cell.month-row-1 {
+    -fx-background-color: #e9f7f6;
+}
+
+.month-2, .table-row-cell.month-row-2 {
+    -fx-background-color: #eef4ff;
+}
+
+.month-3, .table-row-cell.month-row-3 {
+    -fx-background-color: #f3f6ec;
+}
+
+.month-4, .table-row-cell.month-row-4 {
+    -fx-background-color: #fff4df;
+}
+
+.month-5, .table-row-cell.month-row-5 {
+    -fx-background-color: #f7edff;
+}
+
+.month-6, .table-row-cell.month-row-6 {
+    -fx-background-color: #eaf7ef;
+}
+
+.month-7, .table-row-cell.month-row-7 {
+    -fx-background-color: #fff0f0;
+}
+
+.month-8, .table-row-cell.month-row-8 {
+    -fx-background-color: #edf7ff;
+}
+
+.month-9, .table-row-cell.month-row-9 {
+    -fx-background-color: #f8f1df;
+}
+
+.month-10, .table-row-cell.month-row-10 {
+    -fx-background-color: #edf1ea;
+}
+
+.month-11, .table-row-cell.month-row-11 {
+    -fx-background-color: #f0eef8;
+}
+
+.month-12, .table-row-cell.month-row-12 {
+    -fx-background-color: #eaf4f1;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #d7eadf;
+    -fx-text-background-color: #102f28;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: #102f28;
+}
+
+.table-cell:selected {
+    -fx-background-color: #c5dfd1;
+    -fx-text-fill: #102f28;
+}
+
+.text-field {
+    -fx-text-fill: #102f28;
+    -fx-background-color: #ffffff;
+    -fx-highlight-fill: #b9ddda;
+    -fx-highlight-text-fill: #102f28;
+}
+
+.action-header {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.action-row {
+    -fx-spacing: 10;
+}
+
+.action-header .button {
+    -fx-min-width: 128;
+    -fx-padding: 9 14;
+}
+
+.action-header .primary {
+    -fx-min-width: 150;
+}
+
+.action-header .text-field {
+    -fx-min-width: 220;
+    -fx-pref-height: 36;
+}
+
+.action-header .combo-box {
+    -fx-min-width: 142;
+    -fx-pref-height: 36;
+}
+
+.action-header .compact-combo {
+    -fx-min-width: 112;
+    -fx-pref-width: 112;
+}
+
+.action-header .type-combo {
+    -fx-min-width: 150;
+    -fx-pref-width: 150;
+}
+
+.action-header .concept-field {
+    -fx-min-width: 260;
+    -fx-pref-width: 260;
+    -fx-background-color: #f8fbfa;
+    -fx-border-color: #b9d3cd;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.action-header .concept-field:focused {
+    -fx-border-color: #1d5b46;
+    -fx-background-color: #ffffff;
+}
+
+.back-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1d5b46;
+    -fx-font-weight: 700;
+    -fx-padding: 6 0;
+    -fx-alignment: center-left;
+    -fx-min-width: 180;
+}
+
+.back-button:hover {
+    -fx-text-fill: #0c6367;
+    -fx-underline: true;
+}
+
+.totals-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.totals-grid {
+    -fx-background-color: transparent;
+}
+
+.totals-header {
+    -fx-background-color: #173d32;
+    -fx-text-fill: white;
+    -fx-font-weight: 700;
+    -fx-padding: 8 12;
+    -fx-min-width: 110;
+}
+
+.totals-body {
+    -fx-background-color: #f4f6f3;
+    -fx-text-fill: #173d32;
+    -fx-font-weight: 700;
+    -fx-padding: 8 12;
+    -fx-min-width: 110;
+}
+
+.totals-money {
+    -fx-background-color: #eef7f6;
+    -fx-text-fill: #0c6367;
+    -fx-font-weight: 700;
+    -fx-padding: 8 12;
+    -fx-min-width: 110;
+    -fx-alignment: center-right;
+}
+
+.totals-money-negative {
+    -fx-background-color: #fff0f0;
+    -fx-text-fill: #9b2f2f;
+    -fx-font-weight: 700;
+    -fx-padding: 8 12;
+    -fx-min-width: 110;
+    -fx-alignment: center-right;
+}
+
+.totals-panel {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+}
+
+.mini-total {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 10 14;
+    -fx-min-width: 135;
+}
+
+.mini-total-title {
+    -fx-font-size: 12px;
+    -fx-text-fill: #61706b;
+}
+
+.mini-total-value {
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
+}
+
+.neutral-total {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #89c9c6;
+}
+
+.pending-total {
+    -fx-background-color: #fff8e9;
+    -fx-border-color: #d7ad4a;
+}
+
+.income-total {
+    -fx-background-color: #f3f6ec;
+    -fx-border-color: #b9cc78;
+}
+
+.expense-total {
+    -fx-background-color: #fff0f0;
+    -fx-border-color: #e1a0a0;
+}
+
+.net-total {
+    -fx-background-color: #eef4ff;
+    -fx-border-color: #aabde4;
+}
+
+.bank-flow-chart {
+    -fx-background-color: #f8fbfa;
+    -fx-border-color: #d6e2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14;
+    -fx-min-width: 360;
+}
+
+.bank-flow-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #3f5550;
+}
+
+.bank-flow-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #40534e;
+    -fx-min-width: 70;
+}
+
+.bank-flow-track {
+    -fx-background-color: #e8eee9;
+    -fx-background-radius: 8;
+    -fx-min-height: 12;
+    -fx-pref-height: 12;
+}
+
+.bank-flow-income-fill {
+    -fx-background-color: #5f8d3f;
+    -fx-background-radius: 8;
+    -fx-min-height: 12;
+    -fx-pref-height: 12;
+}
+
+.bank-flow-expense-fill {
+    -fx-background-color: #b55d5d;
+    -fx-background-radius: 8;
+    -fx-min-height: 12;
+    -fx-pref-height: 12;
+}
+
+.bank-flow-value {
+    -fx-font-size: 12px;
+    -fx-text-fill: #002d33;
+    -fx-min-width: 95;
+    -fx-alignment: center-right;
+}
+
+.nyl-monthly-chart .default-color0.chart-bar {
+    -fx-bar-fill: #5f8d3f;
+}
+
+.nyl-monthly-chart .default-color1.chart-bar {
+    -fx-bar-fill: #b55d5d;
+}
+
+.urgent-total {
+    -fx-background-color: #fff0f0;
+    -fx-border-color: #d66f6f;
+}
+
+.urgent-total .card-title,
+.urgent-total .card-value {
+    -fx-text-fill: #a32828;
+}
+
+.monthly-section {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.monthly-card-row {
+    -fx-spacing: 12;
+}
+
+.monthly-card,
+.monthly-card-general {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-min-width: 185;
+    -fx-cursor: hand;
+}
+
+.monthly-card:hover,
+.monthly-card-general:hover {
+    -fx-border-color: #1d5b46;
+    -fx-background-color: #eef7f6;
+}
+
+.monthly-card-general {
+    -fx-background-color: #eef4ff;
+    -fx-border-color: #aabde4;
+}
+
+.monthly-card-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #173d32;
+}
+
+.monthly-section .monthly-card {
+    -fx-padding: 0 0 10 0;
+    -fx-min-width: 230;
+    -fx-pref-width: 240;
+    -fx-max-width: 250;
+}
+
+.monthly-section .monthly-card-title {
+    -fx-background-color: #165a73;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-padding: 9 12;
+    -fx-max-width: 99999;
+}
+
+.monthly-card-title-row {
+    -fx-background-color: #165a73;
+    -fx-alignment: center-left;
+}
+
+.monthly-card-title-row .monthly-card-title {
+    -fx-background-color: transparent;
+    -fx-max-width: 99999;
+}
+
+.bank-period-title-row {
+    -fx-background-color: #165a73;
+    -fx-alignment: center;
+}
+
+.bank-period-title-row .monthly-card-title {
+    -fx-background-color: transparent;
+    -fx-font-size: 13px;
+    -fx-padding: 8 10;
+    -fx-wrap-text: true;
+    -fx-max-width: 230;
+}
+
+.card-period-title-row .monthly-card-title {
+    -fx-text-fill: #ffffff;
+}
+
+.bank-period-edit {
+    -fx-background-color: #e8f2f4;
+    -fx-text-fill: #0f465b;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 4 8;
+    -fx-min-width: 42;
+}
+
+.monthly-card-grid {
+    -fx-padding: 10 12 4 12;
+    -fx-hgap: 10;
+    -fx-vgap: 6;
+}
+
+.monthly-card-line {
+    -fx-font-size: 12px;
+    -fx-text-fill: #40524d;
+    -fx-pref-width: 118;
+    -fx-wrap-text: true;
+}
+
+.monthly-card-value {
+    -fx-font-size: 12px;
+    -fx-text-fill: #102f28;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+    -fx-min-width: 85;
+    -fx-pref-width: 85;
+}
+
+.monthly-card-value-strong {
+    -fx-font-weight: 800;
+}
+
+.monthly-card-value-danger {
+    -fx-text-fill: #b3261e;
+    -fx-font-weight: 800;
+}
+
+.monthly-card-divider {
+    -fx-padding: 2 0 2 0;
+    -fx-opacity: 0.45;
+}
+
+.monthly-card-alert {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #a32828;
+}
+
+.bank-monthly-actions {
+    -fx-padding: 4 12 0 12;
+    -fx-alignment: center-left;
+}
+
+.bank-monthly-actions .button {
+    -fx-min-width: 92;
+    -fx-pref-width: 92;
+}
+
+.credit-card-monthly-card {
+    -fx-border-color: #9db4bf;
+    -fx-background-color: #eef4f6;
+    -fx-min-width: 300;
+    -fx-pref-width: 300;
+    -fx-max-width: 300;
+}
+
+.credit-card-monthly-card:hover {
+    -fx-border-color: #315f70;
+    -fx-background-color: #e5eef1;
+}
+
+.credit-card-monthly-card .monthly-card-title {
+    -fx-background-color: #1f5f73;
+    -fx-text-fill: #ffffff;
+    -fx-min-width: 0;
+    -fx-pref-width: 244;
+    -fx-max-width: 244;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-padding: 6 8;
+}
+
+.credit-card-monthly-card .monthly-card-title-row {
+    -fx-background-color: #1f5f73;
+    -fx-min-width: 300;
+    -fx-pref-width: 300;
+    -fx-max-width: 300;
+}
+
+.credit-card-monthly-card .monthly-card-title-row .monthly-card-title {
+    -fx-background-color: transparent;
+    -fx-min-width: 0;
+    -fx-pref-width: 244;
+    -fx-max-width: 244;
+}
+
+.credit-card-monthly-card .card-monthly-actions {
+    -fx-padding: 4 10 0 10;
+    -fx-spacing: 6;
+}
+
+.credit-card-monthly-card .card-monthly-actions .button {
+    -fx-min-width: 82;
+    -fx-pref-width: 82;
+    -fx-max-width: 82;
+    -fx-font-size: 11px;
+}
+
+.credit-card-monthly-card .card-monthly-delete-actions .button {
+    -fx-min-width: 110;
+    -fx-pref-width: 110;
+    -fx-max-width: 110;
+}
+
+.review-mark-toggle {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-min-width: 24;
+    -fx-pref-width: 24;
+    -fx-max-width: 24;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+
+.review-mark-on {
+    -fx-text-fill: #d42626;
+}
+
+.review-mark-off {
+    -fx-text-fill: rgba(255, 255, 255, 0.55);
+}
+
+.card-monthly-actions {
+    -fx-padding: 4 12 0 12;
+    -fx-alignment: center;
+}
+
+.card-monthly-actions .button {
+    -fx-min-width: 86;
+    -fx-pref-width: 86;
+    -fx-max-width: 86;
+}
+
+.card-monthly-delete-actions {
+    -fx-alignment: center;
+}
+
+.card-monthly-delete-actions .button {
+    -fx-min-width: 92;
+    -fx-pref-width: 92;
+    -fx-max-width: 92;
+}
+
+.bank-account-hub {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.statement-card-list {
+    -fx-spacing: 10;
+}
+
+.statement-title-row {
+    -fx-alignment: center-left;
+    -fx-spacing: 24;
+}
+
+.statement-title-actions {
+    -fx-alignment: center-right;
+    -fx-spacing: 10;
+}
+
+.statement-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.statement-body-row {
+    -fx-spacing: 14;
+    -fx-alignment: top-left;
+}
+
+.statement-section {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #dce6df;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 10;
+}
+
+.statement-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #173d32;
+}
+
+.statement-field-row {
+    -fx-spacing: 10;
+    -fx-alignment: top-left;
+}
+
+.statement-field {
+    -fx-min-width: 150;
+    -fx-pref-width: 175;
+}
+
+.payment-due-field .statement-field-label {
+    -fx-text-fill: #a32828;
+}
+
+.statement-field-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #5f706a;
+}
+
+.statement-readonly-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: #173d32;
+}
+
+.statement-balance-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d8d3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-min-width: 560;
+    -fx-pref-width: 640;
+}
+
+.statement-balance-row {
+    -fx-border-color: transparent transparent #d9dedb transparent;
+    -fx-padding: 5 0 5 0;
+    -fx-alignment: center-left;
+    -fx-spacing: 12;
+}
+
+.statement-balance-total-row {
+    -fx-border-color: #173d32 transparent transparent transparent;
+    -fx-border-width: 2 0 0 0;
+}
+
+.statement-bilingual-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #102f28;
+    -fx-font-weight: 600;
+    -fx-min-width: 260;
+    -fx-pref-width: 260;
+}
+
+.statement-amount-cell {
+    -fx-alignment: center-right;
+    -fx-min-width: 190;
+    -fx-pref-width: 190;
+}
+
+.statement-total-cell {
+    -fx-alignment: center-right;
+    -fx-min-width: 190;
+    -fx-pref-width: 190;
+}
+
+.statement-amount-input {
+    -fx-alignment: center-right;
+    -fx-min-width: 120;
+    -fx-pref-width: 120;
+}
+
+.statement-review-cell {
+    -fx-alignment: center;
+    -fx-min-width: 90;
+    -fx-pref-width: 90;
+}
+
+.statement-money-positive {
+    -fx-text-fill: #102f28;
+}
+
+.statement-money-negative {
+    -fx-text-fill: #237545;
+}
+
+.statement-calculated-balance {
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+}
+
+.statement-pending-chip {
+    -fx-text-fill: #a32828;
+    -fx-font-weight: 700;
+}
+
+.statement-reviewed-chip {
+    -fx-text-fill: #237545;
+    -fx-font-weight: 700;
+}
+
+.statement-credit-card {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 18;
+    -fx-min-width: 330;
+    -fx-pref-width: 390;
+}
+
+.credit-info-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #173d32;
+}
+
+.credit-info-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #173d32;
+}
+
+.credit-info-input {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #102f28;
+    -fx-border-color: #cddbd3;
+}
+
+.statement-rewards-input {
+    -fx-alignment: center-right;
+    -fx-max-width: 160;
+}
+
+.mortgage-statement-summary {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 16;
+}
+
+.mortgage-month-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #073336;
+}
+
+.mortgage-top-summary {
+    -fx-alignment: top-right;
+}
+
+.mortgage-due-box {
+    -fx-background-color: #0f679d;
+    -fx-padding: 8 10 8 10;
+    -fx-pref-width: 540;
+    -fx-max-width: 540;
+}
+
+.mortgage-blue-label,
+.mortgage-blue-value {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
+.mortgage-top-input {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #073336;
+    -fx-font-weight: 800;
+    -fx-alignment: center-right;
+    -fx-pref-width: 130;
+}
+
+.mortgage-due-date-input {
+    -fx-background-color: #fff4f4;
+    -fx-border-color: #b00000;
+    -fx-text-fill: #b00000;
+}
+
+.mortgage-summary-row {
+    -fx-spacing: 14;
+    -fx-alignment: top-left;
+}
+
+.mortgage-summary-card {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+    -fx-min-width: 390;
+    -fx-pref-width: 455;
+}
+
+.mortgage-section-header {
+    -fx-background-color: #0f679d;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-padding: 6 8 6 8;
+    -fx-max-width: 99999;
+}
+
+.mortgage-section-subheader {
+    -fx-background-color: #0f679d;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-padding: 3 8 3 8;
+    -fx-max-width: 99999;
+}
+
+.mortgage-line-label,
+.mortgage-line-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: #102f28;
+}
+
+.mortgage-line-label {
+    -fx-pref-width: 185;
+}
+
+.mortgage-line-sign {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+    -fx-min-width: 14;
+    -fx-pref-width: 14;
+    -fx-alignment: center;
+}
+
+.mortgage-line-value {
+    -fx-font-weight: 700;
+}
+
+.mortgage-line-input {
+    -fx-pref-width: 125;
+    -fx-max-width: 125;
+    -fx-alignment: center-right;
+}
+
+.mortgage-past-payment-row {
+    -fx-alignment: center-left;
+}
+
+.mortgage-past-payment-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #102f28;
+    -fx-pref-width: 190;
+    -fx-wrap-text: true;
+}
+
+.mortgage-past-payment-column {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+    -fx-pref-width: 145;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+    -fx-wrap-text: true;
+}
+
+.mortgage-past-payment-input {
+    -fx-pref-width: 145;
+    -fx-max-width: 145;
+    -fx-alignment: center-right;
+}
+
+.mortgage-past-payment-separator {
+    -fx-padding: 4 0 4 0;
+}
+
+.mortgage-bold-line .label {
+    -fx-font-weight: 800;
+}
+
+.mortgage-total-line {
+    -fx-background-color: #0f679d;
+    -fx-padding: 4 8 4 8;
+}
+
+.mortgage-total-line .label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+}
+
+.mortgage-activity-card {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+}
+
+.mortgage-activity-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-min-height: 138;
+}
+
+.mortgage-activity-header .label {
+    -fx-font-weight: 800;
+}
+
+.mortgage-activity-cell {
+    -fx-font-size: 12px;
+    -fx-text-fill: #102f28;
+}
+
+.mortgage-activity-input {
+    -fx-font-size: 12px;
+    -fx-text-fill: #102f28;
+    -fx-alignment: center-right;
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+}
+
+.mortgage-activity-date {
+    -fx-min-width: 88;
+    -fx-pref-width: 88;
+    -fx-max-width: 88;
+}
+
+.mortgage-activity-description {
+    -fx-min-width: 190;
+    -fx-pref-width: 220;
+    -fx-max-width: 260;
+}
+
+.mortgage-activity-money {
+    -fx-min-width: 95;
+    -fx-pref-width: 105;
+    -fx-max-width: 105;
+}
+
+.mortgage-activity-review,
+.mortgage-activity-review-cell {
+    -fx-min-width: 70;
+    -fx-pref-width: 70;
+    -fx-max-width: 70;
+    -fx-alignment: center;
+}
+
+.mortgage-activity-delete {
+    -fx-min-width: 86;
+    -fx-pref-width: 86;
+    -fx-max-width: 86;
+}
+
+.mortgage-monthly-summary-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c7d6d8;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 0 0 12 0;
+    -fx-min-width: 285;
+    -fx-pref-width: 310;
+    -fx-max-width: 310;
+}
+
+.mortgage-monthly-summary-title {
+    -fx-background-color: #0d4f78;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-padding: 10 14 10 14;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-max-width: 99999;
+}
+
+.mortgage-monthly-summary-title-row {
+    -fx-background-color: #0d4f78;
+    -fx-alignment: center-left;
+}
+
+.mortgage-monthly-summary-title-row .mortgage-monthly-summary-title {
+    -fx-background-color: transparent;
+    -fx-max-width: 99999;
+}
+
+.mortgage-monthly-cards-row {
+    -fx-padding: 4 0 8 0;
+}
+
+.mortgage-monthly-summary-row {
+    -fx-padding: 10 12 0 12;
+    -fx-hgap: 12;
+    -fx-vgap: 6;
+}
+
+.mortgage-monthly-summary-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 400;
+    -fx-text-fill: #102f28;
+    -fx-pref-width: 175;
+    -fx-wrap-text: true;
+}
+
+.mortgage-monthly-summary-value {
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+    -fx-min-width: 105;
+    -fx-pref-width: 105;
+    -fx-max-width: 105;
+    -fx-font-size: 14px;
+    -fx-text-fill: #073336;
+}
+
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #6f7772;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar:horizontal .thumb:hover,
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #4e5652;
+}
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track {
+    -fx-background-color: #d9dfdb;
+}
+
+.danger-button {
+    -fx-text-fill: #8a0000;
+}
+
+.debt-evolution-link {
+    -fx-background-color: #005f9e;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+    -fx-background-radius: 6;
+    -fx-padding: 8 16;
+}
+
+.debt-evolution-link:hover {
+    -fx-background-color: #004a7c;
+}
+
+.mortgage-evolution-table {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-hgap: 0;
+    -fx-vgap: 0;
+}
+
+.mortgage-evolution-header {
+    -fx-background-color: #eaf1f4;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-min-width: 150;
+    -fx-pref-width: 165;
+    -fx-padding: 8 10 8 10;
+    -fx-border-color: transparent transparent #cddbd3 transparent;
+}
+
+.mortgage-evolution-cell {
+    -fx-text-fill: #102f28;
+    -fx-min-width: 150;
+    -fx-pref-width: 165;
+    -fx-padding: 8 10 8 10;
+    -fx-border-color: transparent transparent #edf2ef transparent;
+}
+
+.mortgage-evolution-total-cell {
+    -fx-font-weight: 800;
+    -fx-background-color: #f5f8f6;
+    -fx-border-color: #cddbd3 transparent transparent transparent;
+}
+
+.mortgage-evolution-money {
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+}
+
+.credit-math-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 10;
+}
+
+.credit-advance-card {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #dce6df;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 10;
+}
+
+.rewards-row {
+    -fx-alignment: top-left;
+    -fx-spacing: 12;
+}
+
+.discover-statement-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c9d4d9;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.discover-title-row,
+.discover-top-row {
+    -fx-alignment: top-left;
+}
+
+.discover-title-row {
+    -fx-spacing: 12;
+}
+
+.discover-top-row {
+    -fx-spacing: 14;
+}
+
+.discover-payment-column {
+    -fx-spacing: 12;
+}
+
+.discover-lower-row {
+    -fx-spacing: 14;
+    -fx-alignment: top-left;
+}
+
+.discover-statement-grid {
+    -fx-hgap: 18;
+    -fx-vgap: 16;
+}
+
+.discover-panel,
+.discover-wide-panel {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d6dde1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 0 0 10 0;
+}
+
+.discover-panel {
+    -fx-min-width: 610;
+    -fx-pref-width: 690;
+    -fx-max-width: 760;
+}
+
+.discover-payment-panel {
+    -fx-min-height: 118;
+    -fx-pref-height: 132;
+}
+
+.discover-wide-panel {
+    -fx-min-width: 610;
+    -fx-pref-width: 690;
+    -fx-max-width: 760;
+}
+
+.discover-section-header {
+    -fx-background-color: #165f88;
+    -fx-padding: 8 10;
+    -fx-alignment: center-left;
+    -fx-min-height: 58;
+}
+
+.discover-section-header-centered {
+    -fx-alignment: center;
+}
+
+.discover-section-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 17px;
+    -fx-font-weight: 800;
+    -fx-wrap-text: true;
+}
+
+.discover-section-period {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-alignment: center-right;
+}
+
+.discover-line-list {
+    -fx-padding: 8 12 0 12;
+}
+
+.discover-line-row {
+    -fx-alignment: center-left;
+    -fx-padding: 3 0;
+}
+
+.discover-total-row {
+    -fx-border-color: #cfd8dc transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 0 3 0;
+}
+
+.discover-line-label {
+    -fx-min-width: 250;
+    -fx-pref-width: 285;
+}
+
+.discover-line-amount {
+    -fx-alignment: center-right;
+    -fx-min-width: 130;
+    -fx-pref-width: 140;
+}
+
+.discover-sign {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+    -fx-min-width: 14;
+}
+
+.discover-money-input {
+    -fx-alignment: center-right;
+    -fx-pref-width: 105;
+    -fx-max-width: 105;
+}
+
+.discover-total-label {
+    -fx-font-weight: 800;
+}
+
+.discover-total-input {
+    -fx-font-weight: 800;
+}
+
+.discover-line-check {
+    -fx-min-width: 24;
+    -fx-pref-width: 24;
+    -fx-max-width: 24;
+}
+
+.discover-thin-separator {
+    -fx-padding: 4 12 2 12;
+    -fx-opacity: 0.55;
+}
+
+.discover-payment-grid {
+    -fx-padding: 12 14 0 14;
+    -fx-spacing: 16;
+}
+
+.discover-large-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+    -fx-min-width: 132;
+    -fx-pref-width: 138;
+}
+
+.discover-large-input {
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #102f28;
+    -fx-alignment: center-right;
+    -fx-pref-width: 105;
+    -fx-max-width: 105;
+}
+
+.discover-large-amount {
+    -fx-alignment: center-left;
+}
+
+.discover-warning-box {
+    -fx-padding: 0 12;
+}
+
+.discover-notice {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #253235;
+}
+
+.discover-projection-grid {
+    -fx-padding: 0 12;
+}
+
+.discover-projection-header,
+.discover-projection-cell {
+    -fx-border-color: #cfd6da;
+    -fx-padding: 8;
+    -fx-min-width: 155;
+    -fx-pref-width: 185;
+}
+
+.discover-projection-header {
+    -fx-background-color: #e5e9eb;
+    -fx-font-weight: 700;
+}
+
+.discover-subsection-title {
+    -fx-padding: 8 12 0 12;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #253235;
+}
+
+.discover-transactions-grid {
+    -fx-padding: 8 12 0 12;
+    -fx-hgap: 8;
+    -fx-vgap: 5;
+}
+
+.discover-transaction-header {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #253235;
+    -fx-min-width: 90;
+}
+
+.discover-transaction-cell {
+    -fx-font-size: 13px;
+    -fx-text-fill: #102f28;
+    -fx-min-width: 90;
+}
+
+.discover-transactions-grid .discover-money-cell {
+    -fx-pref-width: 150;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+}
+
+.discover-transaction-input {
+    -fx-font-size: 12px;
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+}
+
+.discover-transaction-review-cell {
+    -fx-alignment: center;
+    -fx-min-width: 62;
+    -fx-pref-width: 62;
+}
+
+.discover-transaction-total-cell {
+    -fx-border-color: #cfd8dc transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 0 0 0;
+    -fx-font-weight: 800;
+}
+
+.discover-transaction-total-amount {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}
+
+.discover-add-row-button {
+    -fx-background-color: #e8f2f4;
+    -fx-text-fill: #0f465b;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 5 10;
+    -fx-min-width: 132;
+    -fx-max-width: 150;
+    -fx-translate-x: 12;
+}
+
+.discover-date-cell {
+    -fx-pref-width: 90;
+}
+
+.discover-description-cell {
+    -fx-pref-width: 270;
+}
+
+.discover-amount-cell {
+    -fx-pref-width: 110;
+}
+
+.discover-check-cell {
+    -fx-pref-width: 68;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
