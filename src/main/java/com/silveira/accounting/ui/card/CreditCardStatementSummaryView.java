@@ -26,7 +26,7 @@ public class CreditCardStatementSummaryView {
 
     public VBox build(CreditCardStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, Consumer<Boolean> allReviewedChanged, Runnable editAction) {
         VBox card = new VBox(14);
-        card.getStyleClass().addAll("card-statement-sheet", "monthly-card");
+        card.getStyleClass().addAll("statement-card", "monthly-card");
 
         CheckBox reviewed = new CheckBox("Todo revisado");
         reviewed.setSelected(fieldKeys(statement).stream().allMatch(fieldReviewed));
@@ -36,11 +36,11 @@ public class CreditCardStatementSummaryView {
         HBox.setHgrow(header.getChildren().get(0), Priority.ALWAYS);
 
         HBox payment = new HBox(12,
-            heroAmount("New Balance", Money.format(accountSummaryBalance(statement)), "statement-balance-due"),
-            heroAmount("Minimum Payment Due", Money.format(statement.getMinimumPaymentDue()), "statement-minimum-due"),
-            heroAmount("Payment Due Date", formatShortDate(statement.getPaymentDueDate()), "statement-date-due")
+            heroAmount("New Balance", Money.format(accountSummaryBalance(statement))),
+            heroAmount("Minimum Payment Due", Money.format(statement.getMinimumPaymentDue())),
+            heroAmount("Payment Due Date", formatShortDate(statement.getPaymentDueDate()))
         );
-        payment.getStyleClass().add("statement-payment-row");
+        payment.getStyleClass().add("statement-field-row");
 
         GridPane accountSummary = section("Account Summary");
         addMoneyRow(accountSummary, 1, "previous_balance", "Previous Balance", "+", statement.getPreviousBalance(), fieldReviewed, fieldReviewedChanged);
@@ -102,9 +102,9 @@ public class CreditCardStatementSummaryView {
 
     private VBox statementIdentity(CreditCardStatement statement) {
         Label bank = new Label(identityLine(statement));
-        bank.getStyleClass().add("statement-bank-title");
+        bank.getStyleClass().add("credit-info-title");
         Label period = new Label(periodLine(statement));
-        period.getStyleClass().add("statement-period-line");
+        period.getStyleClass().add("statement-field-label");
         VBox box = new VBox(3, bank, period);
         box.setMaxWidth(Double.MAX_VALUE);
         return box;
@@ -127,13 +127,13 @@ public class CreditCardStatementSummaryView {
         return end.isBlank() ? "Statement Period" : "Statement Closing Date: " + end;
     }
 
-    private VBox heroAmount(String title, String value, String style) {
+    private VBox heroAmount(String title, String value) {
         Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("statement-hero-title");
+        titleLabel.getStyleClass().add("statement-field-label");
         Label valueLabel = new Label(value);
-        valueLabel.getStyleClass().addAll("statement-hero-value", style);
+        valueLabel.getStyleClass().add("credit-info-title");
         VBox box = new VBox(4, titleLabel, valueLabel);
-        box.getStyleClass().add("statement-hero-box");
+        box.getStyleClass().add("statement-section");
         HBox.setHgrow(box, Priority.ALWAYS);
         box.setMaxWidth(Double.MAX_VALUE);
         return box;
@@ -141,7 +141,7 @@ public class CreditCardStatementSummaryView {
 
     private GridPane section(String title) {
         GridPane grid = new GridPane();
-        grid.getStyleClass().add("statement-section-grid");
+        grid.getStyleClass().add("statement-section");
         grid.setHgap(10);
         grid.setVgap(7);
         ColumnConstraints label = new ColumnConstraints();
@@ -160,7 +160,7 @@ public class CreditCardStatementSummaryView {
         heading.getStyleClass().add("statement-section-title");
         grid.add(heading, 0, 0, 4, 1);
         Label reviewTitle = new Label("Revisado");
-        reviewTitle.getStyleClass().add("statement-review-title");
+        reviewTitle.getStyleClass().add("statement-field-label");
         grid.add(reviewTitle, 3, 0);
         return grid;
     }
@@ -171,11 +171,11 @@ public class CreditCardStatementSummaryView {
 
     private void addMoneyRow(GridPane grid, int row, String fieldName, String label, String sign, double amount, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         Label labelNode = new Label(label);
-        labelNode.getStyleClass().add("statement-row-label");
+        labelNode.getStyleClass().add("statement-bilingual-label");
         Label signNode = new Label(sign);
-        signNode.getStyleClass().add("statement-row-sign");
+        signNode.getStyleClass().add("statement-readonly-value");
         Label valueNode = new Label(Money.format(amount));
-        valueNode.getStyleClass().add("statement-row-value");
+        valueNode.getStyleClass().add("statement-readonly-value");
         grid.add(labelNode, 0, row);
         grid.add(signNode, 1, row);
         grid.add(valueNode, 2, row);
@@ -203,7 +203,7 @@ public class CreditCardStatementSummaryView {
         addMoneyRow(grid, 3, "rewards_redeemed", "Redeemed This Period", statement.getRewardsRedeemed(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(grid, 4, "rewards_balance", "Rewards Balance", statement.getRewardsBalance(), fieldReviewed, fieldReviewedChanged);
         VBox box = new VBox(grid);
-        box.getStyleClass().add("statement-rewards-box");
+        box.getStyleClass().add("rewards-row");
         return box;
     }
 
@@ -221,7 +221,7 @@ public class CreditCardStatementSummaryView {
             text += " | " + notes;
         }
         Label status = new Label(text);
-        status.getStyleClass().add(statement.isPendingReview() ? "statement-status-pending" : "statement-status-ok");
+        status.getStyleClass().add(statement.isPendingReview() ? "statement-pending-chip" : "statement-reviewed-chip");
         return status;
     }
 

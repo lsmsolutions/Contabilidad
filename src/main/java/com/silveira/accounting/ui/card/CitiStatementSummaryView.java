@@ -38,7 +38,7 @@ public class CitiStatementSummaryView {
 
     public VBox build(CreditCardStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, Consumer<Boolean> allReviewedChanged, Runnable editAction) {
         VBox card = new VBox(13);
-        card.getStyleClass().addAll("citi-statement-card", "monthly-card");
+        card.getStyleClass().addAll("statement-card", "monthly-card");
 
         CheckBox reviewed = new CheckBox("Todo revisado");
         reviewed.setSelected(FIELDS.stream().allMatch(fieldReviewed));
@@ -49,10 +49,11 @@ public class CitiStatementSummaryView {
         HBox.setHgrow(header.getChildren().get(0), Priority.ALWAYS);
 
         HBox top = new HBox(12,
-            paymentBox("New balance as of " + formatShortDate(statement.getStatementEndDate()), Money.format(statement.getNewBalance()), "citi-balance"),
-            paymentBox("Minimum payment due", Money.format(statement.getMinimumPaymentDue()), "citi-minimum"),
-            paymentBox("Payment due date", formatShortDate(statement.getPaymentDueDate()), "citi-date")
+            paymentBox("New balance as of " + formatShortDate(statement.getStatementEndDate()), Money.format(statement.getNewBalance())),
+            paymentBox("Minimum payment due", Money.format(statement.getMinimumPaymentDue())),
+            paymentBox("Payment due date", formatShortDate(statement.getPaymentDueDate()))
         );
+        top.getStyleClass().add("statement-field-row");
 
         GridPane account = section("Account Summary");
         addRow(account, 1, "previous_balance", "Previous balance", "", statement.getPreviousBalance(), fieldReviewed, fieldReviewedChanged);
@@ -89,22 +90,22 @@ public class CitiStatementSummaryView {
 
     private VBox identity(CreditCardStatement statement) {
         Label title = new Label(text(statement.getCardName()).isBlank() ? "Citi Card" : text(statement.getCardName()));
-        title.getStyleClass().add("citi-title");
+        title.getStyleClass().add("credit-info-title");
         Label subtitle = new Label("Billing Period: " + formatShortDate(statement.getStatementStartDate()) + "-" + formatShortDate(statement.getStatementEndDate())
             + " | Account number ending in: " + text(statement.getAccountLastDigits()));
-        subtitle.getStyleClass().add("citi-subtitle");
+        subtitle.getStyleClass().add("statement-field-label");
         VBox box = new VBox(3, title, subtitle);
         box.setMaxWidth(Double.MAX_VALUE);
         return box;
     }
 
-    private VBox paymentBox(String title, String value, String styleClass) {
+    private VBox paymentBox(String title, String value) {
         Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("citi-payment-title");
+        titleLabel.getStyleClass().add("statement-field-label");
         Label valueLabel = new Label(value);
-        valueLabel.getStyleClass().addAll("citi-payment-value", styleClass);
+        valueLabel.getStyleClass().add("credit-info-title");
         VBox box = new VBox(4, titleLabel, valueLabel);
-        box.getStyleClass().add("citi-payment-box");
+        box.getStyleClass().add("statement-section");
         HBox.setHgrow(box, Priority.ALWAYS);
         box.setMaxWidth(Double.MAX_VALUE);
         return box;
@@ -112,7 +113,7 @@ public class CitiStatementSummaryView {
 
     private GridPane section(String title) {
         GridPane grid = new GridPane();
-        grid.getStyleClass().add("citi-section-grid");
+        grid.getStyleClass().add("statement-section");
         grid.setHgap(9);
         grid.setVgap(7);
         ColumnConstraints label = new ColumnConstraints();
@@ -128,21 +129,21 @@ public class CitiStatementSummaryView {
         review.setMinWidth(76);
         grid.getColumnConstraints().setAll(label, sign, value, review);
         Label heading = new Label(title);
-        heading.getStyleClass().add("citi-section-title");
+        heading.getStyleClass().add("statement-section-title");
         grid.add(heading, 0, 0, 4, 1);
         Label reviewTitle = new Label("Revisado");
-        reviewTitle.getStyleClass().add("citi-review-title");
+        reviewTitle.getStyleClass().add("statement-field-label");
         grid.add(reviewTitle, 3, 0);
         return grid;
     }
 
     private void addRow(GridPane grid, int row, String fieldName, String label, String sign, double amount, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         Label labelNode = new Label(label);
-        labelNode.getStyleClass().add("citi-row-label");
+        labelNode.getStyleClass().add("statement-bilingual-label");
         Label signNode = new Label(sign);
-        signNode.getStyleClass().add("citi-row-sign");
+        signNode.getStyleClass().add("statement-readonly-value");
         Label amountNode = new Label(Money.format(amount));
-        amountNode.getStyleClass().add("citi-row-value");
+        amountNode.getStyleClass().add("statement-readonly-value");
         CheckBox check = new CheckBox();
         check.setSelected(fieldReviewed.test(fieldName));
         check.setOnAction(event -> fieldReviewedChanged.accept(fieldName, check.isSelected()));
@@ -159,7 +160,7 @@ public class CitiStatementSummaryView {
             text += " | " + notes;
         }
         Label status = new Label(text);
-        status.getStyleClass().add(statement.isPendingReview() ? "statement-status-pending" : "statement-status-ok");
+        status.getStyleClass().add(statement.isPendingReview() ? "statement-pending-chip" : "statement-reviewed-chip");
         return status;
     }
 
