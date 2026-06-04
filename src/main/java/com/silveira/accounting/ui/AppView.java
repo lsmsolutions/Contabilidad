@@ -10,7 +10,6 @@ import com.silveira.accounting.controllers.bank.BankPeriodController;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.bank.BankAccount;
-import com.silveira.accounting.models.bank.BankStatementPeriod;
 import com.silveira.accounting.models.CreditCardAccount;
 import com.silveira.accounting.models.CreditCardAnalysis;
 import com.silveira.accounting.models.CreditCardStatement;
@@ -60,7 +59,6 @@ import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankImportWorkflowView;
 import com.silveira.accounting.ui.bank.BankPendingReviewPageView;
 import com.silveira.accounting.ui.bank.BankPeriodWorkflowView;
-import com.silveira.accounting.ui.bank.BankPeriodTextFormatter;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.utils.Fingerprint;
@@ -711,15 +709,6 @@ public class AppView {
             bankAccountController.list(),
             this::bankPeriodSummaries
         );
-    }
-
-    private String dashboardBankPeriod(String accountAlias, MonthlySourceTotals total) {
-        List<BankTransaction> rows = bank.transactions().find(total.year(), total.month(), null, null, accountAlias).stream()
-            .filter(row -> !row.isPendingReview())
-            .toList();
-        LocalDate start = rows.stream().map(BankTransaction::getDate).min(LocalDate::compareTo).orElse(LocalDate.of(total.year(), total.month(), 1));
-        LocalDate end = rows.stream().map(BankTransaction::getDate).max(LocalDate::compareTo).orElse(start);
-        return shortDate(start) + " - " + shortDate(end);
     }
 
     private VBox dashboardNylMonthlyChartPanel() {
@@ -2866,10 +2855,6 @@ public class AppView {
         return row;
     }
 
-    private double reviewedBankProviderIncome(int year, int month, String accountAlias, String provider) {
-        return bankAccountDetailController.reviewedProviderIncome(year, month, accountAlias, provider);
-    }
-
     private List<javafx.scene.Node> cardTotalsNodes(SourceTotals totals) {
         return List.of(
             miniTotal("OK", String.valueOf(totals.reviewedCount()), "neutral-total"),
@@ -3318,10 +3303,6 @@ public class AppView {
 
     private List<BankPeriodSummary> bankPeriodSummaries(String accountAliasFilter) {
         return bankAccountDetailController.periodSummaries(accountAliasFilter);
-    }
-
-    private String bankPeriodTitle(BankStatementPeriod period) {
-        return BankPeriodTextFormatter.title(period);
     }
 
     private String shortDate(LocalDate date) {
