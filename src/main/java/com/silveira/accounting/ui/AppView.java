@@ -55,6 +55,7 @@ import com.silveira.accounting.services.ReconciliationService;
 import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
+import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
@@ -1172,23 +1173,44 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        VBox card = monthlyActionCard(
-            cardStatementTitle(statement),
-            "Saldo anterior: " + Money.format(statement.getPreviousBalance()),
-            "Saldo usado: " + Money.format(statement.getNewBalance()),
-            "Pago minimo: " + Money.format(statement.getMinimumPaymentDue()),
-            "Pendiente revision: " + (statement.isPendingReview() ? "Si" : "No"),
-            () -> table.getSelectionModel().select(statement)
+        VBox card = new CreditCardStatementSummaryView().build(
+            statement,
+            reviewed -> {
+                updateCreditCardStatementReview(statement, reviewed);
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            })
         );
-        Button edit = new Button("Editar datos");
-        edit.setOnAction(event -> showCreditCardPeriodDialog(List.of(statement), () -> {
-            table.refresh();
-            refreshTotals.run();
-            refreshCreditCardStatementCards(table, cards, refreshTotals);
-        }));
-        card.getChildren().add(edit);
-        card.getStyleClass().add("monthly-card");
+        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
         return card;
+    }
+
+    private void updateCreditCardStatementReview(CreditCardStatement statement, boolean reviewed) {
+        statement.setPendingReview(!reviewed);
+        statement.setReviewRequired(!reviewed);
+        if (reviewed && (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank() || statement.getReviewNotes().startsWith("Revisar"))) {
+            statement.setReviewNotes("Revisado");
+        }
+        if (statement.getId() > 0) {
+            creditCardStatementRepository.updateRecord(statement);
+        }
+    }
+
+    private void updateCreditCardMovementReview(CreditCardTransaction movement, boolean reviewed) {
+        movement.setPendingReview(!reviewed);
+        movement.setReviewRequired(!reviewed);
+        if (reviewed && (movement.getReviewNotes() == null || movement.getReviewNotes().isBlank() || movement.getReviewNotes().startsWith("Revisar"))) {
+            movement.setReviewNotes("Revisado");
+        }
+        if (movement.getId() > 0) {
+            creditCardTransactionRepository.update(movement);
+        }
     }
 
     private String cardStatementTitle(CreditCardStatement statement) {
@@ -4176,11 +4198,7 @@ public class AppView {
                 checkBox.setOnAction(event -> {
                     CreditCardStatement statement = getTableView().getItems().get(getIndex());
                     boolean isReviewed = checkBox.isSelected();
-                    statement.setPendingReview(!isReviewed);
-                    statement.setReviewRequired(!isReviewed);
-                    if (isReviewed && (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank() || statement.getReviewNotes().startsWith("Revisar"))) {
-                        statement.setReviewNotes("Revisado");
-                    }
+                    updateCreditCardStatementReview(statement, isReviewed);
                     getTableView().refresh();
                 });
             }
@@ -4395,11 +4413,7 @@ public class AppView {
                 checkBox.setOnAction(event -> {
                     CreditCardTransaction movement = getTableView().getItems().get(getIndex());
                     boolean isReviewed = checkBox.isSelected();
-                    movement.setPendingReview(!isReviewed);
-                    movement.setReviewRequired(!isReviewed);
-                    if (isReviewed && (movement.getReviewNotes() == null || movement.getReviewNotes().isBlank() || movement.getReviewNotes().startsWith("Revisar"))) {
-                        movement.setReviewNotes("Revisado");
-                    }
+                    updateCreditCardMovementReview(movement, isReviewed);
                     getTableView().refresh();
                 });
             }
