@@ -52,14 +52,9 @@ import com.silveira.accounting.services.MortgageAnalysisService;
 import com.silveira.accounting.services.MortgageImportService;
 import com.silveira.accounting.services.OcrService;
 import com.silveira.accounting.services.ReconciliationService;
-import com.silveira.accounting.ui.bank.BankAccountDetailScreenView;
-import com.silveira.accounting.ui.bank.BankAccountWorkflowView;
-import com.silveira.accounting.ui.bank.BankAccountTextFormatter;
 import com.silveira.accounting.ui.bank.BankDashboardPanelView;
-import com.silveira.accounting.ui.bank.BankImportWorkflowView;
-import com.silveira.accounting.ui.bank.BankPendingReviewPageView;
-import com.silveira.accounting.ui.bank.BankPeriodWorkflowView;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
+import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
@@ -864,63 +859,48 @@ public class AppView {
     }
 
     private void showBank() {
-        selectedBankAccountAlias = null;
-        bankAccountWorkflow().showHub();
-    }
-
-    private BankAccountWorkflowView bankAccountWorkflow() {
-        return new BankAccountWorkflowView(
-            bankAccountController,
-            bankAccountWorkflow,
-            new BankAccountWorkflowView.Config(
-                (title, nodes) -> setPage(page(title, nodes)),
-                this::setDarkHubPage,
-                back -> backButton("Volver a Banco", back),
-                this::promptText,
-                this::alert,
-                this::confirm,
-                this::rebuildSidebar,
-                this::showBankAccount
-            )
-        );
+        bankShellWorkflow().showHub();
     }
 
     private void showBankAccount(String accountAlias) {
-        selectedBankAccountAlias = accountAlias;
-        setPage(new BankAccountDetailScreenView(bank, bankAccountDetailController, bankImportController).build(
-            new BankAccountDetailScreenView.Config(
-                accountAlias,
-                bankAccountPageTitle(accountAlias),
-                selectedYearValue,
-                selectedMonthValue,
-                backButton("Volver a Banco", this::showBank),
-                (title, message) -> alert(Alert.AlertType.INFORMATION, title, message),
+        bankShellWorkflow().showAccount(accountAlias);
+    }
+
+    private BankShellWorkflow bankShellWorkflow() {
+        return new BankShellWorkflow(
+            bank,
+            bankAccountController,
+            bankAccountDetailController,
+            bankAccountWorkflow,
+            bankImportController,
+            bankPeriodController,
+            excelExportService,
+            new BankShellWorkflow.Config(
+                (title, nodes) -> setPage(page(title, nodes)),
+                this::setDarkHubPage,
+                this::setPage,
+                this::backButton,
+                this::promptText,
+                this::alert,
+                this::confirm,
+                this::choosePdf,
+                this::chooseExcel,
+                this::showProcessing,
+                this::rootCauseMessage,
+                (title, table, confirm, warningNode) -> showReview(title, table, confirm, warningNode),
+                this::rebuildSidebar,
+                () -> selectedBankAccountAlias,
+                alias -> selectedBankAccountAlias = alias,
                 (year, month) -> {
                     selectedYearValue = year;
                     selectedMonthValue = month;
                 },
-                refresh -> importBank(refresh),
-                refresh -> bankImportWorkflow().showManualPeriodDialog(accountAlias, refresh),
-                (period, refresh) -> bankImportWorkflow().deleteSelectedPeriod(period, refresh),
-                period -> reviewMarkLabel(
-                    "bank",
-                    period.accountAlias(),
-                    period.periodEnd().getYear(),
-                    period.periodEnd().getMonthValue()
-                ),
-                period -> bankPeriodWorkflow().showPeriodDialog(period, () -> showBankAccount(selectedBankAccountAlias)),
-                period -> bankPeriodWorkflow().exportMonthly(selectedBankAccountAlias, period.periodEnd().getYear(), period.periodEnd().getMonthValue()),
-                () -> showBankAccount(selectedBankAccountAlias)
+                this::selectedYear,
+                this::selectedMonth,
+                this::reviewMarkLabel
             )
-        ));
+        );
     }
-
-    private String bankAccountPageTitle(String accountAlias) {
-        return bankAccountController.find(accountAlias)
-            .map(BankAccountTextFormatter::pageTitle)
-            .orElse(BankAccountTextFormatter.pageTitle(accountAlias));
-    }
-
     private void showCards() {
         List<CreditCardAccount> accounts = creditCardAccountRepository.findAll();
         Button add = new Button("+ Anadir tarjeta");
@@ -2260,7 +2240,7 @@ public class AppView {
     private void exportAllBankMonthly() {
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        bankPeriodWorkflow().exportAllMonthly(year, month);
+        bankShellWorkflow().exportAllMonthly(year, month);
     }
 
     private void exportAllCardsMonthly() {
@@ -2272,46 +2252,6 @@ public class AppView {
         }
         excelExportService.exportCreditCardMonthly(file.toPath(), allCardStatements(year, month), allCardTransactions(year, month));
         alert(Alert.AlertType.INFORMATION, "Tarjetas exportadas", file.getAbsolutePath());
-    }
-
-    private void importBank(Runnable refresh) {
-        bankImportWorkflow().importPdf(refresh);
-    }
-
-    private BankImportWorkflowView bankImportWorkflow() {
-        return new BankImportWorkflowView(bank, bankImportController, new BankImportWorkflowView.Config(
-            this::choosePdf,
-            this::alert,
-            this::confirm,
-            this::showProcessing,
-            this::rootCauseMessage,
-            (title, table, confirm, warningNode) -> showReview(title, table, confirm, warningNode),
-            this::rebuildSidebar,
-            this::setPage,
-            back -> backButton("Volver atrás", back),
-            this::showBank,
-            this::showBankAccount,
-            () -> selectedBankAccountAlias,
-            alias -> selectedBankAccountAlias = alias,
-            (year, month) -> {
-                selectedYearValue = year;
-                selectedMonthValue = month;
-            },
-            this::selectedYear,
-            this::selectedMonth
-        ));
-    }
-    private BankPeriodWorkflowView bankPeriodWorkflow() {
-        return new BankPeriodWorkflowView(
-            bankPeriodController,
-            bankAccountDetailController,
-            excelExportService,
-            new BankPeriodWorkflowView.Config(
-                this::alert,
-                this::rootCauseMessage,
-                this::chooseExcel
-            )
-        );
     }
 
     private void importNyl(Runnable refresh) {
