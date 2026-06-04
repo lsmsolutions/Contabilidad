@@ -17,15 +17,14 @@ import java.util.function.Function;
 public class BankDashboardPanelView {
     public VBox build(
         List<BankAccount> accounts,
-        Function<String, List<BankPeriodSummary>> periodSummaries,
-        Function<String, String> expectedPdfLabel
+        Function<String, List<BankPeriodSummary>> periodSummaries
     ) {
         Label title = new Label("Banco");
         title.getStyleClass().add("dashboard-panel-title");
         HBox accountCards = new HBox(12);
         accountCards.getStyleClass().add("dashboard-bank-accounts");
         for (BankAccount account : accounts) {
-            accountCards.getChildren().add(accountCard(account, periodSummaries, expectedPdfLabel));
+            accountCards.getChildren().add(accountCard(account, periodSummaries));
         }
         if (accountCards.getChildren().isEmpty()) {
             Label empty = new Label("No hay cuentas bancarias registradas.");
@@ -39,8 +38,7 @@ public class BankDashboardPanelView {
 
     private VBox accountCard(
         BankAccount account,
-        Function<String, List<BankPeriodSummary>> periodSummaries,
-        Function<String, String> expectedPdfLabel
+        Function<String, List<BankPeriodSummary>> periodSummaries
     ) {
         Optional<BankPeriodSummary> latest = periodSummaries.apply(account.getAlias()).stream()
             .max(Comparator.comparing(summary -> summary.statementPeriod().periodEnd()));
@@ -55,9 +53,17 @@ public class BankDashboardPanelView {
             .orElseGet(() -> bars(0, 0));
         VBox box = new VBox(8, name, period, bars);
         box.getStyleClass().add("dashboard-bank-card");
-        Label expectedPdf = new Label(expectedPdfLabel.apply(account.getAlias()));
+        Label expectedPdf = new Label(expectedPdfLabel(account.getAlias()));
         expectedPdf.getStyleClass().add("dashboard-bank-pdf");
         return new VBox(5, box, expectedPdf);
+    }
+
+    private String expectedPdfLabel(String alias) {
+        return switch (alias == null ? "" : alias.trim()) {
+            case "cta_15705" -> "PDF: fin/inicio";
+            case "cta_55385" -> "PDF: 14-17 cada mes";
+            default -> "PDF: -";
+        };
     }
 
     private HBox bars(double deposits, double withdrawals) {

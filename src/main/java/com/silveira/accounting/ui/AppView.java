@@ -709,17 +709,8 @@ public class AppView {
     private VBox dashboardBankPanel() {
         return new BankDashboardPanelView().build(
             bankAccountController.list(),
-            this::bankPeriodSummaries,
-            this::dashboardExpectedBankPdf
+            this::bankPeriodSummaries
         );
-    }
-
-    private String dashboardExpectedBankPdf(String alias) {
-        return switch (alias == null ? "" : alias.trim()) {
-            case "cta_15705" -> "PDF: fin/inicio";
-            case "cta_55385" -> "PDF: 14-17 cada mes";
-            default -> "PDF: -";
-        };
     }
 
     private String dashboardBankPeriod(String accountAlias, MonthlySourceTotals total) {
