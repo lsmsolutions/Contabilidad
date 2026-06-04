@@ -1176,6 +1176,9 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        if (!isCapitalOneStatement(statement)) {
+            return editableGenericCreditCardStatementCard(statement, table, cards, refreshTotals);
+        }
         CreditCardStatementSummaryView summaryView = new CreditCardStatementSummaryView();
         List<String> fieldKeys = summaryView.fieldKeys(statement);
         boolean defaultReviewed = !statement.isPendingReview();
@@ -1202,6 +1205,33 @@ public class AppView {
         );
         card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
         return card;
+    }
+
+    private VBox editableGenericCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        VBox card = monthlyActionCard(
+            cardStatementTitle(statement),
+            "Saldo anterior: " + Money.format(statement.getPreviousBalance()),
+            "Saldo usado: " + Money.format(statement.getNewBalance()),
+            "Pago minimo: " + Money.format(statement.getMinimumPaymentDue()),
+            "Pendiente revision: " + (statement.isPendingReview() ? "Si" : "No"),
+            () -> table.getSelectionModel().select(statement)
+        );
+        Button edit = new Button("Editar datos");
+        edit.setOnAction(event -> showCreditCardPeriodDialog(List.of(statement), () -> {
+            table.refresh();
+            refreshTotals.run();
+            refreshCreditCardStatementCards(table, cards, refreshTotals);
+        }));
+        card.getChildren().add(edit);
+        card.getStyleClass().add("monthly-card");
+        return card;
+    }
+
+    private boolean isCapitalOneStatement(CreditCardStatement statement) {
+        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
+        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
+        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
+        return bank.contains("capital one") || alias.contains("capitalone") || card.contains("capital one");
     }
 
     private void updateCreditCardStatementFieldReview(CreditCardStatement statement, String fieldName, boolean reviewed, List<String> fieldKeys) {
