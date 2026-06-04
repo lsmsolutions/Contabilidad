@@ -56,6 +56,7 @@ import com.silveira.accounting.services.ReconciliationService;
 import com.silveira.accounting.ui.bank.BankAccountDetailScreenView;
 import com.silveira.accounting.ui.bank.BankAccountWorkflowView;
 import com.silveira.accounting.ui.bank.BankAccountTextFormatter;
+import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankImportWorkflowView;
 import com.silveira.accounting.ui.bank.BankPendingReviewPageView;
 import com.silveira.accounting.ui.bank.BankPeriodWorkflowView;
@@ -706,41 +707,11 @@ public class AppView {
     }
 
     private VBox dashboardBankPanel() {
-        Label title = new Label("Banco");
-        title.getStyleClass().add("dashboard-panel-title");
-        HBox accounts = new HBox(12);
-        accounts.getStyleClass().add("dashboard-bank-accounts");
-        for (BankAccount account : bankAccountController.list()) {
-            accounts.getChildren().add(dashboardBankAccount(account));
-        }
-        if (accounts.getChildren().isEmpty()) {
-            Label empty = new Label("No hay cuentas bancarias registradas.");
-            empty.getStyleClass().add("dashboard-empty");
-            accounts.getChildren().add(empty);
-        }
-        VBox panel = new VBox(10, title, accounts);
-        panel.getStyleClass().add("dashboard-panel");
-        return panel;
-    }
-
-    private VBox dashboardBankAccount(BankAccount account) {
-        Optional<BankPeriodSummary> latest = bankPeriodSummaries(account.getAlias()).stream()
-            .max(Comparator.comparing(summary -> summary.statementPeriod().periodEnd()));
-        Label name = new Label(account.getAlias());
-        name.getStyleClass().add("dashboard-bank-name");
-        Label period = new Label(latest
-            .map(summary -> bankPeriodTitle(summary.statementPeriod()))
-            .orElse("Sin periodo"));
-        period.getStyleClass().add("dashboard-bank-period");
-        HBox bars = latest
-            .map(summary -> dashboardBankBars(summary.totals().income(), Math.abs(summary.totals().expenses())))
-            .orElseGet(() -> dashboardBankBars(0, 0));
-        VBox box = new VBox(8, name, period, bars);
-        box.getStyleClass().add("dashboard-bank-card");
-        Label expectedPdf = new Label(dashboardExpectedBankPdf(account.getAlias()));
-        expectedPdf.getStyleClass().add("dashboard-bank-pdf");
-        VBox wrapper = new VBox(5, box, expectedPdf);
-        return wrapper;
+        return new BankDashboardPanelView().build(
+            bankAccountController.list(),
+            this::bankPeriodSummaries,
+            this::dashboardExpectedBankPdf
+        );
     }
 
     private String dashboardExpectedBankPdf(String alias) {
@@ -758,32 +729,6 @@ public class AppView {
         LocalDate start = rows.stream().map(BankTransaction::getDate).min(LocalDate::compareTo).orElse(LocalDate.of(total.year(), total.month(), 1));
         LocalDate end = rows.stream().map(BankTransaction::getDate).max(LocalDate::compareTo).orElse(start);
         return shortDate(start) + " - " + shortDate(end);
-    }
-
-    private HBox dashboardBankBars(double deposits, double withdrawals) {
-        double max = Math.max(Math.max(deposits, withdrawals), 1.0);
-        HBox bars = new HBox(12,
-            dashboardVerticalBar("Depositos", deposits, max, "dashboard-bank-deposit-bar"),
-            dashboardVerticalBar("Salidas", withdrawals, max, "dashboard-bank-withdrawal-bar")
-        );
-        bars.setAlignment(Pos.BOTTOM_LEFT);
-        return bars;
-    }
-
-    private VBox dashboardVerticalBar(String title, double amount, double max, String styleClass) {
-        Region bar = new Region();
-        bar.getStyleClass().add(styleClass);
-        double height = 18 + (72 * (amount / max));
-        bar.setMinSize(26, height);
-        bar.setPrefSize(26, height);
-        bar.setMaxSize(26, height);
-        Label value = new Label(Money.format(amount));
-        value.getStyleClass().add("dashboard-bank-bar-value");
-        Label label = new Label(title);
-        label.getStyleClass().add("dashboard-bank-bar-label");
-        VBox box = new VBox(5, value, bar, label);
-        box.setAlignment(Pos.BOTTOM_CENTER);
-        return box;
     }
 
     private VBox dashboardNylMonthlyChartPanel() {
