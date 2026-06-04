@@ -60,6 +60,7 @@ import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
+import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
 import javafx.application.Platform;
@@ -1421,11 +1422,14 @@ public class AppView {
         TableView<MortgageTransaction> movements = mortgageTransactionTable();
         HBox totals = new HBox(12);
         totals.getStyleClass().add("totals-panel");
+        VBox statementSummaries = new VBox(10);
+        statementSummaries.getStyleClass().add("statement-card-list");
         Runnable refreshTotals = () -> totals.getChildren().setAll(mortgageTotalsNodes(statements.getItems(), movements.getItems()));
         Runnable refresh = () -> {
             statements.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, selectedYear(), selectedMonth())));
             movements.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, selectedYear(), selectedMonth())));
             refreshTotals.run();
+            refreshMortgageStatementSummaries(statements, statementSummaries, refreshTotals);
         };
         refresh.run();
         ComboBox<Integer> year = new ComboBox<>(FXCollections.observableArrayList(null, 2022, 2023, 2024, 2025, 2026));
@@ -1452,9 +1456,78 @@ public class AppView {
             new HBox(10, new Label("Ano"), year, new Label("Mes"), month, filter),
             new HBox(10, importPdf, analysis, addStatement, save)
         );
-        TabPane tabs = new TabPane(tab("Statements", statements), tab("Movimientos", movements));
+        TabPane tabs = new TabPane(tab("Statements", new VBox(10, statementSummaries, statements)), tab("Movimientos", movements));
         VBox.setVgrow(tabs, Priority.ALWAYS);
-        setPage(page("Hipoteca - " + alias, backButton("Volver a Hipotecas", this::showMortgages), actions, totals, monthlyMortgageCards(alias, statements, movements, totals), tabs));
+        setPage(page("Hipoteca - " + alias, backButton("Volver a Hipotecas", this::showMortgages), actions, totals, monthlyMortgageCards(alias, statements, movements, totals, statementSummaries), tabs));
+    }
+
+    private void refreshMortgageStatementSummaries(TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals) {
+        summaries.getChildren().clear();
+        for (MortgageStatement statement : table.getItems()) {
+            summaries.getChildren().add(editableMortgageStatementSummary(statement, table, summaries, refreshTotals));
+        }
+    }
+
+    private VBox editableMortgageStatementSummary(MortgageStatement statement, TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals) {
+        VBox summary = new MortgageStatementSummaryView().build(
+            statement,
+            mortgageTransactionsForStatement(statement),
+            reviewed -> {
+                updateMortgageStatementReview(statement, reviewed);
+                table.refresh();
+                refreshTotals.run();
+                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
+            },
+            (transaction, reviewed) -> {
+                updateMortgageTransactionReview(transaction, reviewed);
+                refreshTotals.run();
+                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
+            },
+            () -> {
+                table.getSelectionModel().select(statement);
+                table.scrollTo(statement);
+                table.requestFocus();
+            }
+        );
+        summary.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
+        return summary;
+    }
+
+    private List<MortgageTransaction> mortgageTransactionsForStatement(MortgageStatement statement) {
+        if (statement.getId() <= 0 || statement.getStatementDate() == null) {
+            return List.of();
+        }
+        return mortgageTransactionRepository
+            .findByLoan(statement.getLoanAlias(), statement.getStatementDate().getYear(), statement.getStatementDate().getMonthValue())
+            .stream()
+            .filter(transaction -> transaction.getStatementId() == statement.getId())
+            .toList();
+    }
+
+    private void updateMortgageStatementReview(MortgageStatement statement, boolean reviewed) {
+        statement.setPendingReview(!reviewed);
+        statement.setReviewRequired(!reviewed);
+        if (reviewed && (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank() || statement.getReviewNotes().startsWith("Revisar") || statement.getReviewNotes().startsWith("OCR:"))) {
+            statement.setReviewNotes("Revisado");
+        } else if (!reviewed && "Revisado".equalsIgnoreCase(statement.getReviewNotes())) {
+            statement.setReviewNotes("Revisar contra el PDF original");
+        }
+        if (statement.getId() > 0) {
+            mortgageStatementRepository.updateRecord(statement);
+        }
+    }
+
+    private void updateMortgageTransactionReview(MortgageTransaction transaction, boolean reviewed) {
+        transaction.setPendingReview(!reviewed);
+        transaction.setReviewRequired(!reviewed);
+        if (reviewed && (transaction.getReviewNotes() == null || transaction.getReviewNotes().isBlank() || transaction.getReviewNotes().startsWith("Revisar"))) {
+            transaction.setReviewNotes("Revisado");
+        } else if (!reviewed && "Revisado".equalsIgnoreCase(transaction.getReviewNotes())) {
+            transaction.setReviewNotes("Revisar contra el PDF original");
+        }
+        if (transaction.getId() > 0) {
+            mortgageTransactionRepository.update(transaction);
+        }
     }
 
     private void importMortgagePdf(String alias, Runnable refresh) {
@@ -3044,7 +3117,7 @@ public class AppView {
         );
     }
 
-    private VBox monthlyMortgageCards(String alias, TableView<MortgageStatement> table, TableView<MortgageTransaction> movementTable, HBox totalsPanel) {
+    private VBox monthlyMortgageCards(String alias, TableView<MortgageStatement> table, TableView<MortgageTransaction> movementTable, HBox totalsPanel, VBox statementSummaries) {
         Label title = new Label("Resumen mensual Hipoteca");
         title.getStyleClass().add("section-title");
         HBox cards = new HBox(12);
@@ -3054,6 +3127,7 @@ public class AppView {
             table.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, selectedYear(), null)));
             movementTable.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, selectedYear(), null)));
             totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems()));
+            refreshMortgageStatementSummaries(table, statementSummaries, () -> totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems())));
         });
         general.getStyleClass().add("monthly-card-general");
         cards.getChildren().add(general);
@@ -3069,6 +3143,7 @@ public class AppView {
                     table.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, total.year(), total.month())));
                     movementTable.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, total.year(), total.month())));
                     totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems()));
+                    refreshMortgageStatementSummaries(table, statementSummaries, () -> totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems())));
                 }
             );
             addReviewMark(card, "mortgage", alias, total.year(), total.month());
@@ -3803,11 +3878,7 @@ public class AppView {
                 checkBox.setOnAction(event -> {
                     MortgageStatement statement = getTableView().getItems().get(getIndex());
                     boolean isReviewed = checkBox.isSelected();
-                    statement.setPendingReview(!isReviewed);
-                    statement.setReviewRequired(!isReviewed);
-                    if (isReviewed && (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank() || statement.getReviewNotes().startsWith("Revisar") || statement.getReviewNotes().startsWith("OCR:"))) {
-                        statement.setReviewNotes("Revisado");
-                    }
+                    updateMortgageStatementReview(statement, isReviewed);
                     getTableView().refresh();
                 });
             }
@@ -3903,11 +3974,7 @@ public class AppView {
                 checkBox.setOnAction(event -> {
                     MortgageTransaction row = getTableView().getItems().get(getIndex());
                     boolean isReviewed = checkBox.isSelected();
-                    row.setPendingReview(!isReviewed);
-                    row.setReviewRequired(!isReviewed);
-                    if (isReviewed && (row.getReviewNotes() == null || row.getReviewNotes().isBlank() || row.getReviewNotes().startsWith("Revisar"))) {
-                        row.setReviewNotes("Revisado");
-                    }
+                    updateMortgageTransactionReview(row, isReviewed);
                     getTableView().refresh();
                 });
             }
