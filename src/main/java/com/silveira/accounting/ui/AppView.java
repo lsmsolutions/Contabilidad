@@ -58,6 +58,7 @@ import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
+import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
@@ -1177,6 +1178,9 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        if (isDiscoverStatement(statement)) {
+            return editableDiscoverCreditCardStatementCard(statement, table, cards, refreshTotals);
+        }
         if (isCitiStatement(statement)) {
             return editableCitiCreditCardStatementCard(statement, table, cards, refreshTotals);
         }
@@ -1198,6 +1202,45 @@ public class AppView {
             reviewed -> {
                 updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
                 table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            })
+        );
+        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
+        return card;
+    }
+
+    private VBox editableDiscoverCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        DiscoverStatementSummaryView summaryView = new DiscoverStatementSummaryView();
+        List<String> fieldKeys = summaryView.fieldKeys(statement);
+        boolean defaultReviewed = !statement.isPendingReview();
+        List<CreditCardTransaction> transactions = creditCardTransactionsForStatement(statement);
+        VBox card = summaryView.build(
+            statement,
+            transactions,
+            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
+            (fieldName, reviewed) -> {
+                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            reviewed -> {
+                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
+                for (CreditCardTransaction transaction : transactions) {
+                    updateCreditCardMovementReview(transaction, reviewed);
+                }
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            (transaction, reviewed) -> {
+                updateCreditCardMovementReview(transaction, reviewed);
                 refreshTotals.run();
                 refreshCreditCardStatementCards(table, cards, refreshTotals);
             },
@@ -1272,6 +1315,24 @@ public class AppView {
         String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
         String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
         return bank.contains("citi") || alias.contains("citi") || card.contains("citi");
+    }
+
+    private boolean isDiscoverStatement(CreditCardStatement statement) {
+        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
+        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
+        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
+        return bank.contains("discover") || alias.contains("discover") || card.contains("discover");
+    }
+
+    private List<CreditCardTransaction> creditCardTransactionsForStatement(CreditCardStatement statement) {
+        if (statement.getId() <= 0 || statement.getStatementEndDate() == null) {
+            return List.of();
+        }
+        return creditCardTransactionRepository
+            .findByAccount(statement.getAccountAlias(), statement.getStatementEndDate().getYear(), statement.getStatementEndDate().getMonthValue())
+            .stream()
+            .filter(transaction -> transaction.getStatementId() == statement.getId())
+            .toList();
     }
 
     private void updateCreditCardStatementFieldReview(CreditCardStatement statement, String fieldName, boolean reviewed, List<String> fieldKeys) {
