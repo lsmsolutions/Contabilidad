@@ -2271,12 +2271,7 @@ public class AppView {
     private void exportAllBankMonthly() {
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        File file = chooseExcel("banco-todas-cuentas-" + year + "-" + String.format("%02d", month) + ".xlsx");
-        if (file == null) {
-            return;
-        }
-        excelExportService.exportBankMonthly(file.toPath(), bankAccountDetailController.findRows(year, month, null, null, null));
-        alert(Alert.AlertType.INFORMATION, "Banco exportado", file.getAbsolutePath());
+        bankPeriodWorkflow().exportAllMonthly(year, month);
     }
 
     private void exportAllCardsMonthly() {
@@ -3451,15 +3446,6 @@ public class AppView {
             action.run();
         });
         return button;
-    }
-
-    private void exportMonthlyBank(String accountAlias, int year, int month) {
-        File file = chooseExcel("banco-" + safeFileName(accountAlias) + "-" + year + "-" + String.format("%02d", month) + ".xlsx");
-        if (file == null) {
-            return;
-        }
-        excelExportService.exportBankMonthly(file.toPath(), bankAccountDetailController.findRows(year, month, null, null, accountAlias));
-        alert(Alert.AlertType.INFORMATION, "Mes exportado", file.getAbsolutePath());
     }
 
     private void exportMonthlyNyl(int year, int month) {

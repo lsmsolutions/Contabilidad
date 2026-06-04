@@ -53,6 +53,15 @@ public class BankPeriodWorkflowView {
         config.alert().accept(Alert.AlertType.INFORMATION, "Mes exportado", file.getAbsolutePath());
     }
 
+    public void exportAllMonthly(int year, int month) {
+        File file = config.chooseExcel().apply("banco-todas-cuentas-" + year + "-" + String.format("%02d", month) + ".xlsx");
+        if (file == null) {
+            return;
+        }
+        exports.exportBankMonthly(file.toPath(), details.findRows(year, month, null, null, null));
+        config.alert().accept(Alert.AlertType.INFORMATION, "Banco exportado", file.getAbsolutePath());
+    }
+
     private String safeFileName(String value) {
         return value == null || value.isBlank() ? "general" : value.replaceAll("[^A-Za-z0-9_-]", "_");
     }
