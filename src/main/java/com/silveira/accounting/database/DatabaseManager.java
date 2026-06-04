@@ -206,6 +206,16 @@ public class DatabaseManager {
                     )
                     """);
                 statement.execute("""
+                    CREATE TABLE IF NOT EXISTS credit_card_statement_field_reviews (
+                        statement_id INTEGER NOT NULL,
+                        field_name TEXT NOT NULL,
+                        reviewed INTEGER NOT NULL DEFAULT 0,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY(statement_id, field_name),
+                        FOREIGN KEY(statement_id) REFERENCES credit_card_statements(id)
+                    )
+                    """);
+                statement.execute("""
                     CREATE TABLE IF NOT EXISTS financial_alerts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         statement_id INTEGER NOT NULL,
@@ -369,6 +379,16 @@ public class DatabaseManager {
         addColumnIfMissing(statement, "credit_card_transactions", "review_required", "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(statement, "credit_card_transactions", "pending_review", "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(statement, "credit_card_transactions", "review_notes", "TEXT");
+        statement.execute("""
+            CREATE TABLE IF NOT EXISTS credit_card_statement_field_reviews (
+                statement_id INTEGER NOT NULL,
+                field_name TEXT NOT NULL,
+                reviewed INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(statement_id, field_name),
+                FOREIGN KEY(statement_id) REFERENCES credit_card_statements(id)
+            )
+            """);
         statement.execute("""
             CREATE TABLE IF NOT EXISTS review_marks (
                 source TEXT NOT NULL,

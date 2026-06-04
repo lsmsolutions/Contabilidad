@@ -4,7 +4,11 @@ import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.utils.Money;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -20,11 +24,13 @@ import javafx.scene.layout.VBox;
 public class CreditCardStatementSummaryView {
     private static final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public VBox build(CreditCardStatement statement, Consumer<Boolean> reviewedChanged, Runnable editAction) {
+    public VBox build(CreditCardStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, Consumer<Boolean> allReviewedChanged, Runnable editAction) {
         VBox card = new VBox(14);
         card.getStyleClass().addAll("card-statement-sheet", "monthly-card");
 
-        CheckBox reviewed = reviewedCheck(statement, reviewedChanged);
+        CheckBox reviewed = new CheckBox("Todo revisado");
+        reviewed.setSelected(fieldKeys(statement).stream().allMatch(fieldReviewed));
+        reviewed.setOnAction(event -> allReviewedChanged.accept(reviewed.isSelected()));
         HBox header = new HBox(12, statementIdentity(statement), reviewed);
         header.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(header.getChildren().get(0), Priority.ALWAYS);
@@ -37,27 +43,27 @@ public class CreditCardStatementSummaryView {
         payment.getStyleClass().add("statement-payment-row");
 
         GridPane accountSummary = section("Account Summary");
-        addMoneyRow(accountSummary, 1, "Previous Balance", "+", statement.getPreviousBalance(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 2, "Payments", "-", statement.getPayments(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 3, "Other Credits", "-", statement.getOtherCredits(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 4, "Transactions", "+", statement.getTransactions(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 5, "Balance Transfers", "+", statement.getBalanceTransfers(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 6, "Cash Advances", "+", statement.getCashAdvances(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 7, "Fees Charged", "+", statement.getFeesCharged(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 8, "Interest Charged", "+", statement.getInterestCharged(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 9, "New Balance", "=", accountSummaryBalance(statement), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 1, "previous_balance", "Previous Balance", "+", statement.getPreviousBalance(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 2, "payments", "Payments", "-", statement.getPayments(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 3, "other_credits", "Other Credits", "-", statement.getOtherCredits(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 4, "transactions", "Transactions", "+", statement.getTransactions(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 5, "balance_transfers", "Balance Transfers", "+", statement.getBalanceTransfers(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 6, "cash_advances", "Cash Advances", "+", statement.getCashAdvances(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 7, "fees_charged", "Fees Charged", "+", statement.getFeesCharged(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 8, "interest_charged", "Interest Charged", "+", statement.getInterestCharged(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(accountSummary, 9, "new_balance", "New Balance", "=", accountSummaryBalance(statement), fieldReviewed, fieldReviewedChanged);
 
         GridPane creditLine = section("Credit Line");
-        addMoneyRow(creditLine, 1, "Credit Limit", statement.getCreditLimit(), statement, reviewedChanged);
-        addMoneyRow(creditLine, 2, "Available Credit", statement.getAvailableCredit(), statement, reviewedChanged);
-        addMoneyRow(creditLine, 3, "Cash Advance Limit", statement.getCashAdvanceLimit(), statement, reviewedChanged);
-        addMoneyRow(creditLine, 4, "Available Cash Advance Credit", statement.getAvailableCashAdvanceCredit(), statement, reviewedChanged);
+        addMoneyRow(creditLine, 1, "credit_limit", "Credit Limit", statement.getCreditLimit(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(creditLine, 2, "available_credit", "Available Credit", statement.getAvailableCredit(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(creditLine, 3, "cash_advance_limit", "Cash Advance Limit", statement.getCashAdvanceLimit(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(creditLine, 4, "available_cash_advance_credit", "Available Cash Advance Credit", statement.getAvailableCashAdvanceCredit(), fieldReviewed, fieldReviewedChanged);
 
         HBox body = new HBox(14, accountSummary, creditLine);
         HBox.setHgrow(accountSummary, Priority.ALWAYS);
         HBox.setHgrow(creditLine, Priority.ALWAYS);
 
-        VBox rewards = rewards(statement, reviewedChanged);
+        VBox rewards = rewards(statement, fieldReviewed, fieldReviewedChanged);
         Button edit = new Button("Editar datos");
         edit.setOnAction(event -> editAction.run());
         HBox footer = new HBox(12, status(statement), edit);
@@ -70,6 +76,28 @@ public class CreditCardStatementSummaryView {
         }
         card.getChildren().add(footer);
         return card;
+    }
+
+    public List<String> fieldKeys(CreditCardStatement statement) {
+        List<String> fields = new ArrayList<>(List.of(
+            "previous_balance",
+            "payments",
+            "other_credits",
+            "transactions",
+            "balance_transfers",
+            "cash_advances",
+            "fees_charged",
+            "interest_charged",
+            "new_balance",
+            "credit_limit",
+            "available_credit",
+            "cash_advance_limit",
+            "available_cash_advance_credit"
+        ));
+        if (hasRewards(statement)) {
+            fields.addAll(List.of("rewards_previous_balance", "rewards_earned", "rewards_redeemed", "rewards_balance"));
+        }
+        return fields;
     }
 
     private VBox statementIdentity(CreditCardStatement statement) {
@@ -137,11 +165,11 @@ public class CreditCardStatementSummaryView {
         return grid;
     }
 
-    private void addMoneyRow(GridPane grid, int row, String label, double amount, CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {
-        addMoneyRow(grid, row, label, "", amount, statement, reviewedChanged);
+    private void addMoneyRow(GridPane grid, int row, String fieldName, String label, double amount, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+        addMoneyRow(grid, row, fieldName, label, "", amount, fieldReviewed, fieldReviewedChanged);
     }
 
-    private void addMoneyRow(GridPane grid, int row, String label, String sign, double amount, CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {
+    private void addMoneyRow(GridPane grid, int row, String fieldName, String label, String sign, double amount, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("statement-row-label");
         Label signNode = new Label(sign);
@@ -151,7 +179,7 @@ public class CreditCardStatementSummaryView {
         grid.add(labelNode, 0, row);
         grid.add(signNode, 1, row);
         grid.add(valueNode, 2, row);
-        grid.add(reviewedCheck(statement, reviewedChanged), 3, row);
+        grid.add(reviewedCheck(fieldName, fieldReviewed, fieldReviewedChanged), 3, row);
     }
 
     private double accountSummaryBalance(CreditCardStatement statement) {
@@ -165,21 +193,25 @@ public class CreditCardStatementSummaryView {
             + statement.getInterestCharged();
     }
 
-    private VBox rewards(CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {
-        if (statement.getRewardsBalance() == 0
-            && statement.getRewardsPreviousBalance() == 0
-            && statement.getRewardsEarned() == 0
-            && statement.getRewardsRedeemed() == 0) {
+    private VBox rewards(CreditCardStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+        if (!hasRewards(statement)) {
             return null;
         }
         GridPane grid = section("Rewards");
-        addMoneyRow(grid, 1, "Previous Rewards", statement.getRewardsPreviousBalance(), statement, reviewedChanged);
-        addMoneyRow(grid, 2, "Earned This Period", statement.getRewardsEarned(), statement, reviewedChanged);
-        addMoneyRow(grid, 3, "Redeemed This Period", statement.getRewardsRedeemed(), statement, reviewedChanged);
-        addMoneyRow(grid, 4, "Rewards Balance", statement.getRewardsBalance(), statement, reviewedChanged);
+        addMoneyRow(grid, 1, "rewards_previous_balance", "Previous Rewards", statement.getRewardsPreviousBalance(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(grid, 2, "rewards_earned", "Earned This Period", statement.getRewardsEarned(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(grid, 3, "rewards_redeemed", "Redeemed This Period", statement.getRewardsRedeemed(), fieldReviewed, fieldReviewedChanged);
+        addMoneyRow(grid, 4, "rewards_balance", "Rewards Balance", statement.getRewardsBalance(), fieldReviewed, fieldReviewedChanged);
         VBox box = new VBox(grid);
         box.getStyleClass().add("statement-rewards-box");
         return box;
+    }
+
+    private boolean hasRewards(CreditCardStatement statement) {
+        return statement.getRewardsBalance() != 0
+            || statement.getRewardsPreviousBalance() != 0
+            || statement.getRewardsEarned() != 0
+            || statement.getRewardsRedeemed() != 0;
     }
 
     private Node status(CreditCardStatement statement) {
@@ -193,10 +225,10 @@ public class CreditCardStatementSummaryView {
         return status;
     }
 
-    private CheckBox reviewedCheck(CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {
+    private CheckBox reviewedCheck(String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         CheckBox check = new CheckBox();
-        check.setSelected(!statement.isPendingReview());
-        check.setOnAction(event -> reviewedChanged.accept(check.isSelected()));
+        check.setSelected(fieldReviewed.test(fieldName));
+        check.setOnAction(event -> fieldReviewedChanged.accept(fieldName, check.isSelected()));
         return check;
     }
 

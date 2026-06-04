@@ -43,6 +43,7 @@ import com.silveira.accounting.repositories.NylMonthlyResultRepository;
 import com.silveira.accounting.repositories.NylRecordRepository;
 import com.silveira.accounting.repositories.ReconciliationRepository;
 import com.silveira.accounting.repositories.ReviewMarkRepository;
+import com.silveira.accounting.repositories.card.CreditCardStatementFieldReviewRepository;
 import com.silveira.accounting.services.DashboardService;
 import com.silveira.accounting.services.CreditCardAnalysisService;
 import com.silveira.accounting.services.CreditCardImportService;
@@ -236,6 +237,7 @@ public class AppView {
     private final BankPeriodController bankPeriodController;
     private final CreditCardAccountRepository creditCardAccountRepository;
     private final CreditCardStatementRepository creditCardStatementRepository;
+    private final CreditCardStatementFieldReviewRepository creditCardStatementFieldReviewRepository;
     private final CreditCardTransactionRepository creditCardTransactionRepository;
     private final FinancialAlertRepository financialAlertRepository;
     private final HouseExpenseRepository houseExpenseRepository;
@@ -284,6 +286,7 @@ public class AppView {
         bankPeriodController = new BankPeriodController(bank);
         creditCardAccountRepository = new CreditCardAccountRepository(databaseManager);
         creditCardStatementRepository = new CreditCardStatementRepository(databaseManager);
+        creditCardStatementFieldReviewRepository = new CreditCardStatementFieldReviewRepository(databaseManager);
         creditCardTransactionRepository = new CreditCardTransactionRepository(databaseManager);
         financialAlertRepository = new FinancialAlertRepository(databaseManager);
         houseExpenseRepository = new HouseExpenseRepository(databaseManager);
@@ -1173,10 +1176,20 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        VBox card = new CreditCardStatementSummaryView().build(
+        CreditCardStatementSummaryView summaryView = new CreditCardStatementSummaryView();
+        List<String> fieldKeys = summaryView.fieldKeys(statement);
+        boolean defaultReviewed = !statement.isPendingReview();
+        VBox card = summaryView.build(
             statement,
+            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
+            (fieldName, reviewed) -> {
+                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
             reviewed -> {
-                updateCreditCardStatementReview(statement, reviewed);
+                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
                 table.refresh();
                 refreshTotals.run();
                 refreshCreditCardStatementCards(table, cards, refreshTotals);
@@ -1191,11 +1204,29 @@ public class AppView {
         return card;
     }
 
+    private void updateCreditCardStatementFieldReview(CreditCardStatement statement, String fieldName, boolean reviewed, List<String> fieldKeys) {
+        creditCardStatementFieldReviewRepository.setReviewed(statement.getId(), fieldName, reviewed);
+        updateCreditCardStatementReview(statement, allCreditCardStatementFieldsReviewed(statement, fieldKeys));
+    }
+
+    private void updateAllCreditCardStatementFieldReviews(CreditCardStatement statement, List<String> fieldKeys, boolean reviewed) {
+        creditCardStatementFieldReviewRepository.setReviewed(statement.getId(), fieldKeys, reviewed);
+        updateCreditCardStatementReview(statement, reviewed);
+    }
+
+    private boolean allCreditCardStatementFieldsReviewed(CreditCardStatement statement, List<String> fieldKeys) {
+        boolean defaultReviewed = !statement.isPendingReview();
+        return fieldKeys.stream()
+            .allMatch(fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed));
+    }
+
     private void updateCreditCardStatementReview(CreditCardStatement statement, boolean reviewed) {
         statement.setPendingReview(!reviewed);
         statement.setReviewRequired(!reviewed);
         if (reviewed && (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank() || statement.getReviewNotes().startsWith("Revisar"))) {
             statement.setReviewNotes("Revisado");
+        } else if (!reviewed && "Revisado".equalsIgnoreCase(statement.getReviewNotes())) {
+            statement.setReviewNotes("Revisar contra el PDF original");
         }
         if (statement.getId() > 0) {
             creditCardStatementRepository.updateRecord(statement);
