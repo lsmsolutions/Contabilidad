@@ -61,8 +61,8 @@ import com.silveira.accounting.ui.bank.BankImportWorkflowView;
 import com.silveira.accounting.ui.bank.BankPendingReviewPageView;
 import com.silveira.accounting.ui.bank.BankPeriodWorkflowView;
 import com.silveira.accounting.ui.bank.BankPeriodTextFormatter;
+import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
-import com.silveira.accounting.ui.bank.BankTransactionTableView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
 import javafx.application.Platform;
@@ -1701,20 +1701,15 @@ public class AppView {
     }
 
     private VBox reconciliationBankView() {
-        HBox cards = new HBox(12);
-        cards.getStyleClass().add("monthly-card-row");
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        for (BankAccount account : bankAccountController.list()) {
-            SourceTotals totals = bank.transactions().totals(year, month, account.getAlias());
-            cards.getChildren().add(monthlyActionCard(account.getAlias(),
-                "Depósitos: " + Money.format(totals.income()),
-                "Salidas: " + Money.format(Math.abs(totals.expenses())),
-                "Neto: " + Money.format(totals.net()),
-                "Pendientes: " + totals.pendingCount(),
-                () -> showBankAccount(account.getAlias())));
-        }
-        return new VBox(10, sectionLabel("Banco por cuenta"), cards);
+        List<BankReconciliationView.AccountSummary> summaries = bankAccountController.list().stream()
+            .map(account -> new BankReconciliationView.AccountSummary(
+                account.getAlias(),
+                bank.transactions().totals(year, month, account.getAlias())
+            ))
+            .toList();
+        return new BankReconciliationView(bank).bankByAccount(summaries, this::showBankAccount);
     }
 
     private VBox reconciliationCardsView() {
@@ -1788,32 +1783,9 @@ public class AppView {
             .filter(transaction -> !transaction.isPendingReview())
             .filter(transaction -> transaction.getAmount() > 0)
             .toList();
-        double bankReceived = bankNyl.stream().mapToDouble(BankTransaction::getAmount).sum();
-        double expectedFromNyl = nylTotals.net();
-        double difference = bankReceived - expectedFromNyl;
-        String status = Math.abs(difference) < 0.01 ? "Conciliado" : "Diferencia por revisar";
-        String accountText = selectedAccount == null
-            ? "Cuenta bancaria: no seleccionada. Se recomienda usar la cuenta que recibe pagos de New York Life."
-            : "Cuenta bancaria usada para NYL: " + selectedAccount.getAlias() + BankAccountTextFormatter.accountSuffix(selectedAccount);
-
-        HBox totals = new HBox(12,
-            miniTotal("Esperado según NYL", Money.format(expectedFromNyl), "income-total"),
-            miniTotal("Recibido en banco de NYL", Money.format(bankReceived), "neutral-total"),
-            miniTotal("Diferencia", Money.format(difference), Math.abs(difference) < 0.01 ? "net-total" : "pending-total"),
-            miniTotal("Estado", status, Math.abs(difference) < 0.01 ? "net-total" : "pending-total")
+        return new BankReconciliationView(bank).nylBank(
+            new BankReconciliationView.NylBankSummary(selectedAccount, nylTotals, bankNyl)
         );
-        totals.getStyleClass().add("totals-panel");
-
-        TableView<BankTransaction> table = new BankTransactionTableView(bank).build();
-        table.setItems(FXCollections.observableArrayList(bankNyl));
-        table.setMinHeight(360);
-        table.setPrefHeight(460);
-
-        Label title = sectionLabel("Conciliación New York Life vs Banco");
-        Label explanation = helperNote("Compara el neto revisado de New York Life contra lo recibido en Banco con proveedor New York Life. Solo se toman registros con OK; los pendientes no cuentan.");
-        Label account = helperNote(accountText);
-        Label detailTitle = sectionLabel("Depósitos bancarios incluidos");
-        return new VBox(12, title, explanation, account, totals, detailTitle, table);
     }
 
     private void showAnalysis() {
