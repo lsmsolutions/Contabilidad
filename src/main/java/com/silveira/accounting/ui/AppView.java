@@ -56,6 +56,7 @@ import com.silveira.accounting.services.ReconciliationService;
 import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
+import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.utils.Fingerprint;
@@ -1176,10 +1177,42 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        if (isCitiStatement(statement)) {
+            return editableCitiCreditCardStatementCard(statement, table, cards, refreshTotals);
+        }
         if (!isCapitalOneStatement(statement)) {
             return editableGenericCreditCardStatementCard(statement, table, cards, refreshTotals);
         }
         CreditCardStatementSummaryView summaryView = new CreditCardStatementSummaryView();
+        List<String> fieldKeys = summaryView.fieldKeys(statement);
+        boolean defaultReviewed = !statement.isPendingReview();
+        VBox card = summaryView.build(
+            statement,
+            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
+            (fieldName, reviewed) -> {
+                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            reviewed -> {
+                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            })
+        );
+        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
+        return card;
+    }
+
+    private VBox editableCitiCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        CitiStatementSummaryView summaryView = new CitiStatementSummaryView();
         List<String> fieldKeys = summaryView.fieldKeys(statement);
         boolean defaultReviewed = !statement.isPendingReview();
         VBox card = summaryView.build(
@@ -1232,6 +1265,13 @@ public class AppView {
         String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
         String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
         return bank.contains("capital one") || alias.contains("capitalone") || card.contains("capital one");
+    }
+
+    private boolean isCitiStatement(CreditCardStatement statement) {
+        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
+        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
+        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
+        return bank.contains("citi") || alias.contains("citi") || card.contains("citi");
     }
 
     private void updateCreditCardStatementFieldReview(CreditCardStatement statement, String fieldName, boolean reviewed, List<String> fieldKeys) {
