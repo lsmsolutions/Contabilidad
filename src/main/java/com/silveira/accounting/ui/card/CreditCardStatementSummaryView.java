@@ -30,22 +30,22 @@ public class CreditCardStatementSummaryView {
         HBox.setHgrow(header.getChildren().get(0), Priority.ALWAYS);
 
         HBox payment = new HBox(12,
-            heroAmount("New Balance", Money.format(statement.getNewBalance()), "statement-balance-due"),
+            heroAmount("New Balance", Money.format(accountSummaryBalance(statement)), "statement-balance-due"),
             heroAmount("Minimum Payment Due", Money.format(statement.getMinimumPaymentDue()), "statement-minimum-due"),
             heroAmount("Payment Due Date", formatShortDate(statement.getPaymentDueDate()), "statement-date-due")
         );
         payment.getStyleClass().add("statement-payment-row");
 
         GridPane accountSummary = section("Account Summary");
-        addMoneyRow(accountSummary, 1, "Previous Balance", statement.getPreviousBalance(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 2, "Payments", statement.getPayments(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 3, "Other Credits", statement.getOtherCredits(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 4, "Transactions", statement.getTransactions(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 5, "Balance Transfers", statement.getBalanceTransfers(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 6, "Cash Advances", statement.getCashAdvances(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 7, "Fees Charged", statement.getFeesCharged(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 8, "Interest Charged", statement.getInterestCharged(), statement, reviewedChanged);
-        addMoneyRow(accountSummary, 9, "New Balance", statement.getNewBalance(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 1, "Previous Balance", "+", statement.getPreviousBalance(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 2, "Payments", "-", statement.getPayments(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 3, "Other Credits", "-", statement.getOtherCredits(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 4, "Transactions", "+", statement.getTransactions(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 5, "Balance Transfers", "+", statement.getBalanceTransfers(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 6, "Cash Advances", "+", statement.getCashAdvances(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 7, "Fees Charged", "+", statement.getFeesCharged(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 8, "Interest Charged", "+", statement.getInterestCharged(), statement, reviewedChanged);
+        addMoneyRow(accountSummary, 9, "New Balance", "=", accountSummaryBalance(statement), statement, reviewedChanged);
 
         GridPane creditLine = section("Credit Line");
         addMoneyRow(creditLine, 1, "Credit Limit", statement.getCreditLimit(), statement, reviewedChanged);
@@ -118,30 +118,51 @@ public class CreditCardStatementSummaryView {
         grid.setVgap(7);
         ColumnConstraints label = new ColumnConstraints();
         label.setHgrow(Priority.ALWAYS);
+        ColumnConstraints sign = new ColumnConstraints();
+        sign.setHalignment(HPos.CENTER);
+        sign.setMinWidth(24);
         ColumnConstraints value = new ColumnConstraints();
         value.setHalignment(HPos.RIGHT);
         value.setMinWidth(120);
         ColumnConstraints review = new ColumnConstraints();
         review.setHalignment(HPos.CENTER);
         review.setMinWidth(78);
-        grid.getColumnConstraints().setAll(label, value, review);
+        grid.getColumnConstraints().setAll(label, sign, value, review);
         Label heading = new Label(title);
         heading.getStyleClass().add("statement-section-title");
-        grid.add(heading, 0, 0, 3, 1);
+        grid.add(heading, 0, 0, 4, 1);
         Label reviewTitle = new Label("Revisado");
         reviewTitle.getStyleClass().add("statement-review-title");
-        grid.add(reviewTitle, 2, 0);
+        grid.add(reviewTitle, 3, 0);
         return grid;
     }
 
     private void addMoneyRow(GridPane grid, int row, String label, double amount, CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {
+        addMoneyRow(grid, row, label, "", amount, statement, reviewedChanged);
+    }
+
+    private void addMoneyRow(GridPane grid, int row, String label, String sign, double amount, CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("statement-row-label");
+        Label signNode = new Label(sign);
+        signNode.getStyleClass().add("statement-row-sign");
         Label valueNode = new Label(Money.format(amount));
         valueNode.getStyleClass().add("statement-row-value");
         grid.add(labelNode, 0, row);
-        grid.add(valueNode, 1, row);
-        grid.add(reviewedCheck(statement, reviewedChanged), 2, row);
+        grid.add(signNode, 1, row);
+        grid.add(valueNode, 2, row);
+        grid.add(reviewedCheck(statement, reviewedChanged), 3, row);
+    }
+
+    private double accountSummaryBalance(CreditCardStatement statement) {
+        return statement.getPreviousBalance()
+            - statement.getPayments()
+            - statement.getOtherCredits()
+            + statement.getTransactions()
+            + statement.getBalanceTransfers()
+            + statement.getCashAdvances()
+            + statement.getFeesCharged()
+            + statement.getInterestCharged();
     }
 
     private VBox rewards(CreditCardStatement statement, Consumer<Boolean> reviewedChanged) {

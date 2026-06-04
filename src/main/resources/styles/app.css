@@ -2030,6 +2030,15 @@
     -fx-text-fill: #324349;
 }
 
+.statement-row-sign {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #53646a;
+    -fx-min-width: 20;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
 .statement-row-value {
     -fx-font-size: 13px;
     -fx-font-weight: 800;
