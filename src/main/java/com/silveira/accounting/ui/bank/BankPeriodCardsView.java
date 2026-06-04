@@ -26,26 +26,27 @@ public class BankPeriodCardsView {
     }
 
     public VBox build(
-        TableView<BankTransaction> table,
-        HBox totalsPanel,
-        int selectedYear,
-        String accountAlias,
-        double openingBalance,
-        List<BankPeriodSummary> periods,
-        Function<BankStatementPeriod, Label> reviewMarkFactory,
-        Consumer<BankPeriodSummary> periodSelected,
-        Consumer<BankPeriodSummary> editPeriod,
-        Consumer<BankStatementPeriod> downloadPeriod,
-        Consumer<BankPeriodSummary> deletePeriod
-    ) {
+            TableView<BankTransaction> table,
+            HBox totalsPanel,
+            int selectedYear,
+            String accountAlias,
+            double openingBalance,
+            List<BankPeriodSummary> periods,
+            Function<BankStatementPeriod, Label> reviewMarkFactory,
+            Consumer<BankPeriodSummary> periodSelected,
+            Consumer<BankPeriodSummary> editPeriod,
+            Consumer<BankStatementPeriod> downloadPeriod,
+            Consumer<BankPeriodSummary> deletePeriod) {
         Label title = new Label("Resumen por periodo Banco");
         title.getStyleClass().add("section-title");
         HBox cards = new HBox(12);
         cards.getStyleClass().add("monthly-card-row");
 
         VBox general = monthlyActionCard("General", "Ver todos", "", "", "", () -> {
-            table.setItems(FXCollections.observableArrayList(bank.transactions().find(selectedYear, null, null, null, accountAlias)));
-            totalsPanel.getChildren().setAll(new BankTotalsView().build(bank.transactions().totals(selectedYear, null, accountAlias), openingBalance));
+            table.setItems(FXCollections
+                    .observableArrayList(bank.transactions().find(selectedYear, null, null, null, accountAlias)));
+            totalsPanel.getChildren().setAll(new BankTotalsView()
+                    .build(bank.transactions().totals(selectedYear, null, accountAlias), openingBalance));
         });
         general.getStyleClass().add("monthly-card-general");
         cards.getChildren().add(general);
@@ -55,26 +56,28 @@ public class BankPeriodCardsView {
             BankStatementPeriod statementPeriod = period.statementPeriod();
             double calculatedEnding = statementPeriod.openingBalance() + totals.net();
             VBox card = new PeriodActionCardView().build(
-                BankPeriodTextFormatter.title(statementPeriod),
-                reviewMarkFactory.apply(statementPeriod),
-                () -> {
-                    table.setItems(FXCollections.observableArrayList(period.transactions()));
-                    totalsPanel.getChildren().setAll(new BankTotalsView().build(totals, statementPeriod.openingBalance()));
-                    if (periodSelected != null) {
-                        periodSelected.accept(period);
-                    }
-                }
-            );
+                    BankPeriodTextFormatter.title(statementPeriod),
+                    reviewMarkFactory.apply(statementPeriod),
+                    () -> {
+                        table.setItems(FXCollections.observableArrayList(period.transactions()));
+                        totalsPanel.getChildren()
+                                .setAll(new BankTotalsView().build(totals, statementPeriod.openingBalance()));
+                        if (periodSelected != null) {
+                            periodSelected.accept(period);
+                        }
+                    });
             addMonthlyCardLine(card, "Dep\u00f3sitos: " + Money.format(totals.income()));
             addMonthlyCardLine(card, "Salidas: " + Money.format(Math.abs(totals.expenses())));
-            addMonthlyCardLine(card, "Ingreso NYL: " + Money.format(bank.transactions().nylIncome(period.transactions())));
+            addMonthlyCardLine(card,
+                    "Ingreso NYL: " + Money.format(bank.transactions().nylIncome(period.transactions())));
             addMonthlyCardLine(card, "Movimiento neto: " + Money.format(totals.net()));
             addMonthlyCardLine(card, "Pendientes: " + totals.pendingCount());
             addMonthlyCardLine(card, "Saldo inicial: " + Money.format(statementPeriod.openingBalance()));
-            addMonthlyCardLine(card, "Saldo final calculado: " + Money.format(calculatedEnding), "monthly-card-value-strong");
+            addMonthlyCardLine(card, "Saldo final calculado: " + Money.format(calculatedEnding),
+                    "monthly-card-value-strong");
             addMonthlyCardLine(card, statementPeriod.hasStatementEndingBalance()
-                ? "Saldo final PDF: " + Money.format(statementPeriod.statementEndingBalance())
-                : "Saldo final PDF: pendiente", "monthly-card-value-strong");
+                    ? "Saldo final PDF: " + Money.format(statementPeriod.statementEndingBalance())
+                    : "Saldo final PDF: pendiente", "monthly-card-value-strong");
 
             Button editBalances = new Button("Editar periodo");
             editBalances.setOnAction(event -> {
@@ -92,8 +95,13 @@ public class BankPeriodCardsView {
                 event.consume();
                 deletePeriod.accept(period);
             });
-            HBox bankActions = new HBox(8, editBalances, download, delete);
-            bankActions.getStyleClass().add("bank-monthly-actions");
+            HBox firstRowActions = new HBox(8, editBalances, download);
+            firstRowActions.getStyleClass().add("bank-monthly-actions");
+
+            HBox secondRowActions = new HBox(8, delete);
+            secondRowActions.getStyleClass().add("bank-monthly-actions");
+
+            VBox bankActions = new VBox(6, firstRowActions, secondRowActions);
             card.getChildren().add(bankActions);
             cards.getChildren().add(card);
         }
@@ -103,7 +111,8 @@ public class BankPeriodCardsView {
         return box;
     }
 
-    private VBox monthlyActionCard(String title, String line1, String line2, String line3, String line4, Runnable action) {
+    private VBox monthlyActionCard(String title, String line1, String line2, String line3, String line4,
+            Runnable action) {
         Label heading = new Label(title);
         heading.getStyleClass().add("monthly-card-title");
         GridPane lines = new GridPane();
@@ -128,11 +137,13 @@ public class BankPeriodCardsView {
             return;
         }
         text = text.replaceFirst("\\s+.*Dif\\.:.*$", "");
-        if ("monthly-card-line".equals(styleClass) && !card.getChildren().isEmpty() && card.getChildren().get(card.getChildren().size() - 1) instanceof GridPane grid) {
+        if ("monthly-card-line".equals(styleClass) && !card.getChildren().isEmpty()
+                && card.getChildren().get(card.getChildren().size() - 1) instanceof GridPane grid) {
             addMonthlyCardGridLine(grid, nextMonthlyCardGridRow(grid), text);
             return;
         }
-        if (styleClass.startsWith("monthly-card-value-") && !card.getChildren().isEmpty() && card.getChildren().get(card.getChildren().size() - 1) instanceof GridPane grid) {
+        if (styleClass.startsWith("monthly-card-value-") && !card.getChildren().isEmpty()
+                && card.getChildren().get(card.getChildren().size() - 1) instanceof GridPane grid) {
             addMonthlyCardGridLine(grid, nextMonthlyCardGridRow(grid), text, styleClass);
             return;
         }
@@ -167,10 +178,10 @@ public class BankPeriodCardsView {
 
     private int nextMonthlyCardGridRow(GridPane grid) {
         return grid.getChildren().stream()
-            .map(GridPane::getRowIndex)
-            .mapToInt(row -> row == null ? 0 : row)
-            .max()
-            .orElse(-1) + 1;
+                .map(GridPane::getRowIndex)
+                .mapToInt(row -> row == null ? 0 : row)
+                .max()
+                .orElse(-1) + 1;
     }
 
 }
