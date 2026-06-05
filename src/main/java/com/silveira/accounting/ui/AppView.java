@@ -1106,17 +1106,25 @@ public class AppView {
         analysis.setOnAction(event -> showCreditCardAnalysis(alias));
         Button addStatement = new Button("Anadir resumen");
         addStatement.setOnAction(event -> addManualCreditCardStatement(alias, refresh));
+        Button saveStatements = new Button("Guardar resumenes visibles");
+        saveStatements.getStyleClass().add("primary");
+        saveStatements.setOnAction(event -> saveVisibleCardStatements(statements, refresh));
         Button addMovement = new Button("Anadir movimiento");
-        addMovement.setOnAction(event -> addManualCreditCardMovement(alias, movements, refresh));
-        Button save = new Button("Guardar visibles");
-        save.setOnAction(event -> saveVisibleCardRows(statements, movements, refresh));
+        addMovement.setOnAction(event -> addManualCreditCardMovement(statements, movements));
+        Button saveMovements = new Button("Guardar movimientos visibles");
+        saveMovements.getStyleClass().add("primary");
+        saveMovements.setOnAction(event -> saveVisibleCardMovements(statements, movements, refresh));
+        VBox summariesTab = new VBox(10, statementCards, new HBox(10, saveStatements), statements);
+        VBox movementsTab = new VBox(10, new HBox(10, addMovement, saveMovements), movements);
+        VBox.setVgrow(statements, Priority.ALWAYS);
+        VBox.setVgrow(movements, Priority.ALWAYS);
         VBox actions = actionHeader(
             new HBox(10, new Label("Ano"), year, new Label("Mes"), month, filter),
-            new HBox(10, importPdf, analysis, addStatement, addMovement, save)
+            new HBox(10, importPdf, analysis, addStatement)
         );
         TabPane tabs = new TabPane(
-            tab("Resumenes", new VBox(10, statementCards, statements)),
-            tab("Movimientos", movements)
+            tab("Resumenes", summariesTab),
+            tab("Movimientos", movementsTab)
         );
         VBox.setVgrow(tabs, Priority.ALWAYS);
         setPage(page("Tarjeta - " + alias, backButton("Volver a Tarjetas", this::showCards), actions, totals, monthlyCards, tabs));
@@ -1170,10 +1178,11 @@ public class AppView {
         showCreditCardPeriodDialog(List.of(statement), refresh);
     }
 
-    private void addManualCreditCardMovement(String alias, TableView<CreditCardTransaction> table, Runnable refresh) {
+    private void addManualCreditCardMovement(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> table) {
+        long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
         CreditCardTransaction movement = new CreditCardTransaction(
             0,
-            table.getItems().isEmpty() ? 0 : table.getItems().get(0).getStatementId(),
+            statementId,
             LocalDate.now(),
             LocalDate.now(),
             "Movimiento manual",
@@ -1185,10 +1194,9 @@ public class AppView {
         movement.setReviewRequired(true);
         table.getItems().add(movement);
         table.getSelectionModel().select(movement);
-        refresh.run();
     }
 
-    private void saveVisibleCardRows(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> movements, Runnable refresh) {
+    private void saveVisibleCardStatements(TableView<CreditCardStatement> statements, Runnable refresh) {
         for (CreditCardStatement statement : statements.getItems()) {
             if (statement.getId() > 0) {
                 creditCardStatementRepository.updateRecord(statement);
@@ -1196,14 +1204,24 @@ public class AppView {
                 statement.setId(creditCardStatementRepository.save(statement));
             }
         }
+        refresh.run();
+        alert(Alert.AlertType.INFORMATION, "Resumenes guardados", "Resumenes visibles guardados con su estado actual.");
+    }
+
+    private void saveVisibleCardMovements(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> movements, Runnable refresh) {
         for (CreditCardTransaction movement : movements.getItems()) {
             long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
-            if (movement.getId() <= 0 && statementId > 0) {
-                movement.setId(creditCardTransactionRepository.save(statementId, movement));
+            if (movement.getStatementId() <= 0 && statementId > 0) {
+                movement.setStatementId(statementId);
+            }
+            if (movement.getId() > 0) {
+                creditCardTransactionRepository.update(movement);
+            } else if (movement.getStatementId() > 0) {
+                movement.setId(creditCardTransactionRepository.save(movement.getStatementId(), movement));
             }
         }
         refresh.run();
-        alert(Alert.AlertType.INFORMATION, "Tarjeta guardada", "Cambios visibles guardados.");
+        alert(Alert.AlertType.INFORMATION, "Movimientos guardados", "Movimientos visibles guardados con su estado actual.");
     }
 
     private void showCreditCardAnalysis(String alias) {
