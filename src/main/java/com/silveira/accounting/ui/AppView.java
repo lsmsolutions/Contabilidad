@@ -1090,18 +1090,32 @@ public class AppView {
         if (file == null) {
             return;
         }
-        try {
-            CreditCardStatementParser.ParsedCreditCardStatement parsed = creditCardImportService.importPdf(file.toPath());
+        cardImportInProgress = true;
+        showProcessing("Importando tarjeta", "Leyendo el PDF de la tarjeta. Si es escaneado, se usara OCR y puede tardar unos minutos.");
+        Task<CreditCardStatementParser.ParsedCreditCardStatement> task = new Task<>() {
+            @Override
+            protected CreditCardStatementParser.ParsedCreditCardStatement call() {
+                return creditCardImportService.importPdf(file.toPath());
+            }
+        };
+        task.setOnSucceeded(event -> {
+            cardImportInProgress = false;
+            CreditCardStatementParser.ParsedCreditCardStatement parsed = task.getValue();
             CreditCardStatement statement = parsed.statement();
             statement.setAccountAlias(alias);
             long statementId = creditCardStatementRepository.save(statement);
             creditCardTransactionRepository.saveAll(statementId, parsed.transactions());
             financialAlertRepository.saveAll(statementId, creditCardAnalysisService.analyze(statement).alerts());
-            refresh.run();
-            alert(Alert.AlertType.INFORMATION, "Tarjeta importada", "PDF importado para " + alias + ".");
-        } catch (RuntimeException exception) {
-            alert(Alert.AlertType.ERROR, "No se pudo importar tarjeta", rootCauseMessage(exception));
-        }
+            showCardAccount(alias);
+        });
+        task.setOnFailed(event -> {
+            cardImportInProgress = false;
+            alert(Alert.AlertType.ERROR, "No se pudo importar tarjeta", rootCauseMessage(task.getException()));
+            showCardAccount(alias);
+        });
+        Thread thread = new Thread(task, "silveira-card-import");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void addManualCreditCardStatement(String alias, Runnable refresh) {
