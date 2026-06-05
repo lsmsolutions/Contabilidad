@@ -44,6 +44,7 @@ import com.silveira.accounting.repositories.NylRecordRepository;
 import com.silveira.accounting.repositories.ReconciliationRepository;
 import com.silveira.accounting.repositories.ReviewMarkRepository;
 import com.silveira.accounting.repositories.card.CreditCardStatementFieldReviewRepository;
+import com.silveira.accounting.repositories.mortgage.MortgageStatementFieldReviewRepository;
 import com.silveira.accounting.services.DashboardService;
 import com.silveira.accounting.services.CreditCardAnalysisService;
 import com.silveira.accounting.services.CreditCardImportService;
@@ -247,6 +248,7 @@ public class AppView {
     private final HouseExpenseRepository houseExpenseRepository;
     private final InternalMovementRepository internalMovementRepository;
     private final MortgageStatementRepository mortgageStatementRepository;
+    private final MortgageStatementFieldReviewRepository mortgageStatementFieldReviewRepository;
     private final MortgageTransactionRepository mortgageTransactionRepository;
     private final MortgageAlertRepository mortgageAlertRepository;
     private final NylMonthlyResultRepository nylMonthlyResultRepository;
@@ -296,6 +298,7 @@ public class AppView {
         houseExpenseRepository = new HouseExpenseRepository(databaseManager);
         internalMovementRepository = new InternalMovementRepository(databaseManager);
         mortgageStatementRepository = new MortgageStatementRepository(databaseManager);
+        mortgageStatementFieldReviewRepository = new MortgageStatementFieldReviewRepository(databaseManager);
         mortgageTransactionRepository = new MortgageTransactionRepository(databaseManager);
         mortgageAlertRepository = new MortgageAlertRepository(databaseManager);
         nylMonthlyResultRepository = new NylMonthlyResultRepository(databaseManager);
@@ -1621,8 +1624,16 @@ public class AppView {
         VBox summary = new MortgageStatementSummaryView().build(
             statement,
             mortgageTransactionsForStatement(statement),
+            fieldName -> mortgageStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, !statement.isPendingReview()),
+            (fieldName, reviewed) -> {
+                updateMortgageStatementFieldReview(statement, fieldName, reviewed);
+                table.refresh();
+                refreshTotals.run();
+                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
+            },
             reviewed -> {
                 updateMortgageStatementReview(statement, reviewed);
+                updateAllMortgageStatementFieldReviews(statement, reviewed);
                 table.refresh();
                 refreshTotals.run();
                 refreshMortgageStatementSummaries(table, summaries, refreshTotals);
@@ -1636,6 +1647,15 @@ public class AppView {
                 table.getSelectionModel().select(statement);
                 table.scrollTo(statement);
                 table.requestFocus();
+            },
+            () -> {
+                if (!confirm("Eliminar periodo de hipoteca", "Se eliminaran este statement, sus movimientos y alertas.\n\nEsta accion no se puede deshacer.", "Eliminar periodo")) {
+                    return;
+                }
+                if (statement.getId() > 0) {
+                    mortgageStatementRepository.delete(statement.getId());
+                }
+                showMortgageDetail(statement.getLoanAlias());
             }
         );
         summary.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
@@ -1651,6 +1671,41 @@ public class AppView {
             .stream()
             .filter(transaction -> transaction.getStatementId() == statement.getId())
             .toList();
+    }
+
+    private List<String> mortgageStatementFieldKeys() {
+        return List.of(
+            "principal_due",
+            "interest_due",
+            "escrow_due",
+            "regular_monthly_payment",
+            "past_due_amount",
+            "fees",
+            "other_fees_and_charges",
+            "total_due",
+            "original_principal_balance",
+            "outstanding_principal_balance",
+            "escrow_balance",
+            "unapplied_funds",
+            "past_paid_principal_since_last_statement",
+            "past_paid_interest_since_last_statement",
+            "past_paid_escrow_since_last_statement",
+            "past_paid_total_since_last_statement"
+        );
+    }
+
+    private void updateMortgageStatementFieldReview(MortgageStatement statement, String fieldName, boolean reviewed) {
+        if (!mortgageStatementFieldReviewRepository.hasReviews(statement.getId())) {
+            mortgageStatementFieldReviewRepository.setReviewed(statement.getId(), mortgageStatementFieldKeys(), !statement.isPendingReview());
+        }
+        mortgageStatementFieldReviewRepository.setReviewed(statement.getId(), fieldName, reviewed);
+        boolean allReviewed = mortgageStatementFieldKeys().stream()
+            .allMatch(key -> mortgageStatementFieldReviewRepository.isReviewed(statement.getId(), key, !statement.isPendingReview()));
+        updateMortgageStatementReview(statement, allReviewed);
+    }
+
+    private void updateAllMortgageStatementFieldReviews(MortgageStatement statement, boolean reviewed) {
+        mortgageStatementFieldReviewRepository.setReviewed(statement.getId(), mortgageStatementFieldKeys(), reviewed);
     }
 
     private void updateMortgageStatementReview(MortgageStatement statement, boolean reviewed) {

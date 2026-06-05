@@ -1356,8 +1356,9 @@
     -fx-border-radius: 8;
     -fx-background-radius: 8;
     -fx-padding: 10;
-    -fx-min-width: 390;
-    -fx-pref-width: 455;
+    -fx-min-width: 340;
+    -fx-pref-width: 375;
+    -fx-max-width: 390;
 }
 
 .mortgage-section-header {
@@ -1385,7 +1386,7 @@
 }
 
 .mortgage-line-label {
-    -fx-pref-width: 185;
+    -fx-pref-width: 165;
 }
 
 .mortgage-line-sign {
@@ -1399,6 +1400,10 @@
 
 .mortgage-line-value {
     -fx-font-weight: 700;
+    -fx-min-width: 96;
+    -fx-pref-width: 106;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
 }
 
 .mortgage-line-input {
@@ -1414,7 +1419,7 @@
 .mortgage-past-payment-label {
     -fx-font-size: 13px;
     -fx-text-fill: #102f28;
-    -fx-pref-width: 190;
+    -fx-pref-width: 145;
     -fx-wrap-text: true;
 }
 
@@ -1422,7 +1427,7 @@
     -fx-font-size: 13px;
     -fx-font-weight: 800;
     -fx-text-fill: #102f28;
-    -fx-pref-width: 145;
+    -fx-pref-width: 98;
     -fx-alignment: center-right;
     -fx-text-alignment: right;
     -fx-wrap-text: true;

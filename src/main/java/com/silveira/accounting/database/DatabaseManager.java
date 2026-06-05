@@ -415,6 +415,16 @@ public class DatabaseManager {
         addColumnIfMissing(statement, "mortgage_transactions", "review_required", "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(statement, "mortgage_transactions", "pending_review", "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(statement, "mortgage_transactions", "review_notes", "TEXT");
+        statement.execute("""
+            CREATE TABLE IF NOT EXISTS mortgage_statement_field_reviews (
+                statement_id INTEGER NOT NULL,
+                field_name TEXT NOT NULL,
+                reviewed INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(statement_id, field_name),
+                FOREIGN KEY(statement_id) REFERENCES mortgage_statements(id)
+            )
+            """);
         addColumnIfMissing(statement, "house_expenses", "document_path", "TEXT");
         addColumnIfMissing(statement, "house_expenses", "document_name", "TEXT");
         addColumnIfMissing(statement, "house_expenses", "payment_source", "TEXT");

@@ -214,10 +214,13 @@ public class MortgageStatementRepository {
     public void delete(long id) {
         try (Connection connection = databaseManager.getConnection();
              PreparedStatement alerts = connection.prepareStatement("DELETE FROM mortgage_alerts WHERE statement_id=?");
+             PreparedStatement fieldReviews = connection.prepareStatement("DELETE FROM mortgage_statement_field_reviews WHERE statement_id=?");
              PreparedStatement transactions = connection.prepareStatement("DELETE FROM mortgage_transactions WHERE statement_id=?");
              PreparedStatement statement = connection.prepareStatement("DELETE FROM mortgage_statements WHERE id=?")) {
             alerts.setLong(1, id);
             alerts.executeUpdate();
+            fieldReviews.setLong(1, id);
+            fieldReviews.executeUpdate();
             transactions.setLong(1, id);
             transactions.executeUpdate();
             statement.setLong(1, id);
