@@ -1613,7 +1613,7 @@ public class AppView {
     private void refreshMortgageStatementSummaries(TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals) {
         summaries.getChildren().clear();
         for (MortgageStatement statement : table.getItems()) {
-            summaries.getChildren().add(editableMortgageStatementSummary(statement, table, summaries, refreshTotals));
+            summaries.getChildren().add(horizontalStatementScroll(editableMortgageStatementSummary(statement, table, summaries, refreshTotals)));
         }
     }
 

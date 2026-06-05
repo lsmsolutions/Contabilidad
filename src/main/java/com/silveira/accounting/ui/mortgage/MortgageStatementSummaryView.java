@@ -132,6 +132,7 @@ public class MortgageStatementSummaryView {
 
     private VBox pastPayment(MortgageStatement statement, Consumer<Boolean> reviewedChanged) {
         VBox card = summaryCard("Past Payment Summary");
+        card.setMinWidth(420);
         card.getChildren().add(headerRow("Paid since last statement", "Paid year-to-date"));
         card.getChildren().addAll(
             pastLine("Principal", statement.getPastPaidPrincipalSinceLastStatement(), statement.getPastPaidPrincipalYearToDate()),
@@ -248,10 +249,15 @@ public class MortgageStatementSummaryView {
         row.getStyleClass().add("mortgage-past-payment-row");
         Label blank = new Label("");
         blank.getStyleClass().add("mortgage-past-payment-label");
+        blank.setMinWidth(150);
         Label leftLabel = new Label(left);
         leftLabel.getStyleClass().add("mortgage-past-payment-column");
+        leftLabel.setMinWidth(112);
+        leftLabel.setWrapText(true);
         Label rightLabel = new Label(right);
         rightLabel.getStyleClass().add("mortgage-past-payment-column");
+        rightLabel.setMinWidth(112);
+        rightLabel.setWrapText(true);
         row.getChildren().addAll(blank, leftLabel, rightLabel);
         return row;
     }
@@ -261,10 +267,14 @@ public class MortgageStatementSummaryView {
         row.getStyleClass().add("mortgage-past-payment-row");
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("mortgage-past-payment-label");
+        labelNode.setMinWidth(150);
+        labelNode.setWrapText(true);
         Label since = new Label(Money.format(sinceLast));
         since.getStyleClass().add("mortgage-past-payment-column");
+        since.setMinWidth(112);
         Label ytd = new Label(Money.format(yearToDate));
         ytd.getStyleClass().add("mortgage-past-payment-column");
+        ytd.setMinWidth(112);
         row.getChildren().addAll(labelNode, since, ytd);
         return row;
     }
