@@ -54,6 +54,9 @@ public class CreditCardStatementParser {
         statement.setRewardsPreviousBalance(rewardAmount(text, "Previous Balance", "Balance anterior"));
         statement.setRewardsEarned(rewardAmount(text, "Earned This Period", "Ganado este periodo"));
         statement.setRewardsRedeemed(rewardAmount(text, "Redeemed This Period", "Canjeado este periodo"));
+        if ("Capital One".equalsIgnoreCase(statement.getBankName())) {
+            applyCapitalOneSummary(text, statement);
+        }
         if ("Discover".equalsIgnoreCase(statement.getBankName())) {
             applyDiscoverSummary(text, statement);
         }
@@ -76,6 +79,33 @@ public class CreditCardStatementParser {
             }
         }
         return new ParsedCreditCardStatement(statement, parsedTransactions);
+    }
+
+    private void applyCapitalOneSummary(String text, CreditCardStatement statement) {
+        double[] paymentInfo = capitalOnePaymentInformation(text);
+        if (paymentInfo[0] > 0) {
+            statement.setNewBalance(paymentInfo[0]);
+        }
+        if (paymentInfo[1] > 0) {
+            statement.setMinimumPaymentDue(paymentInfo[1]);
+        }
+        statement.setPreviousBalance(amountOnLine(text, "Previous Balance", statement.getPreviousBalance()));
+        statement.setPayments(amountOnLine(text, "Payments", statement.getPayments()));
+        statement.setOtherCredits(amountOnLine(text, "Other Credits", statement.getOtherCredits()));
+        statement.setTransactions(amountOnLine(text, "Transactions", statement.getTransactions(), "Total Transactions", "Transactions Continued"));
+        statement.setCashAdvances(amountOnLine(text, "Cash Advances", statement.getCashAdvances()));
+        statement.setFeesCharged(amountOnLine(text, "Fees Charged", statement.getFeesCharged(), "Total Fees charged"));
+        statement.setInterestCharged(amountOnLine(text, "Interest Charged", statement.getInterestCharged(), "Total Interest charged", "Interest Charge on"));
+        statement.setNewBalance(amountOnLine(text, "New Balance =", statement.getNewBalance()));
+        statement.setCreditLimit(amountOnLine(text, "Credit Limit", statement.getCreditLimit(), "Cash Advance Credit Limit"));
+        statement.setAvailableCredit(amountOnLine(text, "Available Credit", statement.getAvailableCredit(), "Available Credit for Cash Advances"));
+        statement.setCashAdvanceLimit(amountOnLine(text, "Cash Advance Credit Limit", statement.getCashAdvanceLimit()));
+        statement.setAvailableCashAdvanceCredit(amountOnLine(text, "Available Credit for Cash Advances", statement.getAvailableCashAdvanceCredit()));
+        double[] rewards = capitalOneRewards(text);
+        statement.setRewardsBalance(rewards[0]);
+        statement.setRewardsPreviousBalance(rewards[1]);
+        statement.setRewardsEarned(rewards[2]);
+        statement.setRewardsRedeemed(rewards[3]);
     }
 
     private void applyCitiSummary(String text, CreditCardStatement statement) {
@@ -126,6 +156,101 @@ public class CreditCardStatementParser {
     private double citiAmount(String text, String regex, double fallback) {
         Matcher matcher = Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(text);
         return matcher.find() ? Math.abs(Money.parse(matcher.group(1))) : fallback;
+    }
+
+    private double[] capitalOnePaymentInformation(String text) {
+        String[] lines = text.split("\\R");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].replaceAll("\\s+", " ").trim();
+            if (!line.equalsIgnoreCase("New Balance Minimum Payment Due")) {
+                continue;
+            }
+            for (int j = i + 1; j < Math.min(lines.length, i + 4); j++) {
+                Matcher amounts = MONEY.matcher(lines[j]);
+                List<Double> values = new ArrayList<>();
+                while (amounts.find()) {
+                    String token = amounts.group();
+                    if (token.contains("$") || token.contains(".")) {
+                        values.add(Math.abs(Money.parse(token)));
+                    }
+                }
+                if (values.size() >= 2) {
+                    return new double[] {values.get(0), values.get(1)};
+                }
+            }
+        }
+        return new double[] {0, 0};
+    }
+
+    private double amountOnLine(String text, String label, double fallback, String... exclusions) {
+        String wanted = label.toLowerCase(Locale.ROOT);
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            String lower = line.toLowerCase(Locale.ROOT);
+            if (!lower.contains(wanted)) {
+                continue;
+            }
+            boolean excluded = false;
+            for (String exclusion : exclusions) {
+                if (lower.contains(exclusion.toLowerCase(Locale.ROOT))) {
+                    excluded = true;
+                    break;
+                }
+            }
+            if (excluded) {
+                continue;
+            }
+            Matcher matcher = MONEY.matcher(line);
+            Double value = null;
+            while (matcher.find()) {
+                String token = matcher.group();
+                if (token.contains("$") || token.contains(".")) {
+                    value = Math.abs(Money.parse(token));
+                }
+            }
+            if (value != null) {
+                return value;
+            }
+        }
+        return fallback;
+    }
+
+    private double[] capitalOneRewards(String text) {
+        double previous = 0;
+        double earned = 0;
+        double redeemed = 0;
+        String[] lines = text.split("\\R");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+            if (!line.contains("previous balance earned this period redeemed this period")) {
+                continue;
+            }
+            for (int j = i + 1; j < Math.min(lines.length, i + 6); j++) {
+                Matcher amounts = MONEY.matcher(lines[j]);
+                List<Double> values = new ArrayList<>();
+                while (amounts.find()) {
+                    String token = amounts.group();
+                    if (token.contains("$") || token.contains(".")) {
+                        values.add(Math.abs(Money.parse(token)));
+                    }
+                }
+                if (values.size() >= 3) {
+                    previous = values.get(0);
+                    earned = values.get(1);
+                    redeemed = values.get(2);
+                    break;
+                }
+            }
+            break;
+        }
+        double balance = amountOnLine(text, "Rewards Balance", 0);
+        if (balance == 0) {
+            Matcher balanceRow = Pattern.compile("Rewards\\s+Balance[\\s\\S]{0,180}?(" + MONEY.pattern() + ")", Pattern.CASE_INSENSITIVE).matcher(text);
+            if (balanceRow.find()) {
+                balance = Math.abs(Money.parse(balanceRow.group(1)));
+            }
+        }
+        return new double[] {balance, previous, earned, redeemed};
     }
 
     private double citiSummaryAmount(String text, String label, double fallback) {
