@@ -68,7 +68,9 @@ public class CreditCardStatementParser {
         }
         List<CreditCardTransaction> parsedTransactions = "Best Buy".equalsIgnoreCase(statement.getBankName())
             ? parseBestBuyTransactions(text, statement.getStatementEndDate())
-            : parseTransactions(text, statement.getStatementEndDate());
+            : "Capital One".equalsIgnoreCase(statement.getBankName())
+                ? parseCapitalOneTransactions(text, statement.getStatementEndDate())
+                : parseTransactions(text, statement.getStatementEndDate());
         if ("Discover".equalsIgnoreCase(statement.getBankName())) {
             double paymentsFromRows = parsedTransactions.stream()
                 .filter(transaction -> "pago".equalsIgnoreCase(transaction.getType()))
@@ -331,6 +333,32 @@ public class CreditCardStatementParser {
         return transactions;
     }
 
+    private List<CreditCardTransaction> parseCapitalOneTransactions(String text, LocalDate statementEndDate) {
+        List<CreditCardTransaction> transactions = new ArrayList<>();
+        int year = statementEndDate == null ? LocalDate.now().getYear() : statementEndDate.getYear();
+        Pattern row = Pattern.compile(
+            "^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{1,2})\\s+" +
+                "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{1,2})\\s+" +
+                "(.+?)\\s+(-?)\\s*\\$([0-9,]+(?:\\.\\d{2})?)$",
+            Pattern.CASE_INSENSITIVE);
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            Matcher matcher = row.matcher(line);
+            if (!matcher.matches()) {
+                continue;
+            }
+            String description = matcher.group(5).trim();
+            double amount = Money.parse(matcher.group(7));
+            if ("-".equals(matcher.group(6))) {
+                amount = -Math.abs(amount);
+            }
+            LocalDate transactionDate = parseCapitalOneMonthDay(matcher.group(1), matcher.group(2), year, statementEndDate);
+            LocalDate postDate = parseCapitalOneMonthDay(matcher.group(3), matcher.group(4), year, statementEndDate);
+            transactions.add(new CreditCardTransaction(0, 0, transactionDate, postDate, description, amount, classify(description, amount), ""));
+        }
+        return transactions;
+    }
+
     private boolean looksLikeCardTransaction(String description) {
         String value = description == null ? "" : description.toLowerCase(Locale.ROOT);
         return value.contains("payment")
@@ -472,7 +500,7 @@ public class CreditCardStatementParser {
 
     private String classify(String description, double amount) {
         String value = description.toLowerCase(Locale.ROOT);
-        if (value.contains("payment")) return "pago";
+        if (value.contains("payment") || value.contains("pymt")) return "pago";
         if (value.contains("interest")) return "interes";
         if (value.contains("fee")) return "fee";
         if (value.contains("cash advance")) return "cash advance";
@@ -709,6 +737,29 @@ public class CreditCardStatementParser {
     private LocalDate parseMonthDay(String value, int year) {
         String[] parts = value.split("/");
         return LocalDate.of(year, Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+    }
+
+    private LocalDate parseCapitalOneMonthDay(String monthName, String day, int year, LocalDate statementEndDate) {
+        int month = switch (monthName.substring(0, 3).toLowerCase(Locale.ENGLISH)) {
+            case "jan" -> 1;
+            case "feb" -> 2;
+            case "mar" -> 3;
+            case "apr" -> 4;
+            case "may" -> 5;
+            case "jun" -> 6;
+            case "jul" -> 7;
+            case "aug" -> 8;
+            case "sep" -> 9;
+            case "oct" -> 10;
+            case "nov" -> 11;
+            case "dec" -> 12;
+            default -> throw new IllegalArgumentException("Mes no reconocido: " + monthName);
+        };
+        int resolvedYear = year;
+        if (statementEndDate != null && month > statementEndDate.getMonthValue()) {
+            resolvedYear = statementEndDate.getYear() - 1;
+        }
+        return LocalDate.of(resolvedYear, month, Integer.parseInt(day));
     }
 
     public record ParsedCreditCardStatement(CreditCardStatement statement, List<CreditCardTransaction> transactions) {
