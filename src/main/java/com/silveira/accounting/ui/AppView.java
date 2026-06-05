@@ -958,30 +958,12 @@ public class AppView {
     }
 
     private void editCreditCardFromHub() {
-        List<CreditCardAccount> accounts = creditCardAccountRepository.findAll();
-        if (accounts.isEmpty()) {
-            alert(Alert.AlertType.INFORMATION, "Sin tarjetas", "No hay tarjetas para editar.");
-            return;
-        }
-        ChoiceDialog<CreditCardAccount> dialog = new ChoiceDialog<>(accounts.get(0), accounts);
-        dialog.setTitle("Editar tarjeta");
-        dialog.setHeaderText("Selecciona una tarjeta");
-        dialog.setContentText("Tarjeta:");
-        dialog.getItems().setAll(accounts);
-        dialog.showAndWait().ifPresent(this::showCreditCardAccountDialog);
+        chooseCreditCardAccount("Editar tarjeta", "No hay tarjetas para editar.")
+            .ifPresent(this::showCreditCardAccountDialog);
     }
 
     private void deleteCreditCardFromHub() {
-        List<CreditCardAccount> accounts = creditCardAccountRepository.findAll();
-        if (accounts.isEmpty()) {
-            alert(Alert.AlertType.INFORMATION, "Sin tarjetas", "No hay tarjetas para eliminar.");
-            return;
-        }
-        ChoiceDialog<CreditCardAccount> dialog = new ChoiceDialog<>(accounts.get(0), accounts);
-        dialog.setTitle("Eliminar tarjeta");
-        dialog.setHeaderText("Selecciona una tarjeta");
-        dialog.setContentText("Tarjeta:");
-        dialog.showAndWait().ifPresent(account -> {
+        chooseCreditCardAccount("Eliminar tarjeta", "No hay tarjetas para eliminar.").ifPresent(account -> {
             if (!confirm("Eliminar tarjeta", "Se eliminaran la tarjeta, sus estados, movimientos y alertas.", "Eliminar")) {
                 return;
             }
@@ -989,6 +971,61 @@ public class AppView {
             rebuildSidebar();
             showCards();
         });
+    }
+
+    private Optional<CreditCardAccount> chooseCreditCardAccount(String title, String emptyMessage) {
+        List<CreditCardAccount> accounts = creditCardAccountRepository.findAll();
+        if (accounts.isEmpty()) {
+            alert(Alert.AlertType.INFORMATION, "Sin tarjetas", emptyMessage);
+            return Optional.empty();
+        }
+        Dialog<CreditCardAccount> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText("Selecciona una tarjeta");
+        ComboBox<CreditCardAccount> cards = new ComboBox<>(FXCollections.observableArrayList(accounts));
+        cards.setMaxWidth(Double.MAX_VALUE);
+        cards.setValue(accounts.get(0));
+        cards.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(CreditCardAccount account) {
+                return creditCardAccountLabel(account);
+            }
+
+            @Override
+            public CreditCardAccount fromString(String value) {
+                return accounts.stream()
+                    .filter(account -> creditCardAccountLabel(account).equals(value))
+                    .findFirst()
+                    .orElse(null);
+            }
+        });
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        form.addRow(0, new Label("Tarjeta:"), cards);
+        GridPane.setHgrow(cards, Priority.ALWAYS);
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(button -> ButtonType.OK.equals(button) ? cards.getValue() : null);
+        return dialog.showAndWait();
+    }
+
+    private String creditCardAccountLabel(CreditCardAccount account) {
+        if (account == null) {
+            return "";
+        }
+        List<String> details = new ArrayList<>();
+        if (account.getBankName() != null && !account.getBankName().isBlank()) {
+            details.add(account.getBankName().trim());
+        }
+        if (account.getCardName() != null && !account.getCardName().isBlank()) {
+            details.add(account.getCardName().trim());
+        }
+        if (account.getAccountLastDigits() != null && !account.getAccountLastDigits().isBlank()) {
+            details.add("Ending " + account.getAccountLastDigits().trim());
+        }
+        String alias = account.getAlias() == null || account.getAlias().isBlank() ? "Tarjeta" : account.getAlias().trim();
+        return details.isEmpty() ? alias : alias + " - " + String.join(" - ", details);
     }
 
     private void showCreditCardAccountDialog(CreditCardAccount current) {
