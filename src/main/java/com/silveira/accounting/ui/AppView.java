@@ -1074,15 +1074,18 @@ public class AppView {
         HBox totals = new HBox(12);
         totals.getStyleClass().add("totals-panel");
         VBox statementCards = new VBox(10);
+        AtomicReference<Integer> movementYear = new AtomicReference<>();
+        AtomicReference<Integer> movementMonth = new AtomicReference<>();
         Runnable refreshTotals = () -> totals.getChildren().setAll(cardAccumulatedTotalsNodes(alias, selectedYear(), selectedMonth()));
+        Runnable refreshMovements = () -> movements.setItems(FXCollections.observableArrayList(visibleCardMovements(alias, movementYear.get(), movementMonth.get())));
         Runnable refresh = () -> {
             statements.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, selectedYear(), selectedMonth())));
-            movements.setItems(FXCollections.observableArrayList(creditCardTransactionRepository.findByAccount(alias, selectedYear(), selectedMonth())));
+            refreshMovements.run();
             refreshTotals.run();
             refreshCreditCardStatementCards(statements, statementCards, refreshTotals);
         };
         refresh.run();
-        VBox monthlyCards = monthlyCardCards(alias, statements, totals, statementCards, () -> movements.getItems().clear());
+        VBox monthlyCards = monthlyCardCards(alias, statements, movements, totals, statementCards, movementYear, movementMonth);
 
         ComboBox<Integer> year = new ComboBox<>(FXCollections.observableArrayList(null, 2022, 2023, 2024, 2025, 2026));
         year.setValue(selectedYearValue);
@@ -1097,6 +1100,8 @@ public class AppView {
         filter.setOnAction(event -> {
             selectedYearValue = year.getValue();
             selectedMonthValue = month.getValue();
+            movementYear.set(month.getValue() == null ? null : year.getValue());
+            movementMonth.set(month.getValue());
             refresh.run();
         });
         Button importPdf = new Button("Importar PDF");
@@ -1250,8 +1255,26 @@ public class AppView {
     private void refreshCreditCardStatementCards(TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
         cards.getChildren().clear();
         for (CreditCardStatement statement : table.getItems()) {
-            cards.getChildren().add(editableCreditCardStatementCard(statement, table, cards, refreshTotals));
+            cards.getChildren().add(horizontalStatementScroll(editableCreditCardStatementCard(statement, table, cards, refreshTotals)));
         }
+    }
+
+    private List<CreditCardTransaction> visibleCardMovements(String alias, Integer year, Integer month) {
+        if (month == null) {
+            return creditCardTransactionRepository.findByAccount(alias, null, null);
+        }
+        return creditCardTransactionRepository.findByAccount(alias, year, month);
+    }
+
+    private ScrollPane horizontalStatementScroll(Node statementCard) {
+        ScrollPane scroll = new ScrollPane(statementCard);
+        scroll.setFitToHeight(true);
+        scroll.setFitToWidth(false);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setPannable(true);
+        scroll.setMaxWidth(Double.MAX_VALUE);
+        return scroll;
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
@@ -3247,10 +3270,18 @@ public class AppView {
     }
 
     private VBox monthlyCardCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards) {
-        return monthlyCardCards(alias, table, totalsPanel, statementCards, () -> {});
+        return monthlyCardCards(alias, table, null, totalsPanel, statementCards, null, null);
     }
 
-    private VBox monthlyCardCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, Runnable beforeMonthSelected) {
+    private VBox monthlyCardCards(
+        String alias,
+        TableView<CreditCardStatement> table,
+        TableView<CreditCardTransaction> movementTable,
+        HBox totalsPanel,
+        VBox statementCards,
+        AtomicReference<Integer> movementYear,
+        AtomicReference<Integer> movementMonth
+    ) {
         Label title = new Label("Resumen mensual Tarjeta");
         title.getStyleClass().add("section-title");
         HBox cards = new HBox(12);
@@ -3268,8 +3299,18 @@ public class AppView {
                 cardPeriodTitle(allMonthlyStatements, total),
                 reviewMarkLabel("card", alias, total.year(), total.month()),
                 () -> {
-                    beforeMonthSelected.run();
+                    selectedYearValue = total.year();
+                    selectedMonthValue = total.month();
                     table.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, total.year(), total.month())));
+                    if (movementTable != null) {
+                        if (movementYear != null) {
+                            movementYear.set(total.year());
+                        }
+                        if (movementMonth != null) {
+                            movementMonth.set(total.month());
+                        }
+                        movementTable.setItems(FXCollections.observableArrayList(creditCardTransactionRepository.findByAccount(alias, total.year(), total.month())));
+                    }
                     Runnable localRefreshTotals = () -> totalsPanel.getChildren().setAll(cardPeriodActivityTotalsNodes(table.getItems()));
                     localRefreshTotals.run();
                     refreshCreditCardStatementCards(table, statementCards, localRefreshTotals);
