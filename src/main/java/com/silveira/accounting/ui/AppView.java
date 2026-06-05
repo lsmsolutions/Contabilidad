@@ -3282,12 +3282,13 @@ public class AppView {
         cards.getChildren().add(general);
 
         for (MonthlySourceTotals total : mortgageStatementRepository.monthlyTotals(alias, null)) {
+            List<MortgageStatement> monthStatements = mortgageStatementRepository.findByLoan(alias, total.year(), total.month());
             VBox card = monthlyActionCard(
                 monthName(total.month()) + " " + total.year(),
-                "Principal: " + Money.format(total.credits()),
-                "Intereses: " + Money.format(total.deductions()),
-                "Total due: " + Money.format(total.net()),
-                "Pendientes: " + total.pendingCount(),
+                "Principal: " + Money.format(mortgagePaidPrincipal(monthStatements)),
+                "Interest: " + Money.format(mortgagePaidInterest(monthStatements)),
+                "Escrow: " + Money.format(mortgagePaidEscrow(monthStatements)),
+                "Deuda pendiente: " + Money.format(mortgageOutstandingPrincipal(monthStatements)),
                 () -> {
                     table.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, total.year(), total.month())));
                     movementTable.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, total.year(), total.month())));
@@ -3304,6 +3305,33 @@ public class AppView {
         VBox box = new VBox(10, title, cards);
         box.getStyleClass().add("monthly-section");
         return box;
+    }
+
+    private double mortgagePaidPrincipal(List<MortgageStatement> statements) {
+        return statements.stream()
+            .mapToDouble(MortgageStatement::getPastPaidPrincipalSinceLastStatement)
+            .sum();
+    }
+
+    private double mortgagePaidInterest(List<MortgageStatement> statements) {
+        return statements.stream()
+            .mapToDouble(MortgageStatement::getPastPaidInterestSinceLastStatement)
+            .sum();
+    }
+
+    private double mortgagePaidEscrow(List<MortgageStatement> statements) {
+        return statements.stream()
+            .mapToDouble(MortgageStatement::getPastPaidEscrowSinceLastStatement)
+            .sum();
+    }
+
+    private double mortgageOutstandingPrincipal(List<MortgageStatement> statements) {
+        return statements.stream()
+            .max(Comparator
+                .comparing(MortgageStatement::getStatementDate, Comparator.nullsFirst(LocalDate::compareTo))
+                .thenComparingLong(MortgageStatement::getId))
+            .map(MortgageStatement::getOutstandingPrincipalBalance)
+            .orElse(0.0);
     }
 
     private void exportMonthlyMortgage(String alias, int year, int month) {
