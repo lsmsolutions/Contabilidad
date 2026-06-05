@@ -1106,24 +1106,31 @@ public class AppView {
         analysis.setOnAction(event -> showCreditCardAnalysis(alias));
         Button addStatement = new Button("Anadir resumen");
         addStatement.setOnAction(event -> addManualCreditCardStatement(alias, refresh));
-        Button saveStatements = new Button("Guardar resumenes visibles");
+        Button saveStatements = new Button("Guardar resumen");
         saveStatements.getStyleClass().add("primary");
+        saveStatements.setPrefWidth(220);
         saveStatements.setOnAction(event -> saveVisibleCardStatements(statements, refresh));
-        Button addMovement = new Button("Anadir movimiento");
+        Button addMovement = new Button("Añadir movimiento");
+        addMovement.getStyleClass().add("primary");
+        addMovement.setPrefWidth(220);
         addMovement.setOnAction(event -> addManualCreditCardMovement(statements, movements));
-        Button saveMovements = new Button("Guardar movimientos visibles");
+        Button saveMovements = new Button("Guardar");
         saveMovements.getStyleClass().add("primary");
+        saveMovements.setPrefWidth(220);
         saveMovements.setOnAction(event -> saveVisibleCardMovements(statements, movements, refresh));
-        VBox summariesTab = new VBox(10, statementCards, new HBox(10, saveStatements), statements);
-        VBox movementsTab = new VBox(10, new HBox(10, addMovement, saveMovements), movements);
-        VBox.setVgrow(statements, Priority.ALWAYS);
+        HBox summaryActions = new HBox(10, saveStatements);
+        summaryActions.setPadding(new Insets(14, 0, 0, 0));
+        HBox movementActions = new HBox(16, addMovement, saveMovements);
+        movementActions.setPadding(new Insets(14, 0, 0, 0));
+        VBox summariesTab = new VBox(14, summaryActions, statementCards);
+        VBox movementsTab = new VBox(14, movementActions, movements);
         VBox.setVgrow(movements, Priority.ALWAYS);
         VBox actions = actionHeader(
             new HBox(10, new Label("Ano"), year, new Label("Mes"), month, filter),
             new HBox(10, importPdf, analysis, addStatement)
         );
         TabPane tabs = new TabPane(
-            tab("Resumenes", summariesTab),
+            tab("Resumen", summariesTab),
             tab("Movimientos", movementsTab)
         );
         VBox.setVgrow(tabs, Priority.ALWAYS);
@@ -1205,7 +1212,7 @@ public class AppView {
             }
         }
         refresh.run();
-        alert(Alert.AlertType.INFORMATION, "Resumenes guardados", "Resumenes visibles guardados con su estado actual.");
+        alert(Alert.AlertType.INFORMATION, "Resumen guardado", "Resumen visible guardado con su estado actual.");
     }
 
     private void saveVisibleCardMovements(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> movements, Runnable refresh) {
