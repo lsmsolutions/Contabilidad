@@ -56,6 +56,7 @@ import com.silveira.accounting.services.ReconciliationService;
 import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
+import com.silveira.accounting.ui.card.BestBuyStatementSummaryView;
 import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
@@ -1278,6 +1279,9 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        if (isBestBuyStatement(statement)) {
+            return editableBestBuyCreditCardStatementCard(statement, table, cards, refreshTotals);
+        }
         if (isDiscoverStatement(statement)) {
             return editableDiscoverCreditCardStatementCard(statement, table, cards, refreshTotals);
         }
@@ -1302,6 +1306,45 @@ public class AppView {
             reviewed -> {
                 updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
                 table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            })
+        );
+        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
+        return card;
+    }
+
+    private VBox editableBestBuyCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
+        BestBuyStatementSummaryView summaryView = new BestBuyStatementSummaryView();
+        List<String> fieldKeys = summaryView.fieldKeys(statement);
+        boolean defaultReviewed = !statement.isPendingReview();
+        List<CreditCardTransaction> transactions = creditCardTransactionsForStatement(statement);
+        VBox card = summaryView.build(
+            statement,
+            transactions,
+            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
+            (fieldName, reviewed) -> {
+                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            reviewed -> {
+                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
+                for (CreditCardTransaction transaction : transactions) {
+                    updateCreditCardMovementReview(transaction, reviewed);
+                }
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            },
+            (transaction, reviewed) -> {
+                updateCreditCardMovementReview(transaction, reviewed);
                 refreshTotals.run();
                 refreshCreditCardStatementCards(table, cards, refreshTotals);
             },
@@ -1408,6 +1451,13 @@ public class AppView {
         String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
         String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
         return bank.contains("capital one") || alias.contains("capitalone") || card.contains("capital one");
+    }
+
+    private boolean isBestBuyStatement(CreditCardStatement statement) {
+        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
+        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
+        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
+        return bank.contains("best buy") || alias.contains("bestbuy") || alias.contains("best_buy") || card.contains("best buy");
     }
 
     private boolean isCitiStatement(CreditCardStatement statement) {

@@ -524,6 +524,13 @@ public class CreditCardStatementParser {
     }
 
     private String detectCardName(String text) {
+        Matcher bestBuy = Pattern.compile("(My\\s+Best\\s+Buy\\S*\\s+Credit\\s+Card)", Pattern.CASE_INSENSITIVE).matcher(text);
+        if (bestBuy.find()) {
+            return bestBuy.group(1).replaceAll("\\s+", " ").trim();
+        }
+        if ("Best Buy".equalsIgnoreCase(detectBank(text))) {
+            return "My Best Buy Credit Card";
+        }
         Matcher matcher = Pattern.compile("(.+?Credit Card.+?ending in\\s+\\d{4})", Pattern.CASE_INSENSITIVE).matcher(text);
         if (matcher.find()) {
             return matcher.group(1).replaceAll("\\s+", " ").trim();
@@ -531,10 +538,6 @@ public class CreditCardStatementParser {
         Matcher discover = Pattern.compile("(Discover\\s+It.+?Card\\s+Ending\\s+In\\s+\\d{4})", Pattern.CASE_INSENSITIVE).matcher(text);
         if (discover.find()) {
             return discover.group(1).replaceAll("\\s+", " ").trim();
-        }
-        Matcher bestBuy = Pattern.compile("(My\\s+Best\\s+Buy\\s+Credit\\s+Card)", Pattern.CASE_INSENSITIVE).matcher(text);
-        if (bestBuy.find()) {
-            return bestBuy.group(1).replaceAll("\\s+", " ").trim();
         }
         Matcher citi = Pattern.compile("(Citi\\s+.+?Card)", Pattern.CASE_INSENSITIVE).matcher(text);
         return citi.find() ? citi.group(1).replaceAll("\\s+", " ").trim() : "Credit Card";
