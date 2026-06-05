@@ -3090,11 +3090,11 @@ public class AppView {
             HBox cardActions = new HBox(8, editPdfResult, monthlyExportButton(() -> exportMonthlyNyl(total.year(), total.month())));
             cardActions.getStyleClass().add("bank-monthly-actions");
             card.getChildren().add(cardActions);
-            card.getStyleClass().addAll("monthly-card", "credit-card-monthly-card");
+            card.getStyleClass().add("monthly-card");
             cards.getChildren().add(card);
         }
 
-        VBox box = new VBox(10, title, cards);
+        VBox box = new VBox(10, title, horizontalStatementScroll(cards));
         box.getStyleClass().add("monthly-section");
         return box;
     }
