@@ -14,6 +14,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -23,13 +24,20 @@ import javafx.scene.layout.VBox;
 public class MortgageStatementSummaryView {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
+    @FunctionalInterface
+    public interface TransactionAmountChanged {
+        void accept(MortgageTransaction transaction, String fieldName, double value);
+    }
+
     public VBox build(
         MortgageStatement statement,
         List<MortgageTransaction> transactions,
         Predicate<String> fieldReviewed,
         BiConsumer<String, Boolean> fieldReviewedChanged,
+        BiConsumer<String, Double> statementAmountChanged,
         Consumer<Boolean> statementReviewedChanged,
         BiConsumer<MortgageTransaction, Boolean> transactionReviewedChanged,
+        TransactionAmountChanged transactionAmountChanged,
         Runnable editAction,
         Runnable deleteAction
     ) {
@@ -41,13 +49,13 @@ public class MortgageStatementSummaryView {
         top.getStyleClass().add("mortgage-top-summary");
 
         HBox summary = new HBox(14,
-            amountDue(statement, fieldReviewed, fieldReviewedChanged),
-            accountInfo(statement, fieldReviewed, fieldReviewedChanged),
-            pastPayment(statement, fieldReviewed, fieldReviewedChanged)
+            amountDue(statement, fieldReviewed, fieldReviewedChanged, statementAmountChanged),
+            accountInfo(statement, fieldReviewed, fieldReviewedChanged, statementAmountChanged),
+            pastPayment(statement, fieldReviewed, fieldReviewedChanged, statementAmountChanged)
         );
         summary.getStyleClass().add("mortgage-summary-row");
 
-        VBox activity = transactionActivity(statement, transactions, transactionReviewedChanged);
+        VBox activity = transactionActivity(statement, transactions, transactionReviewedChanged, transactionAmountChanged);
 
         Button edit = new Button("Editar datos");
         edit.setOnAction(event -> editAction.run());
@@ -106,48 +114,48 @@ public class MortgageStatementSummaryView {
         return row;
     }
 
-    private VBox amountDue(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+    private VBox amountDue(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, BiConsumer<String, Double> amountChanged) {
         VBox card = summaryCard("Explanation of Amount Due");
         card.getChildren().addAll(
-            line("Principal", statement.getPrincipalDue(), false, "principal_due", fieldReviewed, fieldReviewedChanged),
-            line("Interest", statement.getInterestDue(), false, "interest_due", fieldReviewed, fieldReviewedChanged),
-            line("Escrow", statement.getEscrowDue(), false, "escrow_due", fieldReviewed, fieldReviewedChanged),
-            line("Regular Monthly Payment", statement.getRegularMonthlyPayment(), true, "regular_monthly_payment", fieldReviewed, fieldReviewedChanged),
+            line("Principal", statement.getPrincipalDue(), false, "principal_due", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Interest", statement.getInterestDue(), false, "interest_due", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Escrow", statement.getEscrowDue(), false, "escrow_due", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Regular Monthly Payment", statement.getRegularMonthlyPayment(), true, "regular_monthly_payment", fieldReviewed, fieldReviewedChanged, amountChanged),
             subheader("Past Due Amounts"),
-            line("Past Due Amount", statement.getPastDueAmount(), false, "past_due_amount", fieldReviewed, fieldReviewedChanged),
-            line("Fees", statement.getFees(), false, "fees", fieldReviewed, fieldReviewedChanged),
-            line("Other Fees & Charges", statement.getOtherFeesAndCharges(), false, "other_fees_and_charges", fieldReviewed, fieldReviewedChanged),
-            totalLine("Total Due", dueAmount(statement), "total_due", fieldReviewed, fieldReviewedChanged)
+            line("Past Due Amount", statement.getPastDueAmount(), false, "past_due_amount", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Fees", statement.getFees(), false, "fees", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Other Fees & Charges", statement.getOtherFeesAndCharges(), false, "other_fees_and_charges", fieldReviewed, fieldReviewedChanged, amountChanged),
+            totalLine("Total Due", dueAmount(statement), "total_due", fieldReviewed, fieldReviewedChanged, amountChanged)
         );
         return card;
     }
 
-    private VBox accountInfo(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+    private VBox accountInfo(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, BiConsumer<String, Double> amountChanged) {
         VBox card = summaryCard("Account Information");
         card.getChildren().addAll(
-            line("Original Principal Balance", statement.getOriginalPrincipalBalance(), false, "original_principal_balance", fieldReviewed, fieldReviewedChanged),
-            line("Outstanding Principal Balance", statement.getOutstandingPrincipalBalance(), false, "outstanding_principal_balance", fieldReviewed, fieldReviewedChanged),
+            line("Original Principal Balance", statement.getOriginalPrincipalBalance(), false, "original_principal_balance", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Outstanding Principal Balance", statement.getOutstandingPrincipalBalance(), false, "outstanding_principal_balance", fieldReviewed, fieldReviewedChanged, amountChanged),
             textLine("Maturity Date", formatDate(statement.getMaturityDate())),
             textLine("Interest Rate", percent(statement.getInterestRate())),
-            line("Escrow Balance", statement.getEscrowBalance(), false, "escrow_balance", fieldReviewed, fieldReviewedChanged),
-            line("Unapplied Funds", statement.getUnappliedFunds(), false, "unapplied_funds", fieldReviewed, fieldReviewedChanged)
+            line("Escrow Balance", statement.getEscrowBalance(), false, "escrow_balance", fieldReviewed, fieldReviewedChanged, amountChanged),
+            line("Unapplied Funds", statement.getUnappliedFunds(), false, "unapplied_funds", fieldReviewed, fieldReviewedChanged, amountChanged)
         );
         return card;
     }
 
-    private VBox pastPayment(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+    private VBox pastPayment(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, BiConsumer<String, Double> amountChanged) {
         VBox card = summaryCard("Past Payment Summary");
         card.getChildren().add(headerRow("Paid since last statement", "Paid year-to-date"));
         card.getChildren().addAll(
-            pastLine("Principal", statement.getPastPaidPrincipalSinceLastStatement(), statement.getPastPaidPrincipalYearToDate(), "past_paid_principal_since_last_statement", fieldReviewed, fieldReviewedChanged),
-            pastLine("Interest", statement.getPastPaidInterestSinceLastStatement(), statement.getPastPaidInterestYearToDate(), "past_paid_interest_since_last_statement", fieldReviewed, fieldReviewedChanged),
-            pastLine("Escrow (Taxes & Insurance)", statement.getPastPaidEscrowSinceLastStatement(), statement.getPastPaidEscrowYearToDate(), "past_paid_escrow_since_last_statement", fieldReviewed, fieldReviewedChanged),
-            pastLine("Total", statement.getPastPaidTotalSinceLastStatement(), statement.getPastPaidTotalYearToDate(), "past_paid_total_since_last_statement", fieldReviewed, fieldReviewedChanged)
+            pastLine("Principal", statement.getPastPaidPrincipalSinceLastStatement(), statement.getPastPaidPrincipalYearToDate(), "past_paid_principal_since_last_statement", "past_paid_principal_year_to_date", fieldReviewed, fieldReviewedChanged, amountChanged),
+            pastLine("Interest", statement.getPastPaidInterestSinceLastStatement(), statement.getPastPaidInterestYearToDate(), "past_paid_interest_since_last_statement", "past_paid_interest_year_to_date", fieldReviewed, fieldReviewedChanged, amountChanged),
+            pastLine("Escrow (Taxes & Insurance)", statement.getPastPaidEscrowSinceLastStatement(), statement.getPastPaidEscrowYearToDate(), "past_paid_escrow_since_last_statement", "past_paid_escrow_year_to_date", fieldReviewed, fieldReviewedChanged, amountChanged),
+            pastLine("Total", statement.getPastPaidTotalSinceLastStatement(), statement.getPastPaidTotalYearToDate(), "past_paid_total_since_last_statement", "past_paid_total_year_to_date", fieldReviewed, fieldReviewedChanged, amountChanged)
         );
         return card;
     }
 
-    private VBox transactionActivity(MortgageStatement statement, List<MortgageTransaction> transactions, BiConsumer<MortgageTransaction, Boolean> reviewedChanged) {
+    private VBox transactionActivity(MortgageStatement statement, List<MortgageTransaction> transactions, BiConsumer<MortgageTransaction, Boolean> reviewedChanged, TransactionAmountChanged amountChanged) {
         VBox card = new VBox(8);
         card.getStyleClass().add("mortgage-activity-card");
         Label title = new Label("Transaction Activity Since Your Last Statement");
@@ -173,14 +181,14 @@ public class MortgageStatementSummaryView {
         for (MortgageTransaction transaction : transactions) {
             activityCell(grid, 0, row, formatDate(transaction.getTransactionDate()), "mortgage-activity-date");
             activityCell(grid, 1, row, text(transaction.getDescription()), "mortgage-activity-description");
-            activityCell(grid, 2, row, Money.format(transaction.getTotal()), "mortgage-activity-money");
-            activityCell(grid, 3, row, Money.format(transaction.getPrincipal()), "mortgage-activity-money");
-            activityCell(grid, 4, row, Money.format(transaction.getInterest()), "mortgage-activity-money");
-            activityCell(grid, 5, row, Money.format(transaction.getEscrow()), "mortgage-activity-money");
-            activityCell(grid, 6, row, Money.format(transaction.getFees()), "mortgage-activity-money");
-            activityCell(grid, 7, row, Money.format(transaction.getUnapplied()), "mortgage-activity-money");
-            activityCell(grid, 8, row, Money.format(transaction.getCorporateAdvance()), "mortgage-activity-money");
-            activityCell(grid, 9, row, Money.format(transaction.getOther()), "mortgage-activity-money");
+            activityMoneyCell(grid, 2, row, transaction, "total", transaction.getTotal(), amountChanged);
+            activityMoneyCell(grid, 3, row, transaction, "principal", transaction.getPrincipal(), amountChanged);
+            activityMoneyCell(grid, 4, row, transaction, "interest", transaction.getInterest(), amountChanged);
+            activityMoneyCell(grid, 5, row, transaction, "escrow", transaction.getEscrow(), amountChanged);
+            activityMoneyCell(grid, 6, row, transaction, "fees", transaction.getFees(), amountChanged);
+            activityMoneyCell(grid, 7, row, transaction, "unapplied", transaction.getUnapplied(), amountChanged);
+            activityMoneyCell(grid, 8, row, transaction, "corporate_advance", transaction.getCorporateAdvance(), amountChanged);
+            activityMoneyCell(grid, 9, row, transaction, "other", transaction.getOther(), amountChanged);
             CheckBox check = new CheckBox();
             check.getStyleClass().add("mortgage-activity-review-cell");
             check.setSelected(!transaction.isPendingReview());
@@ -209,7 +217,7 @@ public class MortgageStatementSummaryView {
         return label;
     }
 
-    private HBox line(String label, double amount, boolean bold, String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+    private HBox line(String label, double amount, boolean bold, String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, BiConsumer<String, Double> amountChanged) {
         HBox row = new HBox(8);
         row.getStyleClass().add("mortgage-summary-row");
         if (bold) {
@@ -217,8 +225,7 @@ public class MortgageStatementSummaryView {
         }
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("mortgage-line-label");
-        Label valueNode = new Label(Money.format(amount));
-        valueNode.getStyleClass().add("mortgage-line-value");
+        Label valueNode = moneyLabel(fieldName, amount, amountChanged);
         row.getChildren().addAll(labelNode, valueNode, reviewedCheck(fieldName, fieldReviewed, fieldReviewedChanged));
         return row;
     }
@@ -234,13 +241,12 @@ public class MortgageStatementSummaryView {
         return row;
     }
 
-    private HBox totalLine(String label, double amount, String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+    private HBox totalLine(String label, double amount, String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, BiConsumer<String, Double> amountChanged) {
         HBox row = new HBox(8);
         row.getStyleClass().add("mortgage-total-line");
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("mortgage-line-label");
-        Label valueNode = new Label(Money.format(amount));
-        valueNode.getStyleClass().add("mortgage-line-value");
+        Label valueNode = moneyLabel(fieldName, amount, amountChanged);
         row.getChildren().addAll(labelNode, valueNode, reviewedCheck(fieldName, fieldReviewed, fieldReviewedChanged));
         return row;
     }
@@ -263,21 +269,28 @@ public class MortgageStatementSummaryView {
         return row;
     }
 
-    private HBox pastLine(String label, double sinceLast, double yearToDate, String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
+    private HBox pastLine(String label, double sinceLast, double yearToDate, String sinceFieldName, String yearToDateFieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, BiConsumer<String, Double> amountChanged) {
         HBox row = new HBox(8);
         row.getStyleClass().add("mortgage-past-payment-row");
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("mortgage-past-payment-label");
         labelNode.setMinWidth(130);
         labelNode.setWrapText(true);
-        Label since = new Label(Money.format(sinceLast));
+        Label since = moneyLabel(sinceFieldName, sinceLast, amountChanged);
         since.getStyleClass().add("mortgage-past-payment-column");
         since.setMinWidth(92);
-        Label ytd = new Label(Money.format(yearToDate));
+        Label ytd = moneyLabel(yearToDateFieldName, yearToDate, amountChanged);
         ytd.getStyleClass().add("mortgage-past-payment-column");
         ytd.setMinWidth(92);
-        row.getChildren().addAll(labelNode, since, ytd, reviewedCheck(fieldName, fieldReviewed, fieldReviewedChanged));
+        row.getChildren().addAll(labelNode, since, ytd, reviewedCheck(sinceFieldName, fieldReviewed, fieldReviewedChanged));
         return row;
+    }
+
+    private Label moneyLabel(String fieldName, double amount, BiConsumer<String, Double> amountChanged) {
+        Label label = new Label(Money.format(amount));
+        label.getStyleClass().add("mortgage-line-value");
+        label.setOnMouseClicked(event -> editMoney(fieldName, amount, amountChanged));
+        return label;
     }
 
     private CheckBox reviewedCheck(String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
@@ -293,6 +306,33 @@ public class MortgageStatementSummaryView {
         label.setMaxWidth(Double.MAX_VALUE);
         label.setWrapText(true);
         grid.add(label, column, row);
+    }
+
+    private void activityMoneyCell(GridPane grid, int column, int row, MortgageTransaction transaction, String fieldName, double amount, TransactionAmountChanged amountChanged) {
+        Label label = new Label(Money.format(amount));
+        label.getStyleClass().add("mortgage-activity-cell");
+        label.getStyleClass().add("mortgage-activity-money");
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setOnMouseClicked(event -> editMoney(fieldName, amount, value -> amountChanged.accept(transaction, fieldName, value)));
+        grid.add(label, column, row);
+    }
+
+    private void editMoney(String fieldName, double currentValue, BiConsumer<String, Double> amountChanged) {
+        editMoney(fieldName, currentValue, value -> amountChanged.accept(fieldName, value));
+    }
+
+    private void editMoney(String fieldName, double currentValue, Consumer<Double> amountChanged) {
+        TextInputDialog dialog = new TextInputDialog(Money.format(currentValue));
+        dialog.setTitle("Editar importe");
+        dialog.setHeaderText(fieldName.replace('_', ' '));
+        dialog.setContentText("Importe:");
+        dialog.showAndWait().ifPresent(value -> {
+            try {
+                amountChanged.accept(Money.parse(value));
+            } catch (NumberFormatException ignored) {
+                // Keep the current value if the input cannot be parsed as money.
+            }
+        });
     }
 
     private Node status(MortgageStatement statement) {

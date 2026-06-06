@@ -1608,7 +1608,7 @@ public class AppView {
             new HBox(10, new Label("Ano"), year, new Label("Mes"), month, filter),
             new HBox(10, importPdf, analysis, addStatement, save)
         );
-        TabPane tabs = new TabPane(tab("Statements", new VBox(10, statementSummaries, statements)), tab("Movimientos", movements));
+        TabPane tabs = new TabPane(tab("Statements", new VBox(10, statementSummaries)), tab("Movimientos", movements));
         VBox.setVgrow(tabs, Priority.ALWAYS);
         setPage(page("Hipoteca - " + alias, backButton("Volver a Hipotecas", this::showMortgages), actions, totals, monthlyMortgageCards(alias, statements, movements, totals, statementSummaries), tabs));
     }
@@ -1631,6 +1631,12 @@ public class AppView {
                 refreshTotals.run();
                 refreshMortgageStatementSummaries(table, summaries, refreshTotals);
             },
+            (fieldName, value) -> {
+                updateMortgageStatementAmount(statement, fieldName, value);
+                table.refresh();
+                refreshTotals.run();
+                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
+            },
             reviewed -> {
                 updateMortgageStatementReview(statement, reviewed);
                 updateAllMortgageStatementFieldReviews(statement, reviewed);
@@ -1640,6 +1646,11 @@ public class AppView {
             },
             (transaction, reviewed) -> {
                 updateMortgageTransactionReview(transaction, reviewed);
+                refreshTotals.run();
+                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
+            },
+            (transaction, fieldName, value) -> {
+                updateMortgageTransactionAmount(transaction, fieldName, value);
                 refreshTotals.run();
                 refreshMortgageStatementSummaries(table, summaries, refreshTotals);
             },
@@ -1688,10 +1699,67 @@ public class AppView {
             "escrow_balance",
             "unapplied_funds",
             "past_paid_principal_since_last_statement",
+            "past_paid_principal_year_to_date",
             "past_paid_interest_since_last_statement",
+            "past_paid_interest_year_to_date",
             "past_paid_escrow_since_last_statement",
-            "past_paid_total_since_last_statement"
+            "past_paid_escrow_year_to_date",
+            "past_paid_total_since_last_statement",
+            "past_paid_total_year_to_date"
         );
+    }
+
+    private void updateMortgageStatementAmount(MortgageStatement statement, String fieldName, double value) {
+        switch (fieldName) {
+            case "principal_due" -> statement.setPrincipalDue(value);
+            case "interest_due" -> statement.setInterestDue(value);
+            case "escrow_due" -> statement.setEscrowDue(value);
+            case "regular_monthly_payment" -> statement.setRegularMonthlyPayment(value);
+            case "past_due_amount" -> statement.setPastDueAmount(value);
+            case "fees" -> statement.setFees(value);
+            case "other_fees_and_charges" -> statement.setOtherFeesAndCharges(value);
+            case "total_due" -> {
+                statement.setTotalDue(value);
+                statement.setPaymentAmountDue(value);
+            }
+            case "original_principal_balance" -> statement.setOriginalPrincipalBalance(value);
+            case "outstanding_principal_balance" -> statement.setOutstandingPrincipalBalance(value);
+            case "escrow_balance" -> statement.setEscrowBalance(value);
+            case "unapplied_funds" -> statement.setUnappliedFunds(value);
+            case "past_paid_principal_since_last_statement" -> statement.setPastPaidPrincipalSinceLastStatement(value);
+            case "past_paid_principal_year_to_date" -> statement.setPastPaidPrincipalYearToDate(value);
+            case "past_paid_interest_since_last_statement" -> statement.setPastPaidInterestSinceLastStatement(value);
+            case "past_paid_interest_year_to_date" -> statement.setPastPaidInterestYearToDate(value);
+            case "past_paid_escrow_since_last_statement" -> statement.setPastPaidEscrowSinceLastStatement(value);
+            case "past_paid_escrow_year_to_date" -> statement.setPastPaidEscrowYearToDate(value);
+            case "past_paid_total_since_last_statement" -> statement.setPastPaidTotalSinceLastStatement(value);
+            case "past_paid_total_year_to_date" -> statement.setPastPaidTotalYearToDate(value);
+            default -> {
+                return;
+            }
+        }
+        if (statement.getId() > 0) {
+            mortgageStatementRepository.updateRecord(statement);
+        }
+    }
+
+    private void updateMortgageTransactionAmount(MortgageTransaction transaction, String fieldName, double value) {
+        switch (fieldName) {
+            case "total" -> transaction.setTotal(value);
+            case "principal" -> transaction.setPrincipal(value);
+            case "interest" -> transaction.setInterest(value);
+            case "escrow" -> transaction.setEscrow(value);
+            case "fees" -> transaction.setFees(value);
+            case "unapplied" -> transaction.setUnapplied(value);
+            case "corporate_advance" -> transaction.setCorporateAdvance(value);
+            case "other" -> transaction.setOther(value);
+            default -> {
+                return;
+            }
+        }
+        if (transaction.getId() > 0) {
+            mortgageTransactionRepository.update(transaction);
+        }
     }
 
     private void updateMortgageStatementFieldReview(MortgageStatement statement, String fieldName, boolean reviewed) {
