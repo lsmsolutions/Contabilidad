@@ -289,7 +289,10 @@ public class MortgageStatementSummaryView {
     private Label moneyLabel(String fieldName, double amount, BiConsumer<String, Double> amountChanged) {
         Label label = new Label(Money.format(amount));
         label.getStyleClass().add("mortgage-line-value");
-        label.setOnMouseClicked(event -> editMoney(fieldName, amount, amountChanged));
+        label.setOnMouseClicked(event -> editMoney(fieldName, Money.parse(label.getText()), value -> {
+            amountChanged.accept(fieldName, value);
+            label.setText(Money.format(value));
+        }));
         return label;
     }
 
@@ -313,7 +316,10 @@ public class MortgageStatementSummaryView {
         label.getStyleClass().add("mortgage-activity-cell");
         label.getStyleClass().add("mortgage-activity-money");
         label.setMaxWidth(Double.MAX_VALUE);
-        label.setOnMouseClicked(event -> editMoney(fieldName, amount, value -> amountChanged.accept(transaction, fieldName, value)));
+        label.setOnMouseClicked(event -> editMoney(fieldName, Money.parse(label.getText()), value -> {
+            amountChanged.accept(transaction, fieldName, value);
+            label.setText(Money.format(value));
+        }));
         grid.add(label, column, row);
     }
 

@@ -1608,7 +1608,21 @@ public class AppView {
             new HBox(10, new Label("Ano"), year, new Label("Mes"), month, filter),
             new HBox(10, importPdf, analysis, addStatement, save)
         );
-        TabPane tabs = new TabPane(tab("Statements", new VBox(10, statementSummaries)), tab("Movimientos", movements));
+        Button saveStatements = new Button("Guardar");
+        saveStatements.getStyleClass().add("primary");
+        saveStatements.setOnAction(event -> saveVisibleMortgageRows(statements, movements, refresh));
+        HBox statementActions = new HBox(10, saveStatements);
+        statementActions.setAlignment(Pos.CENTER_LEFT);
+        Button saveMovements = new Button("Guardar");
+        saveMovements.getStyleClass().add("primary");
+        saveMovements.setOnAction(event -> saveVisibleMortgageRows(statements, movements, refresh));
+        HBox movementActions = new HBox(10, saveMovements);
+        movementActions.setAlignment(Pos.CENTER_LEFT);
+        VBox.setVgrow(movements, Priority.ALWAYS);
+        TabPane tabs = new TabPane(
+            tab("Statements", new VBox(6, statementActions, statementSummaries)),
+            tab("Movimientos", new VBox(10, movementActions, movements))
+        );
         VBox.setVgrow(tabs, Priority.ALWAYS);
         setPage(page("Hipoteca - " + alias, backButton("Volver a Hipotecas", this::showMortgages), actions, totals, monthlyMortgageCards(alias, statements, movements, totals, statementSummaries), tabs));
     }
@@ -1629,13 +1643,11 @@ public class AppView {
                 updateMortgageStatementFieldReview(statement, fieldName, reviewed);
                 table.refresh();
                 refreshTotals.run();
-                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
             },
             (fieldName, value) -> {
                 updateMortgageStatementAmount(statement, fieldName, value);
                 table.refresh();
                 refreshTotals.run();
-                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
             },
             reviewed -> {
                 updateMortgageStatementReview(statement, reviewed);
@@ -1647,17 +1659,17 @@ public class AppView {
             (transaction, reviewed) -> {
                 updateMortgageTransactionReview(transaction, reviewed);
                 refreshTotals.run();
-                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
             },
             (transaction, fieldName, value) -> {
                 updateMortgageTransactionAmount(transaction, fieldName, value);
                 refreshTotals.run();
-                refreshMortgageStatementSummaries(table, summaries, refreshTotals);
             },
             () -> {
-                table.getSelectionModel().select(statement);
-                table.scrollTo(statement);
-                table.requestFocus();
+                showMortgageStatementDialog(statement, () -> {
+                    table.refresh();
+                    refreshTotals.run();
+                    refreshMortgageStatementSummaries(table, summaries, refreshTotals);
+                });
             },
             () -> {
                 if (!confirm("Eliminar periodo de hipoteca", "Se eliminaran este statement, sus movimientos y alertas.\n\nEsta accion no se puede deshacer.", "Eliminar periodo")) {
@@ -1836,6 +1848,124 @@ public class AppView {
         table.getItems().add(statement);
         table.getSelectionModel().select(statement);
         refresh.run();
+    }
+
+    private void updateMortgageTransactionIfSaved(MortgageTransaction movement) {
+        if (movement.getId() > 0) {
+            mortgageTransactionRepository.update(movement);
+        }
+    }
+
+    private void showMortgageStatementDialog(MortgageStatement statement, Runnable refresh) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Editar statement de hipoteca");
+        TextField statementDate = new TextField(dateText(statement.getStatementDate()));
+        TextField dueDate = new TextField(dateText(statement.getPaymentDueDate()));
+        TextField totalDue = moneyField(mortgageDueAmount(statement));
+        TextField principal = moneyField(statement.getPrincipalDue());
+        TextField interest = moneyField(statement.getInterestDue());
+        TextField escrow = moneyField(statement.getEscrowDue());
+        TextField original = moneyField(statement.getOriginalPrincipalBalance());
+        TextField outstanding = moneyField(statement.getOutstandingPrincipalBalance());
+        TextField escrowBalance = moneyField(statement.getEscrowBalance());
+        TextField paidPrincipal = moneyField(statement.getPastPaidPrincipalSinceLastStatement());
+        TextField paidInterest = moneyField(statement.getPastPaidInterestSinceLastStatement());
+        TextField paidEscrow = moneyField(statement.getPastPaidEscrowSinceLastStatement());
+        TextField paidTotal = moneyField(statement.getPastPaidTotalSinceLastStatement());
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(8);
+        form.addRow(0, new Label("Statement Date"), statementDate);
+        form.addRow(1, new Label("Payment Due Date"), dueDate);
+        form.addRow(2, new Label("Total Due"), totalDue);
+        form.addRow(3, new Label("Principal"), principal);
+        form.addRow(4, new Label("Interest"), interest);
+        form.addRow(5, new Label("Escrow"), escrow);
+        form.addRow(6, new Label("Original Principal Balance"), original);
+        form.addRow(7, new Label("Outstanding Principal Balance"), outstanding);
+        form.addRow(8, new Label("Escrow Balance"), escrowBalance);
+        form.addRow(9, new Label("Past Principal"), paidPrincipal);
+        form.addRow(10, new Label("Past Interest"), paidInterest);
+        form.addRow(11, new Label("Past Escrow"), paidEscrow);
+        form.addRow(12, new Label("Past Total"), paidTotal);
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> {
+            statement.setStatementDate(parseDateOrNull(statementDate.getText()));
+            statement.setPaymentDueDate(parseDateOrNull(dueDate.getText()));
+            double due = Money.parse(totalDue.getText());
+            statement.setTotalDue(due);
+            statement.setPaymentAmountDue(due);
+            statement.setPrincipalDue(Money.parse(principal.getText()));
+            statement.setInterestDue(Money.parse(interest.getText()));
+            statement.setEscrowDue(Money.parse(escrow.getText()));
+            statement.setOriginalPrincipalBalance(Money.parse(original.getText()));
+            statement.setOutstandingPrincipalBalance(Money.parse(outstanding.getText()));
+            statement.setEscrowBalance(Money.parse(escrowBalance.getText()));
+            statement.setPastPaidPrincipalSinceLastStatement(Money.parse(paidPrincipal.getText()));
+            statement.setPastPaidInterestSinceLastStatement(Money.parse(paidInterest.getText()));
+            statement.setPastPaidEscrowSinceLastStatement(Money.parse(paidEscrow.getText()));
+            statement.setPastPaidTotalSinceLastStatement(Money.parse(paidTotal.getText()));
+            if (statement.getId() > 0) {
+                mortgageStatementRepository.updateRecord(statement);
+            }
+            refresh.run();
+        });
+    }
+
+    private void showMortgageTransactionDialog(MortgageTransaction movement, Runnable refresh) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Editar movimiento de hipoteca");
+        TextField date = new TextField(dateText(movement.getTransactionDate()));
+        TextField description = new TextField(text(movement.getDescription()));
+        TextField total = moneyField(movement.getTotal());
+        TextField principal = moneyField(movement.getPrincipal());
+        TextField interest = moneyField(movement.getInterest());
+        TextField escrow = moneyField(movement.getEscrow());
+        TextField fees = moneyField(movement.getFees());
+        TextField unapplied = moneyField(movement.getUnapplied());
+        TextField other = moneyField(movement.getOther());
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(8);
+        form.addRow(0, new Label("Fecha"), date);
+        form.addRow(1, new Label("Descripcion"), description);
+        form.addRow(2, new Label("Total"), total);
+        form.addRow(3, new Label("Principal"), principal);
+        form.addRow(4, new Label("Interest"), interest);
+        form.addRow(5, new Label("Escrow"), escrow);
+        form.addRow(6, new Label("Fees"), fees);
+        form.addRow(7, new Label("Unapplied"), unapplied);
+        form.addRow(8, new Label("Other"), other);
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> {
+            movement.setTransactionDate(parseDateOrNull(date.getText()));
+            movement.setDescription(description.getText());
+            movement.setTotal(Money.parse(total.getText()));
+            movement.setPrincipal(Money.parse(principal.getText()));
+            movement.setInterest(Money.parse(interest.getText()));
+            movement.setEscrow(Money.parse(escrow.getText()));
+            movement.setFees(Money.parse(fees.getText()));
+            movement.setUnapplied(Money.parse(unapplied.getText()));
+            movement.setOther(Money.parse(other.getText()));
+            updateMortgageTransactionIfSaved(movement);
+            refresh.run();
+        });
+    }
+
+    private TextField moneyField(double amount) {
+        TextField field = new TextField(Money.format(amount));
+        field.setPrefWidth(150);
+        return field;
+    }
+
+    private String dateText(LocalDate date) {
+        return date == null ? "" : date.toString();
+    }
+
+    private double mortgageDueAmount(MortgageStatement statement) {
+        return statement.getTotalDue() > 0 ? statement.getTotalDue() : statement.getPaymentAmountDue();
     }
 
     private void saveVisibleMortgageRows(TableView<MortgageStatement> statements, TableView<MortgageTransaction> movements, Runnable refresh) {
@@ -4243,11 +4373,17 @@ public class AppView {
         TableColumn<MortgageTransaction, String> date = new TableColumn<>("Fecha");
         date.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTransactionDate() == null ? "" : data.getValue().getTransactionDate().toString()));
         date.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        date.setOnEditCommit(event -> event.getRowValue().setTransactionDate(parseDateOrNull(event.getNewValue())));
+        date.setOnEditCommit(event -> {
+            event.getRowValue().setTransactionDate(parseDateOrNull(event.getNewValue()));
+            updateMortgageTransactionIfSaved(event.getRowValue());
+        });
         TableColumn<MortgageTransaction, String> description = new TableColumn<>("Descripción");
         description.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
-        description.setCellFactory(TextFieldTableCell.forTableColumn());
-        description.setOnEditCommit(event -> event.getRowValue().setDescription(event.getNewValue()));
+        description.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
+        description.setOnEditCommit(event -> {
+            event.getRowValue().setDescription(event.getNewValue());
+            updateMortgageTransactionIfSaved(event.getRowValue());
+        });
         description.setPrefWidth(320);
         TableColumn<MortgageTransaction, Double> total = mortgageTxMoneyColumn("Total\n(Total)", MortgageTransaction::getTotal, MortgageTransaction::setTotal);
         TableColumn<MortgageTransaction, Boolean> reviewed = mortgageTransactionReviewedColumn();
@@ -4261,14 +4397,25 @@ public class AppView {
         status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
         TableColumn<MortgageTransaction, String> notes = new TableColumn<>("Notas");
         notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
-        notes.setCellFactory(TextFieldTableCell.forTableColumn());
-        notes.setOnEditCommit(event -> event.getRowValue().setReviewNotes(event.getNewValue()));
+        notes.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
+        notes.setOnEditCommit(event -> {
+            event.getRowValue().setReviewNotes(event.getNewValue());
+            updateMortgageTransactionIfSaved(event.getRowValue());
+        });
         notes.setPrefWidth(240);
-        TableColumn<MortgageTransaction, Void> delete = new TableColumn<>("Eliminar");
-        delete.setCellFactory(column -> new TableCell<>() {
-            private final Button button = new Button("Eliminar");
+        TableColumn<MortgageTransaction, Void> actions = new TableColumn<>("Acciones");
+        actions.setPrefWidth(160);
+        actions.setCellFactory(column -> new TableCell<>() {
+            private final Button edit = new Button("Editar");
+            private final Button delete = new Button("Eliminar");
+            private final HBox buttons = new HBox(6, edit, delete);
             {
-                button.setOnAction(event -> {
+                edit.setOnAction(event -> {
+                    MortgageTransaction movement = getTableView().getItems().get(getIndex());
+                    showMortgageTransactionDialog(movement, () -> getTableView().refresh());
+                });
+                delete.getStyleClass().add("danger-button");
+                delete.setOnAction(event -> {
                     MortgageTransaction movement = getTableView().getItems().get(getIndex());
                     if (movement.getId() > 0) {
                         mortgageTransactionRepository.delete(movement.getId());
@@ -4280,10 +4427,10 @@ public class AppView {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : button);
+                setGraphic(empty ? null : buttons);
             }
         });
-        table.getColumns().setAll(date, description, total, reviewed, principal, interest, escrow, fees, unapplied, other, status, notes, delete);
+        table.getColumns().setAll(date, description, total, reviewed, principal, interest, escrow, fees, unapplied, other, status, notes, actions);
         return table;
     }
 
@@ -4318,8 +4465,11 @@ public class AppView {
     private TableColumn<MortgageTransaction, Double> mortgageTxMoneyColumn(String title, java.util.function.ToDoubleFunction<MortgageTransaction> getter, java.util.function.BiConsumer<MortgageTransaction, Double> setter) {
         TableColumn<MortgageTransaction, Double> column = new TableColumn<>(title);
         column.setCellValueFactory(data -> new SimpleDoubleProperty(getter.applyAsDouble(data.getValue())).asObject());
-        column.setCellFactory(TextFieldTableCell.forTableColumn(twoDecimalConverter()));
-        column.setOnEditCommit(event -> setter.accept(event.getRowValue(), event.getNewValue()));
+        column.setCellFactory(commitOnFocusLostCellFactory(twoDecimalConverter()));
+        column.setOnEditCommit(event -> {
+            setter.accept(event.getRowValue(), event.getNewValue());
+            updateMortgageTransactionIfSaved(event.getRowValue());
+        });
         column.setPrefWidth(110);
         return column;
     }
@@ -4854,7 +5004,7 @@ public class AppView {
                 if (value == null || value.isBlank()) {
                     return 0.0;
                 }
-                return Double.parseDouble(value.replace("$", "").replace(",", "").trim());
+                return Money.parse(value);
             }
         };
     }
