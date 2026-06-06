@@ -125,8 +125,6 @@ public class MortgageStatementSummaryView {
     private VBox accountInfo(MortgageStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         VBox card = summaryCard("Account Information");
         card.getChildren().addAll(
-            textLine("Account Number", text(statement.getLoanNumber())),
-            textLine("Property Address", text(statement.getPropertyAddress())),
             line("Original Principal Balance", statement.getOriginalPrincipalBalance(), false, "original_principal_balance", fieldReviewed, fieldReviewedChanged),
             line("Outstanding Principal Balance", statement.getOutstandingPrincipalBalance(), false, "outstanding_principal_balance", fieldReviewed, fieldReviewedChanged),
             textLine("Maturity Date", formatDate(statement.getMaturityDate())),

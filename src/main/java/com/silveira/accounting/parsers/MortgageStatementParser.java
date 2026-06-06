@@ -28,23 +28,27 @@ public class MortgageStatementParser {
         statement.setPaymentAmountDue(amountAfterAny(text, "Payment Amount Due", "Amount Due"));
         statement.setLateFeeDate(firstDateAfterAny(text, "Late Fee Date", "Late Charge Date"));
         statement.setLateFeeAmount(amountNear(text, "late fee", amountAfterAny(text, "Late Fee", "Late Charge")));
-        statement.setLoanNumber(match(text, "(?:Loan|Account)\\s*(?:Number|No\\.?|#)\\s*:?\\s*([A-Z0-9\\-* ]{4,32})", 1, ""));
-        statement.setPropertyAddress(extractPropertyAddress(text));
-        statement.setOriginalPrincipalBalance(amountAfterAny(text, "Original Principal Balance", "Original Balance"));
-        statement.setOutstandingPrincipalBalance(amountAfterAny(text, "Outstanding Principal Balance", "Principal Balance"));
-        statement.setMaturityDate(firstDateAfterAny(text, "Maturity Date"));
-        statement.setInterestRate(percentAfterAny(text, "Interest Rate", "Current Interest Rate"));
-        statement.setEscrowBalance(amountAfterAny(text, "Escrow Balance"));
-        statement.setUnappliedFunds(amountAfterAny(text, "Unapplied Funds", "Unapplied Balance"));
-        statement.setCurrentPaymentDue(amountAfterAny(text, "Current Payment Due", "Current Due"));
-        statement.setPrincipalDue(amountAfterAny(text, "Principal"));
-        statement.setInterestDue(amountAfterAny(text, "Interest"));
-        statement.setEscrowDue(amountAfterAny(text, "Escrow"));
-        statement.setRegularMonthlyPayment(amountAfterAny(text, "Regular Monthly Payment", "Monthly Payment"));
-        statement.setPastDueAmount(amountAfterAny(text, "Past Due Amounts", "Past Due Amount"));
-        statement.setFees(amountAfterAny(text, "Fees", "Charges"));
-        statement.setOtherFeesAndCharges(amountAfterAny(text, "Other Fees & Charges", "Other Fees and Charges"));
-        statement.setTotalDue(amountAfterAny(text, "Total Due", "Total Amount Due"));
+        String amountDueSection = sectionBetween(text, "Explanation of Amount Due", "Account Information", 1300);
+        String accountInfoSection = sectionBetween(text, "Account Information", "Past Payment Summary", 1300);
+        String amountDueSearch = amountDueSection.isBlank() ? text : amountDueSection;
+        String accountInfoSearch = accountInfoSection.isBlank() ? text : accountInfoSection;
+        statement.setLoanNumber(accountInfoValue(accountInfoSearch, "Account Number", match(text, "(?:Loan|Account)\\s*(?:Number|No\\.?|#)\\s*:?\\s*([A-Z0-9\\-* ]{4,32})", 1, "")));
+        statement.setPropertyAddress(extractPropertyAddress(accountInfoSearch));
+        statement.setOriginalPrincipalBalance(amountInSection(accountInfoSearch, "Original Principal Balance", "Original Balance"));
+        statement.setOutstandingPrincipalBalance(amountInSection(accountInfoSearch, "Outstanding Principal Balance", "Principal Balance"));
+        statement.setMaturityDate(firstDateAfterAny(accountInfoSearch, "Maturity Date"));
+        statement.setInterestRate(percentAfterAny(accountInfoSearch, "Interest Rate", "Current Interest Rate"));
+        statement.setEscrowBalance(amountInSection(accountInfoSearch, "Escrow Balance"));
+        statement.setUnappliedFunds(amountInSection(accountInfoSearch, "Unapplied Funds", "Unapplied Balance"));
+        statement.setPrincipalDue(amountInSection(amountDueSearch, "Principal"));
+        statement.setInterestDue(amountInSection(amountDueSearch, "Interest"));
+        statement.setEscrowDue(amountInSection(amountDueSearch, "Escrow"));
+        statement.setRegularMonthlyPayment(amountInSection(amountDueSearch, "Regular Monthly Payment", "Monthly Payment"));
+        statement.setCurrentPaymentDue(statement.getRegularMonthlyPayment());
+        statement.setPastDueAmount(amountInSection(amountDueSearch, "Past Due Amount", "0 Payments @"));
+        statement.setFees(amountInSection(amountDueSearch, "Late Fees", "Fees"));
+        statement.setOtherFeesAndCharges(amountInSection(amountDueSearch, "Other Fees & Charges", "Other Fees and Charges"));
+        statement.setTotalDue(amountInSection(amountDueSearch, "Total Due", "Total Amount Due"));
         applyPastPaymentSummary(text, statement);
         if (statement.getPaymentAmountDue() == 0) {
             statement.setPaymentAmountDue(statement.getTotalDue());
@@ -61,7 +65,7 @@ public class MortgageStatementParser {
     }
 
     private void applyPastPaymentSummary(String text, MortgageStatement statement) {
-        String section = sectionAfter(text, "Past Payment Summary", 900);
+        String section = sectionBetween(text, "Past Payment Summary", "Transaction Activity", 1200);
         double[] principal = twoAmountsAfter(section, "Principal");
         double[] interest = twoAmountsAfter(section, "Interest");
         double[] escrow = twoAmountsAfter(section, "Escrow");
@@ -82,6 +86,19 @@ public class MortgageStatementParser {
             return "";
         }
         int end = Math.min(text.length(), start + maxChars);
+        return text.substring(start, end);
+    }
+
+    private String sectionBetween(String text, String startLabel, String endLabel, int fallbackMaxChars) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        int start = lower.indexOf(startLabel.toLowerCase(Locale.ROOT));
+        if (start < 0) {
+            return "";
+        }
+        int end = lower.indexOf(endLabel.toLowerCase(Locale.ROOT), start + startLabel.length());
+        if (end < 0) {
+            end = Math.min(text.length(), start + fallbackMaxChars);
+        }
         return text.substring(start, end);
     }
 
@@ -170,6 +187,13 @@ public class MortgageStatementParser {
         return 0;
     }
 
+    private double amountInSection(String section, String... labels) {
+        if (section == null || section.isBlank()) {
+            return 0;
+        }
+        return amountAfterAny(section, labels);
+    }
+
     private double amountNear(String text, String label, double fallback) {
         Matcher matcher = Pattern.compile(Pattern.quote(label) + "[\\s\\S]{0,160}?(" + MONEY.pattern() + ")", Pattern.CASE_INSENSITIVE).matcher(text);
         return matcher.find() ? Math.abs(amount(matcher.group(1))) : fallback;
@@ -212,6 +236,11 @@ public class MortgageStatementParser {
     private String extractPropertyAddress(String text) {
         Matcher matcher = Pattern.compile("Property Address\\s*:?\\s*(.+?)(?:\\R|$)", Pattern.CASE_INSENSITIVE).matcher(text);
         return matcher.find() ? matcher.group(1).trim() : "";
+    }
+
+    private String accountInfoValue(String text, String label, String fallback) {
+        Matcher matcher = Pattern.compile(Pattern.quote(label) + "\\s*:?\\s*([A-Z0-9\\-* ]{4,32})(?:\\R|$)", Pattern.CASE_INSENSITIVE).matcher(text);
+        return matcher.find() ? matcher.group(1).trim() : fallback;
     }
 
     private String buildAlias(MortgageStatement statement, String sourcePdf) {
