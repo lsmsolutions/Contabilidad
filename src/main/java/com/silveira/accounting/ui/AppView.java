@@ -3505,21 +3505,22 @@ public class AppView {
     }
 
     private List<javafx.scene.Node> mortgageTotalsNodes(List<MortgageStatement> statements, List<MortgageTransaction> movements) {
-        long ok = statements.stream().filter(s -> !s.isPendingReview()).count() + movements.stream().filter(m -> !m.isPendingReview()).count();
-        long pending = statements.stream().filter(MortgageStatement::isPendingReview).count() + movements.stream().filter(MortgageTransaction::isPendingReview).count();
-        double principal = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getPrincipalDue).sum();
-        double interest = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getInterestDue).sum();
-        double escrow = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getEscrowDue).sum();
-        double total = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(s -> s.getTotalDue() > 0 ? s.getTotalDue() : s.getPaymentAmountDue()).sum();
-        double debt = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getOutstandingPrincipalBalance).sum();
+        List<MortgageStatement> source = statements.stream().filter(s -> !s.isPendingReview()).toList();
+        if (source.isEmpty()) {
+            source = statements;
+        }
+        MortgageStatement latest = source.stream()
+            .max(Comparator
+                .comparing(MortgageStatement::getStatementDate, Comparator.nullsFirst(LocalDate::compareTo))
+                .thenComparingLong(MortgageStatement::getId))
+            .orElse(null);
+        double initialDebt = latest == null ? 0 : latest.getOriginalPrincipalBalance();
+        double debtPaid = source.stream().mapToDouble(MortgageStatement::getPastPaidPrincipalSinceLastStatement).sum();
+        double outstandingDebt = latest == null ? 0 : latest.getOutstandingPrincipalBalance();
         return List.of(
-            miniTotal("OK", String.valueOf(ok), "neutral-total"),
-            miniTotal("Pendientes", String.valueOf(pending), "pending-total"),
-            miniTotal("Principal", Money.format(principal), "income-total"),
-            miniTotal("Intereses", Money.format(interest), "expense-total"),
-            miniTotal("Escrow", Money.format(escrow), "pending-total"),
-            miniTotal("Total due", Money.format(total), "net-total"),
-            miniTotal("Deuda pendiente", Money.format(debt), "expense-total")
+            miniTotal("Initial Debt", Money.format(initialDebt), "neutral-total"),
+            miniTotal("Debt Paid", Money.format(debtPaid), "income-total"),
+            miniTotal("Outstanding Debt", Money.format(outstandingDebt), "expense-total")
         );
     }
 
