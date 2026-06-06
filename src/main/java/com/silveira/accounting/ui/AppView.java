@@ -1746,8 +1746,12 @@ public class AppView {
             long statementId = mortgageStatementRepository.save(statement);
             mortgageTransactionRepository.saveAll(statementId, parsed.transactions());
             mortgageAlertRepository.saveAll(statementId, mortgageAnalysisService.analyze(statement).alerts());
-            refresh.run();
-            alert(Alert.AlertType.INFORMATION, "Hipoteca importada", "PDF importado para " + alias + ".");
+            if (statement.getStatementDate() != null) {
+                selectedYearValue = statement.getStatementDate().getYear();
+                selectedMonthValue = statement.getStatementDate().getMonthValue();
+            }
+            rebuildSidebar();
+            showMortgageDetail(alias);
         } catch (RuntimeException exception) {
             alert(Alert.AlertType.ERROR, "No se pudo importar hipoteca", rootCauseMessage(exception));
         }
