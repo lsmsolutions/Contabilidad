@@ -13,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MortgageStatementParser {
-    private static final Pattern MONEY = Pattern.compile("\\$?\\(?[0-9,]+\\.\\d{2}\\)?");
+    private static final Pattern MONEY = Pattern.compile("(?:-?\\$?[0-9,]+\\.\\d{2}|\\(\\$?[0-9,]+\\.\\d{2}\\))");
     private static final Pattern PERCENT = Pattern.compile("[0-9]+(?:\\.[0-9]+)?\\s*%");
     private static final DateTimeFormatter LONG_DATE = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter SHORT_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ENGLISH);
@@ -170,7 +170,7 @@ public class MortgageStatementParser {
         List<Double> values = new ArrayList<>();
         Matcher matcher = MONEY.matcher(text);
         while (matcher.find()) {
-            values.add(Math.abs(amount(matcher.group())));
+            values.add(amount(matcher.group()));
         }
         return values;
     }
