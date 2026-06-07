@@ -80,6 +80,7 @@ import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.StackedBarChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -2043,17 +2044,17 @@ public class AppView {
         yAxis.setTickUnit(Math.max(100, spread / 5));
     }
 
-    private BarChart<String, Number> mortgagePaymentChart(List<MortgageStatement> statements) {
+    private StackedBarChart<String, Number> mortgagePaymentChart(List<MortgageStatement> statements) {
         CategoryAxis xAxis = new CategoryAxis();
         NumberAxis yAxis = new NumberAxis();
         xAxis.setLabel("Mes");
         yAxis.setLabel("Importe");
-        BarChart<String, Number> chart = new BarChart<>(xAxis, yAxis);
-        chart.setTitle("Principal vs intereses vs escrow");
+        StackedBarChart<String, Number> chart = new StackedBarChart<>(xAxis, yAxis);
+        chart.setTitle("Payment breakdown by month");
         XYChart.Series<String, Number> principal = new XYChart.Series<>();
         principal.setName("Principal");
         XYChart.Series<String, Number> interest = new XYChart.Series<>();
-        interest.setName("Intereses");
+        interest.setName("Interest");
         XYChart.Series<String, Number> escrow = new XYChart.Series<>();
         escrow.setName("Escrow");
         for (MortgageStatement statement : statements) {
