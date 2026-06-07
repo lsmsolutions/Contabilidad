@@ -491,10 +491,14 @@
     -fx-font-weight: 700;
 }
 
-.agent-ledger-withdrawal-total,
-.agent-ledger-net-total {
+.agent-ledger-withdrawal-total {
     -fx-background-color: #1f3b68;
     -fx-font-weight: 700;
+}
+
+.agent-ledger-net-total {
+    -fx-background-color: #dff3e5;
+    -fx-font-weight: 600;
 }
 
 .agent-ledger-credit-header .table-cell,
@@ -503,9 +507,12 @@
 .agent-ledger-section-row .table-cell,
 .agent-ledger-credit-total .table-cell,
 .agent-ledger-deduction-total .table-cell,
-.agent-ledger-withdrawal-total .table-cell,
-.agent-ledger-net-total .table-cell {
+.agent-ledger-withdrawal-total .table-cell {
     -fx-text-fill: white;
+}
+
+.agent-ledger-net-total .table-cell {
+    -fx-text-fill: #31533b;
 }
 
 .chart {
