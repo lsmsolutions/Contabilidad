@@ -1987,19 +1987,15 @@ public class AppView {
     }
 
     private void showMortgageAnalysis(String alias) {
-        List<MortgageStatement> reviewed = mortgageStatementRepository.findByLoan(alias, null, null).stream()
-            .filter(statement -> !statement.isPendingReview())
+        List<MortgageStatement> statements = mortgageStatementRepository.findByLoan(alias, null, null).stream()
             .filter(statement -> statement.getStatementDate() != null)
             .sorted(Comparator.comparing(MortgageStatement::getStatementDate))
             .toList();
-        HBox totals = new HBox(12,
-            miniTotal("Deuda pendiente", Money.format(reviewed.stream().mapToDouble(MortgageStatement::getOutstandingPrincipalBalance).reduce((a, b) -> b).orElse(0)), "expense-total"),
-            miniTotal("Principal", Money.format(reviewed.stream().mapToDouble(MortgageStatement::getPrincipalDue).sum()), "income-total"),
-            miniTotal("Intereses", Money.format(reviewed.stream().mapToDouble(MortgageStatement::getInterestDue).sum()), "expense-total"),
-            miniTotal("Escrow", Money.format(reviewed.stream().mapToDouble(MortgageStatement::getEscrowDue).sum()), "pending-total")
-        );
+        List<MortgageStatement> source = mortgageReviewedOrAll(statements);
+        HBox totals = new HBox(12);
+        totals.getChildren().setAll(mortgageAnalysisTotalsNodes(source));
         totals.getStyleClass().add("totals-panel");
-        setPage(page("Analisis de hipoteca - " + alias, backButton("Volver al detalle", () -> showMortgageDetail(alias)), totals, mortgageDebtChart(reviewed), mortgagePaymentChart(reviewed)));
+        setPage(page("Analisis de hipoteca - " + alias, backButton("Volver al detalle", () -> showMortgageDetail(alias)), totals, mortgageDebtChart(source), mortgagePaymentChart(source)));
     }
 
     private LineChart<String, Number> mortgageDebtChart(List<MortgageStatement> statements) {
@@ -2011,8 +2007,18 @@ public class AppView {
         chart.setTitle("Evolucion de deuda pendiente");
         chart.setLegendVisible(false);
         XYChart.Series<String, Number> series = new XYChart.Series<>();
+        double initialDebt = mortgageInitialDebt(statements);
+        double debt = initialDebt;
+        if (initialDebt > 0) {
+            series.getData().add(new XYChart.Data<>("Initial Debt", initialDebt));
+        }
         for (MortgageStatement statement : statements) {
-            series.getData().add(new XYChart.Data<>(monthName(statement.getStatementDate().getMonthValue()) + " " + statement.getStatementDate().getYear(), statement.getOutstandingPrincipalBalance()));
+            if (statement.getStatementDate() == null) {
+                continue;
+            }
+            debt -= statement.getPastPaidPrincipalSinceLastStatement();
+            double value = debt > 0 ? debt : statement.getOutstandingPrincipalBalance();
+            series.getData().add(new XYChart.Data<>(monthName(statement.getStatementDate().getMonthValue()) + " " + statement.getStatementDate().getYear(), value));
         }
         chart.getData().add(series);
         chart.setMinHeight(320);
@@ -2033,10 +2039,13 @@ public class AppView {
         XYChart.Series<String, Number> escrow = new XYChart.Series<>();
         escrow.setName("Escrow");
         for (MortgageStatement statement : statements) {
+            if (statement.getStatementDate() == null) {
+                continue;
+            }
             String label = monthName(statement.getStatementDate().getMonthValue()) + " " + statement.getStatementDate().getYear();
-            principal.getData().add(new XYChart.Data<>(label, statement.getPrincipalDue()));
-            interest.getData().add(new XYChart.Data<>(label, statement.getInterestDue()));
-            escrow.getData().add(new XYChart.Data<>(label, statement.getEscrowDue()));
+            principal.getData().add(new XYChart.Data<>(label, statement.getPastPaidPrincipalSinceLastStatement()));
+            interest.getData().add(new XYChart.Data<>(label, statement.getPastPaidInterestSinceLastStatement()));
+            escrow.getData().add(new XYChart.Data<>(label, statement.getPastPaidEscrowSinceLastStatement()));
         }
         chart.getData().addAll(principal, interest, escrow);
         chart.setMinHeight(340);
@@ -3505,23 +3514,40 @@ public class AppView {
     }
 
     private List<javafx.scene.Node> mortgageTotalsNodes(List<MortgageStatement> statements, List<MortgageTransaction> movements) {
-        List<MortgageStatement> source = statements.stream().filter(s -> !s.isPendingReview()).toList();
-        if (source.isEmpty()) {
-            source = statements;
-        }
+        List<MortgageStatement> source = mortgageReviewedOrAll(statements);
         MortgageStatement latest = source.stream()
             .max(Comparator
                 .comparing(MortgageStatement::getStatementDate, Comparator.nullsFirst(LocalDate::compareTo))
                 .thenComparingLong(MortgageStatement::getId))
             .orElse(null);
-        double initialDebt = latest == null ? 0 : latest.getOriginalPrincipalBalance();
         double debtPaid = source.stream().mapToDouble(MortgageStatement::getPastPaidPrincipalSinceLastStatement).sum();
         double outstandingDebt = latest == null ? 0 : latest.getOutstandingPrincipalBalance();
         return List.of(
-            miniTotal("Initial Debt", Money.format(initialDebt), "neutral-total"),
+            miniTotal("Initial Debt", Money.format(mortgageInitialDebt(source)), "neutral-total"),
             miniTotal("Debt Paid", Money.format(debtPaid), "income-total"),
             miniTotal("Outstanding Debt", Money.format(outstandingDebt), "expense-total")
         );
+    }
+
+    private List<javafx.scene.Node> mortgageAnalysisTotalsNodes(List<MortgageStatement> statements) {
+        List<javafx.scene.Node> totals = new ArrayList<>(mortgageTotalsNodes(statements, List.of()));
+        totals.add(miniTotal("Interest", Money.format(mortgagePaidInterest(statements)), "expense-total"));
+        totals.add(miniTotal("Escrow", Money.format(mortgagePaidEscrow(statements)), "pending-total"));
+        return totals;
+    }
+
+    private List<MortgageStatement> mortgageReviewedOrAll(List<MortgageStatement> statements) {
+        List<MortgageStatement> reviewed = statements.stream().filter(s -> !s.isPendingReview()).toList();
+        return reviewed.isEmpty() ? statements : reviewed;
+    }
+
+    private double mortgageInitialDebt(List<MortgageStatement> statements) {
+        return statements.stream()
+            .max(Comparator
+                .comparing(MortgageStatement::getStatementDate, Comparator.nullsFirst(LocalDate::compareTo))
+                .thenComparingLong(MortgageStatement::getId))
+            .map(MortgageStatement::getOriginalPrincipalBalance)
+            .orElse(0.0);
     }
 
     private VBox monthlyMortgageCards(String alias, TableView<MortgageStatement> table, TableView<MortgageTransaction> movementTable, HBox totalsPanel, VBox statementSummaries) {
