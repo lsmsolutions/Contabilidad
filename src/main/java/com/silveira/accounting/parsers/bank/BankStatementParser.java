@@ -12,8 +12,10 @@ import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,6 +42,7 @@ public class BankStatementParser {
         LocalDate pendingDate = null;
         Double pendingAmount = null;
         List<String> pendingDescription = new ArrayList<>();
+        Map<String, Integer> occurrenceByBaseFingerprint = new HashMap<>();
         for (String rawLine : text.split("\\R")) {
             String line = rawLine.replaceAll("\\s+", " ").trim();
             String lower = line.toLowerCase(Locale.ROOT);
@@ -78,7 +81,7 @@ public class BankStatementParser {
                 LocalDate date = parseDate(matcher.group(1), matcher.group(2), fallbackYear);
                 String description = matcher.group(3).trim();
                 double rawAmount = Money.parse(matcher.group(4));
-                transactions.add(createTransaction(date, description, rawAmount, section, accountAlias, sourcePdf, importStatus, reviewRequired));
+                transactions.add(createTransaction(date, description, rawAmount, section, accountAlias, sourcePdf, importStatus, reviewRequired, occurrenceByBaseFingerprint));
                 pendingDate = null;
                 pendingAmount = null;
                 pendingDescription.clear();
@@ -98,7 +101,7 @@ public class BankStatementParser {
                 pendingAmount = Money.parse(line);
                 if (!pendingDescription.isEmpty()) {
                     String description = String.join(" ", pendingDescription).trim();
-                    transactions.add(createTransaction(pendingDate, description, pendingAmount, section, accountAlias, sourcePdf, importStatus, reviewRequired));
+                    transactions.add(createTransaction(pendingDate, description, pendingAmount, section, accountAlias, sourcePdf, importStatus, reviewRequired, occurrenceByBaseFingerprint));
                     pendingDate = null;
                     pendingAmount = null;
                     pendingDescription.clear();
@@ -111,7 +114,7 @@ public class BankStatementParser {
             pendingDescription.add(line);
             if (pendingAmount != null) {
                 String description = String.join(" ", pendingDescription).trim();
-                transactions.add(createTransaction(pendingDate, description, pendingAmount, section, accountAlias, sourcePdf, importStatus, reviewRequired));
+                transactions.add(createTransaction(pendingDate, description, pendingAmount, section, accountAlias, sourcePdf, importStatus, reviewRequired, occurrenceByBaseFingerprint));
                 pendingDate = null;
                 pendingAmount = null;
                 pendingDescription.clear();
@@ -121,12 +124,15 @@ public class BankStatementParser {
     }
 
     private BankTransaction createTransaction(LocalDate date, String description, double rawAmount, String section,
-                                              String accountAlias, String sourcePdf, String importStatus, boolean reviewRequired) {
+                                              String accountAlias, String sourcePdf, String importStatus, boolean reviewRequired,
+                                              Map<String, Integer> occurrenceByBaseFingerprint) {
         double amount = signedAmount(rawAmount, section);
         String provider = providerDetector.detect(description);
         String movementType = section == null || section.isBlank() ? providerDetector.movementType(description, amount) : section;
         String reference = detectReference(description);
-        String fingerprint = Fingerprint.of(date + "|" + description + "|" + amount);
+        String baseFingerprint = date + "|" + description + "|" + amount;
+        int occurrence = occurrenceByBaseFingerprint.merge(baseFingerprint, 1, Integer::sum);
+        String fingerprint = Fingerprint.of(occurrence == 1 ? baseFingerprint : baseFingerprint + "|occurrence:" + occurrence);
         BankTransaction transaction = new BankTransaction(0, date, description, amount, movementType, provider, reference,
             date.getMonthValue(), date.getYear(), sourcePdf, fingerprint, false);
         transaction.setAccountAlias(accountAlias);
