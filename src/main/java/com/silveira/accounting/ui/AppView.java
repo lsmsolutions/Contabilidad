@@ -2007,10 +2007,12 @@ public class AppView {
         chart.setTitle("Evolucion de deuda pendiente");
         chart.setLegendVisible(false);
         XYChart.Series<String, Number> series = new XYChart.Series<>();
+        List<Double> debtValues = new ArrayList<>();
         double initialDebt = mortgageInitialDebt(statements);
         double debt = initialDebt;
         if (initialDebt > 0) {
             series.getData().add(new XYChart.Data<>("Initial Debt", initialDebt));
+            debtValues.add(initialDebt);
         }
         for (MortgageStatement statement : statements) {
             if (statement.getStatementDate() == null) {
@@ -2019,10 +2021,26 @@ public class AppView {
             debt -= statement.getPastPaidPrincipalSinceLastStatement();
             double value = debt > 0 ? debt : statement.getOutstandingPrincipalBalance();
             series.getData().add(new XYChart.Data<>(monthName(statement.getStatementDate().getMonthValue()) + " " + statement.getStatementDate().getYear(), value));
+            debtValues.add(value);
         }
+        configureDebtAxis(yAxis, debtValues);
         chart.getData().add(series);
         chart.setMinHeight(320);
         return chart;
+    }
+
+    private void configureDebtAxis(NumberAxis yAxis, List<Double> values) {
+        if (values.isEmpty()) {
+            return;
+        }
+        double min = values.stream().mapToDouble(Double::doubleValue).min().orElse(0);
+        double max = values.stream().mapToDouble(Double::doubleValue).max().orElse(0);
+        double spread = Math.max(max - min, Math.max(max * 0.002, 1000));
+        double padding = spread * 0.25;
+        yAxis.setAutoRanging(false);
+        yAxis.setLowerBound(Math.max(0, min - padding));
+        yAxis.setUpperBound(max + padding);
+        yAxis.setTickUnit(Math.max(100, spread / 5));
     }
 
     private BarChart<String, Number> mortgagePaymentChart(List<MortgageStatement> statements) {
