@@ -232,10 +232,6 @@ public class BankAccountDetailScreenView {
 
     private void saveVisibleRows(TableView<BankTransaction> table) {
         for (BankTransaction transaction : table.getItems()) {
-            if (transaction.getDate() != null) {
-                transaction.setMonth(transaction.getDate().getMonthValue());
-                transaction.setYear(transaction.getDate().getYear());
-            }
             bank.transactions().normalizeSign(transaction);
             if (transaction.getId() > 0) {
                 bank.transactions().update(transaction);
