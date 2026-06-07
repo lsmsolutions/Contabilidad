@@ -93,6 +93,17 @@ public class BankAccountDetailScreenView {
             }
             addManualTransaction(table, totals, monthlyCards, selectedPeriod[0].statementPeriod(), config, selectPeriod);
         });
+        periodActions.save().setOnAction(event -> {
+            saveVisibleRows(table);
+            if (selectedPeriod[0] != null) {
+                refreshSelectedPeriod(table, totals, selectedPeriod[0].statementPeriod(), config, selectPeriod);
+            } else {
+                refreshTotals.run();
+            }
+            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, selectPeriod));
+            table.refresh();
+            config.info().accept("Banco guardado", "Cambios visibles guardados.");
+        });
 
         periodActions.pending().setOnAction(event -> {
             if (selectedPeriod[0] == null) {
@@ -205,17 +216,7 @@ public class BankAccountDetailScreenView {
             1
         );
         BankTransaction transaction = imports.createManualTransaction(config.accountAlias(), fallbackDate, period);
-        BankPeriodSummary refreshedPeriod = detail.periodSummaries(config.accountAlias()).stream()
-            .filter(summary -> Objects.equals(summary.statementPeriod().sourcePdf(), period.sourcePdf()))
-            .findFirst()
-            .orElse(null);
-        if (refreshedPeriod != null) {
-            selectPeriod.accept(refreshedPeriod);
-            table.setItems(FXCollections.observableArrayList(refreshedPeriod.transactions()));
-            totals.getChildren().setAll(new BankTotalsView().build(refreshedPeriod.totals(), refreshedPeriod.statementPeriod().openingBalance()));
-        } else {
-            table.getItems().add(0, transaction);
-        }
+        refreshSelectedPeriod(table, totals, period, config, selectPeriod);
         monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, selectPeriod));
         BankTransaction visibleTransaction = table.getItems().stream()
             .filter(row -> row.getId() == transaction.getId())
@@ -226,6 +227,39 @@ public class BankAccountDetailScreenView {
             table.scrollTo(visibleTransaction);
             table.getSelectionModel().select(visibleTransaction);
             table.edit(rowIndex, table.getColumns().get(0));
+        }
+    }
+
+    private void saveVisibleRows(TableView<BankTransaction> table) {
+        for (BankTransaction transaction : table.getItems()) {
+            if (transaction.getDate() != null) {
+                transaction.setMonth(transaction.getDate().getMonthValue());
+                transaction.setYear(transaction.getDate().getYear());
+            }
+            bank.transactions().normalizeSign(transaction);
+            if (transaction.getId() > 0) {
+                bank.transactions().update(transaction);
+            } else {
+                transaction.setId(bank.transactions().save(transaction));
+            }
+        }
+    }
+
+    private void refreshSelectedPeriod(
+        TableView<BankTransaction> table,
+        HBox totals,
+        BankStatementPeriod period,
+        Config config,
+        Consumer<BankPeriodSummary> selectPeriod
+    ) {
+        BankPeriodSummary refreshedPeriod = detail.periodSummaries(config.accountAlias()).stream()
+            .filter(summary -> Objects.equals(summary.statementPeriod().sourcePdf(), period.sourcePdf()))
+            .findFirst()
+            .orElse(null);
+        if (refreshedPeriod != null) {
+            selectPeriod.accept(refreshedPeriod);
+            table.setItems(FXCollections.observableArrayList(refreshedPeriod.transactions()));
+            totals.getChildren().setAll(new BankTotalsView().build(refreshedPeriod.totals(), refreshedPeriod.statementPeriod().openingBalance()));
         }
     }
 

@@ -9,6 +9,7 @@ public class BankPeriodActionControls {
     private final Button pending;
     private final Button showAll;
     private final Button addRecord;
+    private final Button save;
     private final Label selectedPeriod;
     private final HBox row;
 
@@ -19,10 +20,12 @@ public class BankPeriodActionControls {
 
         addRecord = new Button("Añadir registro");
         addRecord.getStyleClass().add("primary");
+        save = new Button("Guardar");
+        save.getStyleClass().add("primary");
         pending = new Button("Pendientes por revisar");
         showAll = new Button("Mostrar todo");
 
-        row = new HBox(10, pending, showAll, addRecord, selectedPeriod);
+        row = new HBox(10, pending, showAll, addRecord, save, selectedPeriod);
         row.setAlignment(Pos.CENTER_LEFT);
     }
 
@@ -36,6 +39,10 @@ public class BankPeriodActionControls {
 
     public Button addRecord() {
         return addRecord;
+    }
+
+    public Button save() {
+        return save;
     }
 
     public Label selectedPeriod() {
