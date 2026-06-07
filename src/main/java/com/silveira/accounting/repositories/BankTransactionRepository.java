@@ -38,8 +38,8 @@ public class BankTransactionRepository {
                 statement.setString(4, transaction.getMovementType());
                 statement.setString(5, transaction.getProvider());
                 statement.setString(6, transaction.getReference());
-                statement.setInt(7, transaction.getMonth());
-                statement.setInt(8, transaction.getYear());
+                statement.setInt(7, transaction.getDate().getMonthValue());
+                statement.setInt(8, transaction.getDate().getYear());
                 statement.setString(9, transaction.getSourcePdf());
                 statement.setString(10, transaction.getAccountAlias());
                 statement.setString(11, transaction.getImportStatus());
@@ -71,8 +71,8 @@ public class BankTransactionRepository {
             statement.setString(4, transaction.getMovementType());
             statement.setString(5, transaction.getProvider());
             statement.setString(6, transaction.getReference());
-            statement.setInt(7, transaction.getMonth());
-            statement.setInt(8, transaction.getYear());
+            statement.setInt(7, transaction.getDate().getMonthValue());
+            statement.setInt(8, transaction.getDate().getYear());
             statement.setString(9, transaction.getSourcePdf());
             statement.setString(10, transaction.getAccountAlias());
             statement.setString(11, transaction.getImportStatus());
@@ -118,8 +118,8 @@ public class BankTransactionRepository {
             statement.setString(4, transaction.getMovementType());
             statement.setString(5, transaction.getProvider());
             statement.setString(6, transaction.getReference());
-            statement.setInt(7, transaction.getMonth());
-            statement.setInt(8, transaction.getYear());
+            statement.setInt(7, transaction.getDate().getMonthValue());
+            statement.setInt(8, transaction.getDate().getYear());
             statement.setString(9, transaction.getSourcePdf());
             statement.setString(10, transaction.getAccountAlias());
             statement.setInt(11, transaction.isPendingReview() ? 1 : 0);
