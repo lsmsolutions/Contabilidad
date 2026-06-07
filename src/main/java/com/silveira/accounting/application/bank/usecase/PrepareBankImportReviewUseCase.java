@@ -22,6 +22,11 @@ public class PrepareBankImportReviewUseCase {
         List<BankTransaction> newTransactions = parsed.stream()
             .filter(transaction -> !existing.contains(transaction.getFingerprint()))
             .toList();
+        newTransactions.forEach(transaction -> {
+            transaction.setPendingReview(true);
+            transaction.setReviewRequired(true);
+            transaction.setReviewNotes("Revisar contra el PDF original");
+        });
 
         if (selectedAccountAlias != null && !selectedAccountAlias.isBlank()) {
             parsed.forEach(transaction -> transaction.setAccountAlias(selectedAccountAlias));
