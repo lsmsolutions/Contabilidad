@@ -8,6 +8,7 @@ import com.silveira.accounting.models.bank.BankStatementPeriod;
 import com.silveira.accounting.models.bank.BankTransaction;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -204,11 +205,28 @@ public class BankAccountDetailScreenView {
             1
         );
         BankTransaction transaction = imports.createManualTransaction(config.accountAlias(), fallbackDate, period);
-        table.getItems().add(0, transaction);
-        table.scrollTo(transaction);
-        table.getSelectionModel().select(transaction);
-        table.edit(table.getItems().indexOf(transaction), table.getColumns().get(0));
+        BankPeriodSummary refreshedPeriod = detail.periodSummaries(config.accountAlias()).stream()
+            .filter(summary -> Objects.equals(summary.statementPeriod().sourcePdf(), period.sourcePdf()))
+            .findFirst()
+            .orElse(null);
+        if (refreshedPeriod != null) {
+            selectPeriod.accept(refreshedPeriod);
+            table.setItems(FXCollections.observableArrayList(refreshedPeriod.transactions()));
+            totals.getChildren().setAll(new BankTotalsView().build(refreshedPeriod.totals(), refreshedPeriod.statementPeriod().openingBalance()));
+        } else {
+            table.getItems().add(0, transaction);
+        }
         monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, selectPeriod));
+        BankTransaction visibleTransaction = table.getItems().stream()
+            .filter(row -> row.getId() == transaction.getId())
+            .findFirst()
+            .orElse(transaction);
+        int rowIndex = table.getItems().indexOf(visibleTransaction);
+        if (rowIndex >= 0) {
+            table.scrollTo(visibleTransaction);
+            table.getSelectionModel().select(visibleTransaction);
+            table.edit(rowIndex, table.getColumns().get(0));
+        }
     }
 
     private double openingBalance(Config config) {

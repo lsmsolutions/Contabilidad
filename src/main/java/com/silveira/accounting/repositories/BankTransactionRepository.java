@@ -106,6 +106,7 @@ public class BankTransactionRepository {
         String sql = """
             UPDATE bank_transactions
             SET transaction_date=?, description=?, amount=?, movement_type=?, provider=?, reference=?,
+                month=?, year=?, source_pdf=?, account_alias=?,
                 pending_review=?, review_required=?, review_notes=?
             WHERE id=?
             """;
@@ -117,10 +118,14 @@ public class BankTransactionRepository {
             statement.setString(4, transaction.getMovementType());
             statement.setString(5, transaction.getProvider());
             statement.setString(6, transaction.getReference());
-            statement.setInt(7, transaction.isPendingReview() ? 1 : 0);
-            statement.setInt(8, transaction.isReviewRequired() ? 1 : 0);
-            statement.setString(9, transaction.getReviewNotes());
-            statement.setLong(10, transaction.getId());
+            statement.setInt(7, transaction.getMonth());
+            statement.setInt(8, transaction.getYear());
+            statement.setString(9, transaction.getSourcePdf());
+            statement.setString(10, transaction.getAccountAlias());
+            statement.setInt(11, transaction.isPendingReview() ? 1 : 0);
+            statement.setInt(12, transaction.isReviewRequired() ? 1 : 0);
+            statement.setString(13, transaction.getReviewNotes());
+            statement.setLong(14, transaction.getId());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("No se pudo actualizar transaccion bancaria", exception);
