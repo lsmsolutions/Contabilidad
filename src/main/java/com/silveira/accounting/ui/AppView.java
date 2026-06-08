@@ -405,13 +405,25 @@ public class AppView {
     private VBox collapsibleNav(String text, Runnable action, VBox submenu, BooleanSupplier expandedGetter, java.util.function.Consumer<Boolean> expandedSetter) {
         submenu.setVisible(expandedGetter.getAsBoolean());
         submenu.setManaged(expandedGetter.getAsBoolean());
+        Label title = new Label(text);
+        title.getStyleClass().add("nav-button-title");
+        Label indicator = new Label(expandedGetter.getAsBoolean() ? "\u2304" : "\u203a");
+        indicator.getStyleClass().add("nav-submenu-indicator");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox content = new HBox(8, title, spacer, indicator);
+        content.setAlignment(Pos.CENTER_LEFT);
+        content.setMaxWidth(Double.MAX_VALUE);
         Button button = nav(text, () -> {
             boolean expanded = !expandedGetter.getAsBoolean();
             expandedSetter.accept(expanded);
             submenu.setVisible(expanded);
             submenu.setManaged(expanded);
+            indicator.setText(expanded ? "\u2304" : "\u203a");
             action.run();
         });
+        button.setText(null);
+        button.setGraphic(content);
         return new VBox(4, button, submenu);
     }
 
