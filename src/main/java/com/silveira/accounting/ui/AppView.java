@@ -1140,7 +1140,10 @@ public class AppView {
         Button saveMovements = new Button("Guardar");
         saveMovements.getStyleClass().add("primary");
         saveMovements.setPrefWidth(220);
-        saveMovements.setOnAction(event -> saveVisibleCardMovements(statements, movements, refresh));
+        saveMovements.setOnAction(event -> {
+            movements.requestFocus();
+            saveVisibleCardMovements(statements, movements, refresh);
+        });
         HBox summaryActions = new HBox(10, saveStatements);
         summaryActions.setPadding(new Insets(14, 0, 0, 0));
         HBox movementActions = new HBox(16, addMovement, saveMovements);
@@ -5229,12 +5232,12 @@ public class AppView {
         });
         TableColumn<CreditCardTransaction, String> description = new TableColumn<>("Descripción");
         description.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
-        description.setCellFactory(TextFieldTableCell.forTableColumn());
+        description.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         description.setOnEditCommit(event -> event.getRowValue().setDescription(event.getNewValue()));
         description.setPrefWidth(360);
         TableColumn<CreditCardTransaction, Double> amount = new TableColumn<>("Importe");
         amount.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getAmount()).asObject());
-        amount.setCellFactory(TextFieldTableCell.forTableColumn(twoDecimalConverter()));
+        amount.setCellFactory(commitOnFocusLostCellFactory(twoDecimalConverter()));
         amount.setOnEditCommit(event -> event.getRowValue().setAmount(event.getNewValue()));
         amount.setPrefWidth(110);
         TableColumn<CreditCardTransaction, Boolean> reviewed = new TableColumn<>("Revisado");
@@ -5263,17 +5266,17 @@ public class AppView {
         });
         TableColumn<CreditCardTransaction, String> type = new TableColumn<>("Tipo");
         type.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getType()));
-        type.setCellFactory(TextFieldTableCell.forTableColumn());
+        type.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         type.setOnEditCommit(event -> event.getRowValue().setType(event.getNewValue()));
         TableColumn<CreditCardTransaction, String> category = new TableColumn<>("Categoría");
         category.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategory()));
-        category.setCellFactory(TextFieldTableCell.forTableColumn());
+        category.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         category.setOnEditCommit(event -> event.getRowValue().setCategory(event.getNewValue()));
         TableColumn<CreditCardTransaction, String> status = new TableColumn<>("Revisión");
         status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
         TableColumn<CreditCardTransaction, String> notes = new TableColumn<>("Notas");
         notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
-        notes.setCellFactory(TextFieldTableCell.forTableColumn());
+        notes.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         notes.setOnEditCommit(event -> event.getRowValue().setReviewNotes(event.getNewValue()));
         notes.setPrefWidth(260);
         TableColumn<CreditCardTransaction, Void> delete = new TableColumn<>("Eliminar");
