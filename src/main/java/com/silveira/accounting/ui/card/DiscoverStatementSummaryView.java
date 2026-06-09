@@ -21,6 +21,7 @@ import javafx.scene.layout.VBox;
 
 public class DiscoverStatementSummaryView {
     private static final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yy");
+    private static final DateTimeFormatter TRANSACTION_DATE_FORMAT = DateTimeFormatter.ofPattern("MM-dd");
     private static final List<String> FIELDS = List.of(
         "previous_balance",
         "payments",
@@ -153,7 +154,7 @@ public class DiscoverStatementSummaryView {
         transactionHeader(grid, 3, "Revisado");
         int row = 1;
         for (CreditCardTransaction transaction : transactions) {
-            transactionCell(grid, 0, row, formatShortDate(transaction.getTransactionDate()), "discover-date-cell");
+            transactionCell(grid, 0, row, formatTransactionDate(transaction.getTransactionDate()), "discover-date-cell");
             transactionCell(grid, 1, row, text(transaction.getDescription()), "discover-description-cell");
             transactionCell(grid, 2, row, Money.format(transaction.getAmount()), "discover-amount-cell");
             CheckBox check = new CheckBox();
@@ -237,6 +238,10 @@ public class DiscoverStatementSummaryView {
 
     private String formatShortDate(LocalDate date) {
         return date == null ? "" : date.format(SHORT_DATE_FORMAT);
+    }
+
+    private String formatTransactionDate(LocalDate date) {
+        return date == null ? "" : date.format(TRANSACTION_DATE_FORMAT);
     }
 
     private String text(String value) {
