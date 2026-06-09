@@ -1749,8 +1749,8 @@
 }
 
 .discover-payment-panel {
-    -fx-min-height: 118;
-    -fx-pref-height: 132;
+    -fx-min-height: 158;
+    -fx-pref-height: 172;
 }
 
 .discover-wide-panel {
@@ -1843,16 +1843,17 @@
 }
 
 .discover-payment-grid {
-    -fx-padding: 12 14 0 14;
-    -fx-spacing: 16;
+    -fx-padding: 16 18 0 18;
+    -fx-hgap: 22;
+    -fx-vgap: 12;
 }
 
 .discover-large-label {
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-font-weight: 800;
     -fx-text-fill: #102f28;
-    -fx-min-width: 132;
-    -fx-pref-width: 138;
+    -fx-min-width: 210;
+    -fx-pref-width: 230;
 }
 
 .discover-large-input {
@@ -1860,8 +1861,8 @@
     -fx-font-weight: 800;
     -fx-text-fill: #102f28;
     -fx-alignment: center-right;
-    -fx-pref-width: 105;
-    -fx-max-width: 105;
+    -fx-min-width: 130;
+    -fx-pref-width: 140;
 }
 
 .discover-large-amount {

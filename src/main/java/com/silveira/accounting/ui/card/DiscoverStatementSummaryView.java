@@ -190,8 +190,7 @@ public class DiscoverStatementSummaryView {
         return row;
     }
 
-    private void paymentCell(GridPane grid, int column, String fieldName, String label, String value, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
-        VBox cell = new VBox(4);
+    private void paymentCell(GridPane grid, int row, String fieldName, String label, String value, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("discover-large-label");
         Label valueNode = new Label(value);
@@ -200,8 +199,9 @@ public class DiscoverStatementSummaryView {
         check.getStyleClass().add("discover-line-check");
         check.setSelected(fieldReviewed.test(fieldName));
         check.setOnAction(event -> fieldReviewedChanged.accept(fieldName, check.isSelected()));
-        cell.getChildren().addAll(labelNode, valueNode, check);
-        grid.add(cell, column, 0);
+        grid.add(labelNode, 0, row);
+        grid.add(valueNode, 1, row);
+        grid.add(check, 2, row);
     }
 
     private void transactionHeader(GridPane grid, int column, String text) {

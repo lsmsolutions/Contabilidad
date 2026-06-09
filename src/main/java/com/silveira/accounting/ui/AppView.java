@@ -1387,7 +1387,6 @@ public class AppView {
                 updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
                 table.refresh();
                 refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
             },
             reviewed -> {
                 updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
@@ -1401,7 +1400,7 @@ public class AppView {
             (transaction, reviewed) -> {
                 updateCreditCardMovementReview(transaction, reviewed);
                 refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
+                table.refresh();
             },
             () -> showCreditCardPeriodDialog(List.of(statement), () -> {
                 table.refresh();
