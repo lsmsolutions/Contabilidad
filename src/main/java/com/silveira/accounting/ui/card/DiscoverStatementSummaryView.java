@@ -136,8 +136,6 @@ public class DiscoverStatementSummaryView {
 
     private VBox transactionsPanel(List<CreditCardTransaction> transactions, BiConsumer<CreditCardTransaction, Boolean> transactionReviewedChanged, Runnable addTransactionAction) {
         VBox panel = panel("Transactions", "");
-        Label title = new Label("Posted Activity");
-        title.getStyleClass().add("discover-subsection-title");
         Button add = new Button();
         add.setText("Añadir");
         add.getStyleClass().add("discover-add-movement-link");
@@ -145,9 +143,8 @@ public class DiscoverStatementSummaryView {
             event.consume();
             addTransactionAction.run();
         });
-        HBox header = new HBox(12, title, add);
+        HBox header = new HBox(add);
         header.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(title, Priority.ALWAYS);
         GridPane grid = new GridPane();
         grid.getStyleClass().add("discover-transactions-grid");
         transactionHeader(grid, 0, "Date");

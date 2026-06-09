@@ -5098,11 +5098,23 @@ public class AppView {
             return null;
         }
         String trimmed = value.trim();
-        try {
-            return LocalDate.parse(trimmed);
-        } catch (RuntimeException ignored) {
-            return LocalDate.parse(trimmed, SHORT_DATE_FORMAT);
+        DateTimeFormatter[] formats = {
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            SHORT_DATE_FORMAT,
+            DateTimeFormatter.ofPattern("M/d/yyyy"),
+            DateTimeFormatter.ofPattern("M/d/yy"),
+            DateTimeFormatter.ofPattern("d/M/yyyy"),
+            DateTimeFormatter.ofPattern("d/M/yy")
+        };
+        RuntimeException last = null;
+        for (DateTimeFormatter format : formats) {
+            try {
+                return LocalDate.parse(trimmed, format);
+            } catch (RuntimeException exception) {
+                last = exception;
+            }
         }
+        throw last == null ? new IllegalArgumentException("Fecha no valida: " + value) : last;
     }
 
     private String formatShortDate(LocalDate date) {
@@ -5289,7 +5301,7 @@ public class AppView {
     private TableColumn<CreditCardTransaction, String> cardTransactionDateColumn(String title, java.util.function.Function<CreditCardTransaction, LocalDate> getter, java.util.function.BiConsumer<CreditCardTransaction, LocalDate> setter) {
         TableColumn<CreditCardTransaction, String> column = new TableColumn<>(title);
         column.setCellValueFactory(data -> new SimpleStringProperty(getter.apply(data.getValue()) == null ? "" : getter.apply(data.getValue()).toString()));
-        column.setCellFactory(TextFieldTableCell.forTableColumn());
+        column.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         column.setOnEditCommit(event -> setter.accept(event.getRowValue(), parseDateOrNull(event.getNewValue())));
         column.setPrefWidth(110);
         return column;
