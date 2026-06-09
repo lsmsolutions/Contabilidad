@@ -5223,8 +5223,10 @@ public class AppView {
         TableView<CreditCardTransaction> table = new TableView<>();
         table.setEditable(true);
 
-        TableColumn<CreditCardTransaction, String> transactionDate = cardTransactionDateColumn("Fecha", CreditCardTransaction::getTransactionDate, CreditCardTransaction::setTransactionDate);
-        TableColumn<CreditCardTransaction, String> postDate = cardTransactionDateColumn("Posteo", CreditCardTransaction::getPostDate, CreditCardTransaction::setPostDate);
+        TableColumn<CreditCardTransaction, String> transactionDate = cardTransactionDateColumn("Fecha", CreditCardTransaction::getTransactionDate, (movement, date) -> {
+            movement.setTransactionDate(date);
+            movement.setPostDate(date);
+        });
         TableColumn<CreditCardTransaction, String> description = new TableColumn<>("Descripción");
         description.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
         description.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -5294,7 +5296,7 @@ public class AppView {
             }
         });
 
-        table.getColumns().setAll(transactionDate, postDate, description, amount, reviewed, type, category, status, notes, delete);
+        table.getColumns().setAll(transactionDate, description, amount, reviewed, type, category, status, notes, delete);
         return table;
     }
 
