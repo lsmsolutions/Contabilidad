@@ -1253,6 +1253,60 @@ public class AppView {
         alert(Alert.AlertType.INFORMATION, "Movimientos guardados", "Movimientos visibles guardados con su estado actual.");
     }
 
+    private void showCreditCardTransactionDialog(CreditCardStatement statement, Runnable refresh) {
+        if (statement == null || statement.getId() <= 0) {
+            alert(Alert.AlertType.WARNING, "Resumen sin guardar", "Guarda primero el resumen de la tarjeta antes de añadir movimientos.");
+            return;
+        }
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Añadir movimiento");
+        DatePicker transactionDate = new DatePicker(statement.getStatementEndDate() == null ? LocalDate.now() : statement.getStatementEndDate());
+        DatePicker postDate = new DatePicker(transactionDate.getValue());
+        TextField description = new TextField();
+        description.setPromptText("Description");
+        TextField amount = cardDialogMoneyField(0);
+        TextField type = new TextField("gasto");
+        TextField category = new TextField("manual");
+        CheckBox reviewed = new CheckBox("Revisado");
+        TextArea notes = new TextArea("Añadido manualmente");
+        notes.setPrefRowCount(2);
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        form.addRow(0, new Label("Date"), transactionDate);
+        form.addRow(1, new Label("Posted Date"), postDate);
+        form.addRow(2, new Label("Description"), description);
+        form.addRow(3, new Label("Amount"), amount);
+        form.addRow(4, new Label("Type"), type);
+        form.addRow(5, new Label("Category"), category);
+        form.addRow(6, new Label("Review"), reviewed);
+        form.addRow(7, new Label("Notes"), notes);
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> {
+            if (transactionDate.getValue() == null || postDate.getValue() == null || description.getText().isBlank()) {
+                alert(Alert.AlertType.WARNING, "Movimiento incompleto", "Indica fecha, posteo y descripción.");
+                return;
+            }
+            CreditCardTransaction movement = new CreditCardTransaction(
+                0,
+                statement.getId(),
+                transactionDate.getValue(),
+                postDate.getValue(),
+                description.getText().trim(),
+                cardDialogMoney(amount),
+                type.getText().isBlank() ? "gasto" : type.getText().trim(),
+                category.getText().isBlank() ? "manual" : category.getText().trim()
+            );
+            movement.setPendingReview(!reviewed.isSelected());
+            movement.setReviewRequired(!reviewed.isSelected());
+            movement.setReviewNotes(notes.getText());
+            movement.setId(creditCardTransactionRepository.save(statement.getId(), movement));
+            refresh.run();
+        });
+    }
+
     private void showCreditCardAnalysis(String alias) {
         List<CreditCardStatement> reviewed = creditCardStatementRepository.findByAccount(alias, null, null).stream()
             .filter(statement -> !statement.isPendingReview())
@@ -1402,6 +1456,11 @@ public class AppView {
                 refreshTotals.run();
                 table.refresh();
             },
+            () -> showCreditCardTransactionDialog(statement, () -> {
+                table.refresh();
+                refreshTotals.run();
+                refreshCreditCardStatementCards(table, cards, refreshTotals);
+            }),
             () -> showCreditCardPeriodDialog(List.of(statement), () -> {
                 table.refresh();
                 refreshTotals.run();
@@ -3916,30 +3975,30 @@ public class AppView {
         if (statements.size() > 1) {
             form.addRow(row++, new Label("Resumen"), selector);
         }
-        form.addRow(row++, new Label("Desde"), start);
-        form.addRow(row++, new Label("Hasta"), end);
-        form.addRow(row++, new Label("Fecha limite pago"), due);
-        form.addRow(row++, new Label("Proximo cierre"), nextClosing);
-        form.addRow(row++, new Label("Saldo anterior"), previous);
-        form.addRow(row++, new Label("Pagos al banco"), payments);
-        form.addRow(row++, new Label("Otros creditos"), credits);
-        form.addRow(row++, new Label("Compras"), purchases);
-        form.addRow(row++, new Label("Transferencias"), transfers);
-        form.addRow(row++, new Label("Adelantos efectivo"), cash);
-        form.addRow(row++, new Label("Comisiones"), fees);
-        form.addRow(row++, new Label("Intereses"), interest);
-        form.addRow(row++, new Label("Saldo usado"), newBalance);
-        form.addRow(row++, new Label("Pago minimo"), minimum);
-        form.addRow(row++, new Label("Limite credito"), limit);
-        form.addRow(row++, new Label("Credito disponible"), available);
-        form.addRow(row++, new Label("Limite cash advance"), cashLimit);
-        form.addRow(row++, new Label("Cash advance disponible"), cashAvailable);
-        form.addRow(row++, new Label("Rewards balance"), rewardsBalance);
-        form.addRow(row++, new Label("Rewards anterior"), rewardsPrevious);
-        form.addRow(row++, new Label("Rewards ganado"), rewardsEarned);
-        form.addRow(row++, new Label("Rewards canjeado"), rewardsRedeemed);
-        form.addRow(row++, new Label("Estado"), reviewed);
-        form.addRow(row, new Label("Notas"), notes);
+        form.addRow(row++, new Label("Statement Start Date"), start);
+        form.addRow(row++, new Label("Statement End Date"), end);
+        form.addRow(row++, new Label("Payment Due Date"), due);
+        form.addRow(row++, new Label("Next Statement Closing Date"), nextClosing);
+        form.addRow(row++, new Label("Previous Balance"), previous);
+        form.addRow(row++, new Label("Payments and Credits"), payments);
+        form.addRow(row++, new Label("Other Credits"), credits);
+        form.addRow(row++, new Label("Purchases"), purchases);
+        form.addRow(row++, new Label("Balance Transfers"), transfers);
+        form.addRow(row++, new Label("Cash Advances"), cash);
+        form.addRow(row++, new Label("Fees Charged"), fees);
+        form.addRow(row++, new Label("Interest Charged"), interest);
+        form.addRow(row++, new Label("New Balance"), newBalance);
+        form.addRow(row++, new Label("Minimum Payment Due"), minimum);
+        form.addRow(row++, new Label("Credit Line"), limit);
+        form.addRow(row++, new Label("Credit Line Available"), available);
+        form.addRow(row++, new Label("Cash Advance Credit Line"), cashLimit);
+        form.addRow(row++, new Label("Cash Advance Credit Line Available"), cashAvailable);
+        form.addRow(row++, new Label("Rewards Balance"), rewardsBalance);
+        form.addRow(row++, new Label("Previous Rewards"), rewardsPrevious);
+        form.addRow(row++, new Label("Earned This Period"), rewardsEarned);
+        form.addRow(row++, new Label("Redeemed This Period"), rewardsRedeemed);
+        form.addRow(row++, new Label("Review"), reviewed);
+        form.addRow(row, new Label("Notes"), notes);
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(true);
         scroll.setPrefViewportWidth(560);

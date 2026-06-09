@@ -45,6 +45,7 @@ public class DiscoverStatementSummaryView {
         BiConsumer<String, Boolean> fieldReviewedChanged,
         Consumer<Boolean> allReviewedChanged,
         BiConsumer<CreditCardTransaction, Boolean> transactionReviewedChanged,
+        Runnable addTransactionAction,
         Runnable editAction
     ) {
         VBox card = new VBox(12);
@@ -61,7 +62,7 @@ public class DiscoverStatementSummaryView {
         HBox topRow = new HBox(14, paymentPanel(statement, fieldReviewed, fieldReviewedChanged), accountSummaryPanel(statement, fieldReviewed, fieldReviewedChanged));
         topRow.getStyleClass().add("discover-top-row");
 
-        HBox lowerRow = new HBox(14, creditLinePanel(statement, fieldReviewed, fieldReviewedChanged), transactionsPanel(transactions, transactionReviewedChanged));
+        HBox lowerRow = new HBox(14, creditLinePanel(statement, fieldReviewed, fieldReviewedChanged), transactionsPanel(transactions, transactionReviewedChanged, addTransactionAction));
         lowerRow.getStyleClass().add("discover-lower-row");
 
         Button edit = new Button("Editar datos");
@@ -133,10 +134,19 @@ public class DiscoverStatementSummaryView {
         return panel;
     }
 
-    private VBox transactionsPanel(List<CreditCardTransaction> transactions, BiConsumer<CreditCardTransaction, Boolean> transactionReviewedChanged) {
+    private VBox transactionsPanel(List<CreditCardTransaction> transactions, BiConsumer<CreditCardTransaction, Boolean> transactionReviewedChanged, Runnable addTransactionAction) {
         VBox panel = panel("Transactions", "");
         Label title = new Label("Posted Activity");
         title.getStyleClass().add("discover-subsection-title");
+        Button add = new Button("Añadir movimiento");
+        add.getStyleClass().add("primary");
+        add.setOnAction(event -> {
+            event.consume();
+            addTransactionAction.run();
+        });
+        HBox header = new HBox(12, title, add);
+        header.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(title, Priority.ALWAYS);
         GridPane grid = new GridPane();
         grid.getStyleClass().add("discover-transactions-grid");
         transactionHeader(grid, 0, "Date");
@@ -157,7 +167,7 @@ public class DiscoverStatementSummaryView {
         if (transactions.isEmpty()) {
             transactionCell(grid, 0, row, "Sin movimientos guardados", "discover-description-cell");
         }
-        panel.getChildren().addAll(title, grid);
+        panel.getChildren().addAll(header, grid);
         return panel;
     }
 
