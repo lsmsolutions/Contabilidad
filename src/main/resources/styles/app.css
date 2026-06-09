@@ -1963,6 +1963,24 @@
     -fx-translate-x: 12;
 }
 
+.discover-add-movement-link {
+    -fx-background-color: #d8edf8;
+    -fx-text-fill: #145878;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 5 12;
+    -fx-min-width: 76;
+    -fx-pref-width: 76;
+    -fx-background-radius: 5;
+    -fx-border-color: #9fc9df;
+    -fx-border-radius: 5;
+}
+
+.discover-add-movement-link:hover {
+    -fx-background-color: #c2e0f0;
+    -fx-text-fill: #0e4058;
+}
+
 .discover-date-cell {
     -fx-pref-width: 90;
 }

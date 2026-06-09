@@ -138,8 +138,9 @@ public class DiscoverStatementSummaryView {
         VBox panel = panel("Transactions", "");
         Label title = new Label("Posted Activity");
         title.getStyleClass().add("discover-subsection-title");
-        Button add = new Button("Añadir movimiento");
-        add.getStyleClass().add("primary");
+        Button add = new Button();
+        add.setText("Añadir");
+        add.getStyleClass().add("discover-add-movement-link");
         add.setOnAction(event -> {
             event.consume();
             addTransactionAction.run();

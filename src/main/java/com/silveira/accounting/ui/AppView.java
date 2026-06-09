@@ -263,6 +263,7 @@ public class AppView {
     private final CreditCardAnalysisService creditCardAnalysisService = new CreditCardAnalysisService();
     private final MortgageImportService mortgageImportService = new MortgageImportService();
     private final MortgageAnalysisService mortgageAnalysisService = new MortgageAnalysisService();
+    private Runnable showCardMovementsTabAction = () -> {};
     private final OcrService ocrService = new OcrService();
     private final ImportValidationService importValidationService = new ImportValidationService();
     private final NylPdfParser nylParser = new NylPdfParser();
@@ -1155,6 +1156,10 @@ public class AppView {
             tab("Resumen", summariesTab),
             tab("Movimientos", movementsTab)
         );
+        showCardMovementsTabAction = () -> {
+            tabs.getSelectionModel().select(1);
+            movements.requestFocus();
+        };
         VBox.setVgrow(tabs, Priority.ALWAYS);
         setPage(page("Tarjeta - " + alias, backButton("Volver a Tarjetas", this::showCards), actions, totals, monthlyCards, tabs));
     }
@@ -1456,11 +1461,7 @@ public class AppView {
                 refreshTotals.run();
                 table.refresh();
             },
-            () -> showCreditCardTransactionDialog(statement, () -> {
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            }),
+            () -> showCardMovementsTabAction.run(),
             () -> showCreditCardPeriodDialog(List.of(statement), () -> {
                 table.refresh();
                 refreshTotals.run();
