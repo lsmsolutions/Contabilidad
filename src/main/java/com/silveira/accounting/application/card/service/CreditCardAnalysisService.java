@@ -1,4 +1,4 @@
-package com.silveira.accounting.services;
+package com.silveira.accounting.application.card.service;
 
 import com.silveira.accounting.models.CreditCardAnalysis;
 import com.silveira.accounting.models.CreditCardStatement;

@@ -1,7 +1,8 @@
-package com.silveira.accounting.services;
+package com.silveira.accounting.application.card.service;
 
 import com.silveira.accounting.parsers.CreditCardStatementParser;
 import com.silveira.accounting.parsers.PdfTextExtractor;
+import com.silveira.accounting.services.OcrService;
 
 import java.nio.file.Path;
 

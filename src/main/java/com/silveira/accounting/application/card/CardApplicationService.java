@@ -3,6 +3,7 @@ package com.silveira.accounting.application.card;
 import com.silveira.accounting.application.card.service.CardAccountApplicationService;
 import com.silveira.accounting.application.card.service.CardAlertApplicationService;
 import com.silveira.accounting.application.card.service.CardFieldReviewApplicationService;
+import com.silveira.accounting.application.card.service.CardImportApplicationService;
 import com.silveira.accounting.application.card.service.CardStatementApplicationService;
 import com.silveira.accounting.application.card.service.CardTransactionApplicationService;
 import com.silveira.accounting.repositories.card.CreditCardAccountRepository;
@@ -17,6 +18,7 @@ public class CardApplicationService {
     private final CardTransactionApplicationService transactions;
     private final CardFieldReviewApplicationService fieldReviews;
     private final CardAlertApplicationService alerts;
+    private final CardImportApplicationService imports;
 
     public CardApplicationService(
         CreditCardAccountRepository accounts,
@@ -30,6 +32,7 @@ public class CardApplicationService {
         this.transactions = new CardTransactionApplicationService(transactions);
         this.fieldReviews = new CardFieldReviewApplicationService(fieldReviews);
         this.alerts = new CardAlertApplicationService(alerts);
+        this.imports = new CardImportApplicationService(this.statements, this.transactions, this.alerts);
     }
 
     public CardAccountApplicationService accounts() {
@@ -50,5 +53,9 @@ public class CardApplicationService {
 
     public CardAlertApplicationService alerts() {
         return alerts;
+    }
+
+    public CardImportApplicationService imports() {
+        return imports;
     }
 }

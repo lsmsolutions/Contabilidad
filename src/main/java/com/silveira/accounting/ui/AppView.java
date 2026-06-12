@@ -3,8 +3,8 @@ package com.silveira.accounting.ui;
 import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
 import com.silveira.accounting.application.card.CardApplicationService;
 import com.silveira.accounting.application.card.service.CardAccountApplicationService;
-import com.silveira.accounting.application.card.service.CardAlertApplicationService;
 import com.silveira.accounting.application.card.service.CardFieldReviewApplicationService;
+import com.silveira.accounting.application.card.service.CardImportApplicationService;
 import com.silveira.accounting.application.card.service.CardStatementApplicationService;
 import com.silveira.accounting.application.card.service.CardTransactionApplicationService;
 import com.silveira.accounting.database.DatabaseManager;
@@ -42,8 +42,6 @@ import com.silveira.accounting.repositories.card.CreditCardTransactionRepository
 import com.silveira.accounting.repositories.card.FinancialAlertRepository;
 import com.silveira.accounting.repositories.mortgage.MortgageStatementFieldReviewRepository;
 import com.silveira.accounting.services.DashboardService;
-import com.silveira.accounting.services.CreditCardAnalysisService;
-import com.silveira.accounting.services.CreditCardImportService;
 import com.silveira.accounting.services.ExcelExportService;
 import com.silveira.accounting.services.ImportValidationService;
 import com.silveira.accounting.services.MortgageAnalysisService;
@@ -236,7 +234,7 @@ public class AppView {
     private final CardStatementApplicationService creditCardStatementRepository;
     private final CardFieldReviewApplicationService creditCardStatementFieldReviewRepository;
     private final CardTransactionApplicationService creditCardTransactionRepository;
-    private final CardAlertApplicationService financialAlertRepository;
+    private final CardImportApplicationService creditCardImports;
     private final HouseExpenseRepository houseExpenseRepository;
     private final InternalMovementRepository internalMovementRepository;
     private final MortgageStatementRepository mortgageStatementRepository;
@@ -250,8 +248,6 @@ public class AppView {
     private final DashboardService dashboardService;
     private final ReconciliationService reconciliationService;
     private final ExcelExportService excelExportService = new ExcelExportService();
-    private final CreditCardImportService creditCardImportService = new CreditCardImportService();
-    private final CreditCardAnalysisService creditCardAnalysisService = new CreditCardAnalysisService();
     private final MortgageImportService mortgageImportService = new MortgageImportService();
     private final MortgageAnalysisService mortgageAnalysisService = new MortgageAnalysisService();
     private Runnable showCardMovementsTabAction = () -> {};
@@ -285,7 +281,7 @@ public class AppView {
         creditCardStatementRepository = cards.statements();
         creditCardStatementFieldReviewRepository = cards.fieldReviews();
         creditCardTransactionRepository = cards.transactions();
-        financialAlertRepository = cards.alerts();
+        creditCardImports = cards.imports();
         houseExpenseRepository = new HouseExpenseRepository(databaseManager);
         internalMovementRepository = new InternalMovementRepository(databaseManager);
         mortgageStatementRepository = new MortgageStatementRepository(databaseManager);
@@ -1185,17 +1181,13 @@ public class AppView {
         Task<CreditCardStatementParser.ParsedCreditCardStatement> task = new Task<>() {
             @Override
             protected CreditCardStatementParser.ParsedCreditCardStatement call() {
-                return creditCardImportService.importPdf(file.toPath());
+                return creditCardImports.importPdf(file.toPath());
             }
         };
         task.setOnSucceeded(event -> {
             cardImportInProgress = false;
             CreditCardStatementParser.ParsedCreditCardStatement parsed = task.getValue();
-            CreditCardStatement statement = parsed.statement();
-            statement.setAccountAlias(alias);
-            long statementId = creditCardStatementRepository.save(statement);
-            creditCardTransactionRepository.saveAll(statementId, parsed.transactions());
-            financialAlertRepository.saveAll(statementId, creditCardAnalysisService.analyze(statement).alerts());
+            creditCardImports.saveImported(alias, parsed);
             showCardAccount(alias);
         });
         task.setOnFailed(event -> {
