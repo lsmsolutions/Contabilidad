@@ -167,6 +167,9 @@ public class BankBreakdownView {
         if (normalized.contains("am nat ins") || normalized.contains("anico")) {
             return "American National";
         }
+        if (normalized.contains("prime video")) {
+            return "Prime Video";
+        }
         return "";
     }
 
