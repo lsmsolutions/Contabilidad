@@ -1,12 +1,6 @@
 package com.silveira.accounting.ui;
 
-import com.silveira.accounting.application.bank.BankApplicationService;
 import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
-import com.silveira.accounting.controllers.bank.BankAccountController;
-import com.silveira.accounting.controllers.bank.BankAccountDetailController;
-import com.silveira.accounting.controllers.bank.BankAccountWorkflow;
-import com.silveira.accounting.controllers.bank.BankImportController;
-import com.silveira.accounting.controllers.bank.BankPeriodController;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.bank.BankAccount;
@@ -26,14 +20,6 @@ import com.silveira.accounting.models.ReconciliationItem;
 import com.silveira.accounting.models.SourceTotals;
 import com.silveira.accounting.parsers.CreditCardStatementParser;
 import com.silveira.accounting.parsers.NylPdfParser;
-import com.silveira.accounting.repositories.bank.BankTransactionRepository;
-import com.silveira.accounting.repositories.bank.BankAccountRepository;
-import com.silveira.accounting.repositories.bank.BankMonthlyClosingRepository;
-import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
-import com.silveira.accounting.repositories.CreditCardAccountRepository;
-import com.silveira.accounting.repositories.CreditCardStatementRepository;
-import com.silveira.accounting.repositories.CreditCardTransactionRepository;
-import com.silveira.accounting.repositories.FinancialAlertRepository;
 import com.silveira.accounting.repositories.HouseExpenseRepository;
 import com.silveira.accounting.repositories.InternalMovementRepository;
 import com.silveira.accounting.repositories.MortgageAlertRepository;
@@ -43,7 +29,11 @@ import com.silveira.accounting.repositories.NylMonthlyResultRepository;
 import com.silveira.accounting.repositories.NylRecordRepository;
 import com.silveira.accounting.repositories.ReconciliationRepository;
 import com.silveira.accounting.repositories.ReviewMarkRepository;
+import com.silveira.accounting.repositories.card.CreditCardAccountRepository;
+import com.silveira.accounting.repositories.card.CreditCardStatementRepository;
 import com.silveira.accounting.repositories.card.CreditCardStatementFieldReviewRepository;
+import com.silveira.accounting.repositories.card.CreditCardTransactionRepository;
+import com.silveira.accounting.repositories.card.FinancialAlertRepository;
 import com.silveira.accounting.repositories.mortgage.MortgageStatementFieldReviewRepository;
 import com.silveira.accounting.services.DashboardService;
 import com.silveira.accounting.services.CreditCardAnalysisService;
@@ -55,6 +45,7 @@ import com.silveira.accounting.services.MortgageImportService;
 import com.silveira.accounting.services.OcrService;
 import com.silveira.accounting.services.ReconciliationService;
 import com.silveira.accounting.ui.bank.BankDashboardPanelView;
+import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.BestBuyStatementSummaryView;
@@ -234,13 +225,7 @@ public class AppView {
         AgentLedgerTemplate.grandTotal("NET BALANCE (Credits - Deductions - Withdrawals)", "agent-ledger-net-total")
     );
 
-    private final BankTransactionRepository bankRepository;
-    private final BankApplicationService bank;
-    private final BankAccountController bankAccountController;
-    private final BankAccountDetailController bankAccountDetailController;
-    private final BankAccountWorkflow bankAccountWorkflow;
-    private final BankImportController bankImportController;
-    private final BankPeriodController bankPeriodController;
+    private final BankModule bankModule;
     private final CreditCardAccountRepository creditCardAccountRepository;
     private final CreditCardStatementRepository creditCardStatementRepository;
     private final CreditCardStatementFieldReviewRepository creditCardStatementFieldReviewRepository;
@@ -282,16 +267,7 @@ public class AppView {
     private boolean nylMenuExpanded;
 
     public AppView(DatabaseManager databaseManager) {
-        bankRepository = new BankTransactionRepository(databaseManager);
-        BankAccountRepository bankAccountRepository = new BankAccountRepository(databaseManager);
-        BankMonthlyClosingRepository bankMonthlyClosingRepository = new BankMonthlyClosingRepository(databaseManager);
-        BankStatementPeriodRepository bankStatementPeriodRepository = new BankStatementPeriodRepository(databaseManager);
-        bank = new BankApplicationService(bankRepository, bankAccountRepository, bankStatementPeriodRepository, bankMonthlyClosingRepository);
-        bankAccountController = new BankAccountController(bank);
-        bankAccountDetailController = new BankAccountDetailController(bank);
-        bankAccountWorkflow = new BankAccountWorkflow(bankAccountController);
-        bankImportController = new BankImportController(bank, ocrService);
-        bankPeriodController = new BankPeriodController(bank);
+        bankModule = new BankModule(databaseManager, ocrService);
         creditCardAccountRepository = new CreditCardAccountRepository(databaseManager);
         creditCardStatementRepository = new CreditCardStatementRepository(databaseManager);
         creditCardStatementFieldReviewRepository = new CreditCardStatementFieldReviewRepository(databaseManager);
@@ -307,8 +283,8 @@ public class AppView {
         nylRepository = new NylRecordRepository(databaseManager);
         reconciliationRepository = new ReconciliationRepository(databaseManager);
         reviewMarkRepository = new ReviewMarkRepository(databaseManager);
-        dashboardService = new DashboardService(bankRepository, nylRepository);
-        reconciliationService = new ReconciliationService(bankRepository, nylRepository);
+        dashboardService = new DashboardService(bankModule.transactions(), nylRepository);
+        reconciliationService = new ReconciliationService(bankModule.transactions(), nylRepository);
         build();
     }
 
@@ -332,7 +308,7 @@ public class AppView {
 
         VBox bankSubmenu = new VBox(4);
         bankSubmenu.getStyleClass().add("submenu");
-        for (BankAccount account : bankAccountController.list()) {
+        for (BankAccount account : bankModule.accounts().list()) {
             bankSubmenu.getChildren().add(subnav(account.getAlias(), () -> showBankAccount(account.getAlias())));
         }
         VBox cardSubmenu = new VBox(4);
@@ -598,7 +574,7 @@ public class AppView {
             int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
             int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
             DashboardSummary summary = dashboardService.summary(year, month);
-            SourceTotals bankTotals = bank.transactions().totals(year, month);
+            SourceTotals bankTotals = bankModule.application().transactions().totals(year, month);
             SourceTotals nylTotals = nylRepository.totals(year, month);
             List<CreditCardStatement> cardStatements = allCardStatements(year, month);
             List<CreditCardTransaction> cardMovements = allCardTransactions(year, month);
@@ -726,7 +702,7 @@ public class AppView {
 
     private VBox dashboardBankPanel() {
         return new BankDashboardPanelView().build(
-            bankAccountController.list(),
+            bankModule.accounts().list(),
             this::bankPeriodSummaries
         );
     }
@@ -893,12 +869,12 @@ public class AppView {
 
     private BankShellWorkflow bankShellWorkflow() {
         return new BankShellWorkflow(
-            bank,
-            bankAccountController,
-            bankAccountDetailController,
-            bankAccountWorkflow,
-            bankImportController,
-            bankPeriodController,
+            bankModule.application(),
+            bankModule.accounts(),
+            bankModule.accountDetails(),
+            bankModule.accountWorkflow(),
+            bankModule.imports(),
+            bankModule.periods(),
             excelExportService,
             new BankShellWorkflow.Config(
                 (title, nodes) -> setPage(page(title, nodes)),
@@ -2432,7 +2408,7 @@ public class AppView {
     private VBox reconciliationSummaryView() {
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        List<BankTransaction> bankRows = bank.transactions().find(year, month, null, null);
+        List<BankTransaction> bankRows = bankModule.application().transactions().find(year, month, null, null);
         List<NylRecord> nyl = nylRepository.find(year, month, null, null);
         List<CreditCardStatement> statements = allCardStatements(year, month);
         List<CreditCardTransaction> movements = allCardTransactions(year, month);
@@ -2456,13 +2432,13 @@ public class AppView {
     private VBox reconciliationBankView() {
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        List<BankReconciliationView.AccountSummary> summaries = bankAccountController.list().stream()
+        List<BankReconciliationView.AccountSummary> summaries = bankModule.accounts().list().stream()
             .map(account -> new BankReconciliationView.AccountSummary(
                 account.getAlias(),
-                bank.transactions().totals(year, month, account.getAlias())
+                bankModule.application().transactions().totals(year, month, account.getAlias())
             ))
             .toList();
-        return new BankReconciliationView(bank).bankByAccount(summaries, this::showBankAccount);
+        return new BankReconciliationView(bankModule.application()).bankByAccount(summaries, this::showBankAccount);
     }
 
     private VBox reconciliationCardsView() {
@@ -2525,18 +2501,18 @@ public class AppView {
     private VBox reconciliationNylBankView() {
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        List<BankAccount> accounts = bankAccountController.list();
+        List<BankAccount> accounts = bankModule.accounts().list();
         BankAccount selectedAccount = accounts.stream()
             .filter(account -> selectedBankAccountAlias != null && selectedBankAccountAlias.equals(account.getAlias()))
             .findFirst()
             .orElse(accounts.stream().filter(account -> account.getAlias().toLowerCase(java.util.Locale.ROOT).contains("15705")).findFirst().orElse(null));
         String accountAlias = selectedAccount == null ? null : selectedAccount.getAlias();
         SourceTotals nylTotals = nylRepository.totals(year, month);
-        List<BankTransaction> bankNyl = bank.transactions().find(year, month, "New York Life", null, accountAlias).stream()
+        List<BankTransaction> bankNyl = bankModule.application().transactions().find(year, month, "New York Life", null, accountAlias).stream()
             .filter(transaction -> !transaction.isPendingReview())
             .filter(transaction -> transaction.getAmount() > 0)
             .toList();
-        return new BankReconciliationView(bank).nylBank(
+        return new BankReconciliationView(bankModule.application()).nylBank(
             new BankReconciliationView.NylBankSummary(selectedAccount, nylTotals, bankNyl)
         );
     }
@@ -2966,7 +2942,7 @@ public class AppView {
                 return;
             }
             excelExportService.export(file.toPath(),
-                bankAccountDetailController.findRows(selectedYear(), selectedMonth(), null, null, null),
+                bankModule.accountDetails().findRows(selectedYear(), selectedMonth(), null, null, null),
                 nylRepository.find(selectedYear(), selectedMonth(), null, null),
                 reconciliationService.preview(selectedYear(), selectedMonth()));
             alert(Alert.AlertType.INFORMATION, "Reporte exportado", file.getAbsolutePath());
@@ -3015,7 +2991,7 @@ public class AppView {
             return;
         }
         excelExportService.export(file.toPath(),
-            bankAccountDetailController.findRows(selectedYear(), selectedMonth(), null, null, null),
+            bankModule.accountDetails().findRows(selectedYear(), selectedMonth(), null, null, null),
             nylRepository.find(selectedYear(), selectedMonth(), null, null),
             reconciliationService.preview(selectedYear(), selectedMonth()));
         alert(Alert.AlertType.INFORMATION, "Reporte exportado", file.getAbsolutePath());
@@ -4068,7 +4044,7 @@ public class AppView {
     }
 
     private List<BankPeriodSummary> bankPeriodSummaries(String accountAliasFilter) {
-        return bankAccountDetailController.periodSummaries(accountAliasFilter);
+        return bankModule.accountDetails().periodSummaries(accountAliasFilter);
     }
 
     private String shortDate(LocalDate date) {
@@ -4226,7 +4202,7 @@ public class AppView {
         }
         excelExportService.exportReconciliationMonthly(
             file.toPath(),
-            bank.transactions().find(year, month, null, null),
+            bankModule.application().transactions().find(year, month, null, null),
             allCardStatements(year, month),
             allCardTransactions(year, month),
             allMortgageStatements(year, month),
@@ -4717,7 +4693,7 @@ public class AppView {
     private List<String> houseExpensePaymentSourceOptions() {
         List<String> options = new ArrayList<>();
         options.add("");
-        for (BankAccount account : bankAccountController.list()) {
+        for (BankAccount account : bankModule.accounts().list()) {
             options.add("Cuenta: " + account.getAlias());
         }
         for (CreditCardAccount account : creditCardAccountRepository.findAll()) {
