@@ -130,6 +130,10 @@ public class BankBreakdownView {
         if (transfer.find()) {
             return "Transfer " + titleCase(transfer.group(1)) + " " + transfer.group(2);
         }
+        String merchant = merchantName(description);
+        if (!merchant.isBlank()) {
+            return merchant;
+        }
         Matcher card = CARD_ENDING.matcher(description);
         if (card.find()) {
             return titleCase(card.group(1)) + " " + card.group(2);
@@ -143,10 +147,27 @@ public class BankBreakdownView {
             return provider;
         }
         String reference = text(transaction.getReference()).trim();
-        if (!reference.isBlank() && reference.length() <= 24) {
+        if (!reference.isBlank() && reference.length() <= 24 && !reference.matches("\\d+")) {
             return reference;
         }
         return description.isBlank() ? "Other" : description;
+    }
+
+    private String merchantName(String description) {
+        String normalized = description.toLowerCase(Locale.ROOT);
+        if (normalized.contains("costco")) {
+            return "Costco";
+        }
+        if (normalized.contains("nylife financial") || normalized.contains("new york life")) {
+            return "New York Life";
+        }
+        if (normalized.contains("sunpass")) {
+            return "SunPass";
+        }
+        if (normalized.contains("am nat ins") || normalized.contains("anico")) {
+            return "American National";
+        }
+        return "";
     }
 
     private String titleCase(String value) {
