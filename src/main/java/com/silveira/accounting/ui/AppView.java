@@ -1,6 +1,12 @@
 package com.silveira.accounting.ui;
 
 import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
+import com.silveira.accounting.application.card.CardApplicationService;
+import com.silveira.accounting.application.card.service.CardAccountApplicationService;
+import com.silveira.accounting.application.card.service.CardAlertApplicationService;
+import com.silveira.accounting.application.card.service.CardFieldReviewApplicationService;
+import com.silveira.accounting.application.card.service.CardStatementApplicationService;
+import com.silveira.accounting.application.card.service.CardTransactionApplicationService;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.bank.BankAccount;
@@ -226,11 +232,11 @@ public class AppView {
     );
 
     private final BankModule bankModule;
-    private final CreditCardAccountRepository creditCardAccountRepository;
-    private final CreditCardStatementRepository creditCardStatementRepository;
-    private final CreditCardStatementFieldReviewRepository creditCardStatementFieldReviewRepository;
-    private final CreditCardTransactionRepository creditCardTransactionRepository;
-    private final FinancialAlertRepository financialAlertRepository;
+    private final CardAccountApplicationService creditCardAccountRepository;
+    private final CardStatementApplicationService creditCardStatementRepository;
+    private final CardFieldReviewApplicationService creditCardStatementFieldReviewRepository;
+    private final CardTransactionApplicationService creditCardTransactionRepository;
+    private final CardAlertApplicationService financialAlertRepository;
     private final HouseExpenseRepository houseExpenseRepository;
     private final InternalMovementRepository internalMovementRepository;
     private final MortgageStatementRepository mortgageStatementRepository;
@@ -268,11 +274,18 @@ public class AppView {
 
     public AppView(DatabaseManager databaseManager) {
         bankModule = new BankModule(databaseManager, ocrService);
-        creditCardAccountRepository = new CreditCardAccountRepository(databaseManager);
-        creditCardStatementRepository = new CreditCardStatementRepository(databaseManager);
-        creditCardStatementFieldReviewRepository = new CreditCardStatementFieldReviewRepository(databaseManager);
-        creditCardTransactionRepository = new CreditCardTransactionRepository(databaseManager);
-        financialAlertRepository = new FinancialAlertRepository(databaseManager);
+        CardApplicationService cards = new CardApplicationService(
+            new CreditCardAccountRepository(databaseManager),
+            new CreditCardStatementRepository(databaseManager),
+            new CreditCardTransactionRepository(databaseManager),
+            new CreditCardStatementFieldReviewRepository(databaseManager),
+            new FinancialAlertRepository(databaseManager)
+        );
+        creditCardAccountRepository = cards.accounts();
+        creditCardStatementRepository = cards.statements();
+        creditCardStatementFieldReviewRepository = cards.fieldReviews();
+        creditCardTransactionRepository = cards.transactions();
+        financialAlertRepository = cards.alerts();
         houseExpenseRepository = new HouseExpenseRepository(databaseManager);
         internalMovementRepository = new InternalMovementRepository(databaseManager);
         mortgageStatementRepository = new MortgageStatementRepository(databaseManager);
