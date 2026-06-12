@@ -43,15 +43,6 @@ public class BankPeriodCardsView {
         FlowPane cards = new FlowPane(12, 12);
         cards.getStyleClass().add("monthly-card-row");
 
-        VBox general = monthlyActionCard("General", "Ver todos", "", "", "", () -> {
-            table.setItems(FXCollections
-                    .observableArrayList(bank.transactions().find(selectedYear, null, null, null, accountAlias)));
-            totalsPanel.getChildren().setAll(new BankTotalsView()
-                    .build(bank.transactions().totals(selectedYear, null, accountAlias), openingBalance));
-        });
-        general.getStyleClass().add("monthly-card-general");
-        cards.getChildren().add(general);
-
         for (BankPeriodSummary period : periods) {
             SourceTotals totals = period.totals();
             BankStatementPeriod statementPeriod = period.statementPeriod();
@@ -109,23 +100,6 @@ public class BankPeriodCardsView {
 
         VBox box = new VBox(10, title, cards);
         box.getStyleClass().add("monthly-section");
-        return box;
-    }
-
-    private VBox monthlyActionCard(String title, String line1, String line2, String line3, String line4,
-            Runnable action) {
-        Label heading = new Label(title);
-        heading.getStyleClass().add("monthly-card-title");
-        GridPane lines = new GridPane();
-        lines.getStyleClass().add("monthly-card-grid");
-        int row = 0;
-        for (String line : List.of(line1, line2, line3, line4)) {
-            if (!line.isBlank()) {
-                row = addMonthlyCardGridLine(lines, row, line);
-            }
-        }
-        VBox box = new VBox(0, heading, lines);
-        box.setOnMouseClicked(event -> action.run());
         return box;
     }
 
