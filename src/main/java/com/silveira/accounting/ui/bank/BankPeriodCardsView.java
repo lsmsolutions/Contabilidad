@@ -14,6 +14,7 @@ import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -39,7 +40,7 @@ public class BankPeriodCardsView {
             Consumer<BankPeriodSummary> deletePeriod) {
         Label title = new Label("Resumen por periodo Banco");
         title.getStyleClass().add("section-title");
-        HBox cards = new HBox(12);
+        FlowPane cards = new FlowPane(12, 12);
         cards.getStyleClass().add("monthly-card-row");
 
         VBox general = monthlyActionCard("General", "Ver todos", "", "", "", () -> {
