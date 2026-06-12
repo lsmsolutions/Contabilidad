@@ -110,6 +110,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -3745,7 +3746,7 @@ public class AppView {
     private VBox monthlyCardCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards) {
         Label title = new Label("Resumen mensual Tarjeta");
         title.getStyleClass().add("section-title");
-        HBox cards = new HBox(12);
+        FlowPane cards = new FlowPane(12, 12);
         cards.getStyleClass().add("monthly-card-row");
 
         for (MonthlySourceTotals total : creditCardStatementRepository.monthlyTotals(alias, null)) {
@@ -3829,12 +3830,12 @@ public class AppView {
             .orElse(null);
     }
 
-    private void refreshCreditCardMonthlyCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, HBox cards) {
-        HBox refreshed = (HBox) monthlyCardCards(alias, table, totalsPanel, statementCards).getChildren().get(1);
+    private void refreshCreditCardMonthlyCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
+        FlowPane refreshed = (FlowPane) monthlyCardCards(alias, table, totalsPanel, statementCards).getChildren().get(1);
         cards.getChildren().setAll(refreshed.getChildren());
     }
 
-    private void deleteCreditCardPeriod(String alias, List<CreditCardStatement> statements, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, HBox cards) {
+    private void deleteCreditCardPeriod(String alias, List<CreditCardStatement> statements, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
         if (statements.isEmpty()) {
             return;
         }
