@@ -968,6 +968,33 @@
     -fx-font-weight: 800;
 }
 
+.bank-period-detail-grid {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d3dfd8;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-hgap: 0;
+    -fx-max-width: 99999;
+}
+
+.bank-period-detail-item {
+    -fx-padding: 12;
+    -fx-border-color: transparent #dbe2dc transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-min-height: 76;
+}
+
+.bank-period-detail-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #50645d;
+}
+
+.bank-period-detail-value {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #123c32;
+}
+
 .monthly-card,
 .monthly-card-general {
     -fx-background-color: #f7faf7;

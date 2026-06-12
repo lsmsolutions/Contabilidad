@@ -65,11 +65,15 @@ public class BankAccountDetailScreenView {
             selectedPeriod[0] = period;
             selectedPeriodLabel.setText("Periodo seleccionado: " + BankPeriodTextFormatter.title(period.statementPeriod()));
         };
+        Consumer<BankPeriodSummary> openPeriod = period -> {
+            selectPeriod.accept(period);
+            config.openPeriod().accept(period);
+        };
 
         refreshPeriodCards[0] = () -> {
             BankStatementPeriod previousPeriod = selectedPeriod[0] == null ? null : selectedPeriod[0].statementPeriod();
             selectedPeriod[0] = null;
-            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, selectPeriod));
+            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, openPeriod));
             if (previousPeriod != null) {
                 detail.periodSummaries(config.accountAlias()).stream()
                     .filter(period -> period.samePeriodAs(previousPeriod))
@@ -86,7 +90,7 @@ public class BankAccountDetailScreenView {
             refreshTotals.run();
             selectedPeriod[0] = null;
             resetSelectedPeriodLabel(selectedPeriodLabel);
-            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, selectPeriod));
+            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, openPeriod));
         };
 
         periodActions.addRecord().setOnAction(event -> {
@@ -103,7 +107,7 @@ public class BankAccountDetailScreenView {
             } else {
                 refreshTotals.run();
             }
-            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, selectPeriod));
+            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config, openPeriod));
             table.refresh();
             config.info().accept("Banco guardado", "Cambios visibles guardados.");
         });
@@ -157,7 +161,7 @@ public class BankAccountDetailScreenView {
             refreshTotals.run();
             selectedPeriod[0] = null;
             resetSelectedPeriodLabel(selectedPeriodLabel);
-            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config.withSelection(year.getValue(), month.getValue()), selectPeriod));
+            monthlyCards.getChildren().setAll(monthlyCards(table, totals, config.withSelection(year.getValue(), month.getValue()), openPeriod));
         });
         controls.importPdf().setOnAction(event -> config.importPdf().accept(refresh));
         controls.manualPeriod().setOnAction(event -> config.manualPeriod().accept(refresh));
@@ -306,6 +310,7 @@ public class BankAccountDetailScreenView {
         Function<BankStatementPeriod, Label> reviewMarkFactory,
         Consumer<BankPeriodSummary> editPeriod,
         Consumer<BankStatementPeriod> downloadPeriod,
+        Consumer<BankPeriodSummary> openPeriod,
         Runnable reload
     ) {
         Config withSelection(Integer year, Integer month) {
@@ -323,6 +328,7 @@ public class BankAccountDetailScreenView {
                 reviewMarkFactory,
                 editPeriod,
                 downloadPeriod,
+                openPeriod,
                 reload
             );
         }

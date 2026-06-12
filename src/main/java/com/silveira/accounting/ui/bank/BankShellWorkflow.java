@@ -6,6 +6,7 @@ import com.silveira.accounting.controllers.bank.BankAccountDetailController;
 import com.silveira.accounting.controllers.bank.BankAccountWorkflow;
 import com.silveira.accounting.controllers.bank.BankImportController;
 import com.silveira.accounting.controllers.bank.BankPeriodController;
+import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
 import com.silveira.accounting.models.bank.BankStatementPeriod;
 import com.silveira.accounting.services.ExcelExportService;
 import java.io.File;
@@ -76,7 +77,27 @@ public class BankShellWorkflow {
                 ),
                 period -> periodWorkflow().showPeriodDialog(period, () -> showAccount(config.selectedAccountAlias().get())),
                 period -> periodWorkflow().exportMonthly(config.selectedAccountAlias().get(), period.periodEnd().getYear(), period.periodEnd().getMonthValue()),
+                period -> showPeriod(accountAlias, period),
                 () -> showAccount(config.selectedAccountAlias().get())
+            )
+        ));
+    }
+
+    private void showPeriod(String accountAlias, BankPeriodSummary selected) {
+        BankPeriodSummary period = details.periodSummaries(accountAlias).stream()
+            .filter(candidate -> candidate.samePeriodAs(selected.statementPeriod()))
+            .findFirst()
+            .orElse(selected);
+        config.setPage().accept(new BankPeriodDetailScreenView(bank, imports).build(
+            period,
+            new BankPeriodDetailScreenView.Config(
+                accountPageTitle(accountAlias),
+                config.backButton().apply("Volver a la cuenta", () -> showAccount(accountAlias)),
+                () -> showPeriod(accountAlias, period),
+                (title, message) -> config.alert().accept(Alert.AlertType.INFORMATION, title, message),
+                summary -> periodWorkflow().showPeriodDialog(summary, () -> showPeriod(accountAlias, summary)),
+                statement -> periodWorkflow().exportMonthly(accountAlias, statement.periodEnd().getYear(), statement.periodEnd().getMonthValue()),
+                summary -> importWorkflow().deleteSelectedPeriod(summary, () -> showAccount(accountAlias))
             )
         ));
     }
