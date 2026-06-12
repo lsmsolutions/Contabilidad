@@ -44,7 +44,7 @@ public class BankAccountDetailScreenView {
         HBox totals = new HBox(12);
         totals.getStyleClass().add("totals-panel");
         Runnable refreshTotals = () -> totals.getChildren().setAll(
-            new BankTotalsView().build(detail.totals(config.selectedYear(), null, config.accountAlias()), openingBalance(config))
+            new BankTotalsView().buildAccumulated(detail.totals(config.selectedYear(), null, config.accountAlias()), openingBalance(config))
         );
         refreshTotals.run();
 

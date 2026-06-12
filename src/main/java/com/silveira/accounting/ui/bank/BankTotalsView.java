@@ -15,12 +15,20 @@ import javafx.scene.layout.VBox;
 
 public class BankTotalsView {
     public List<Node> build(SourceTotals totals, double openingBalance) {
+        return build(totals, openingBalance, "Dep\u00f3sitos", "Salidas", "Movimiento del periodo");
+    }
+
+    public List<Node> buildAccumulated(SourceTotals totals, double openingBalance) {
+        return build(totals, openingBalance, "Dep\u00f3sitos acumulados", "Salidas acumuladas", "Movimiento acumulado");
+    }
+
+    private List<Node> build(SourceTotals totals, double openingBalance, String incomeTitle, String expenseTitle, String chartTitle) {
         List<Node> nodes = new ArrayList<>(List.of(
             miniTotal("Saldo inicial", Money.format(openingBalance), "pending-total"),
-            miniTotal("Dep\u00f3sitos", Money.format(totals.income()), "income-total"),
-            miniTotal("Salidas", Money.format(Math.abs(totals.expenses())), "expense-total")
+            miniTotal(incomeTitle, Money.format(totals.income()), "income-total"),
+            miniTotal(expenseTitle, Money.format(Math.abs(totals.expenses())), "expense-total")
         ));
-        nodes.add(flowChart(totals));
+        nodes.add(flowChart(totals, chartTitle));
         return nodes;
     }
 
@@ -34,12 +42,12 @@ public class BankTotalsView {
         return box;
     }
 
-    private VBox flowChart(SourceTotals totals) {
+    private VBox flowChart(SourceTotals totals, String title) {
         double deposits = Math.max(0, totals.income());
         double withdrawals = Math.abs(Math.min(0, totals.expenses()));
         double max = Math.max(Math.max(deposits, withdrawals), 1.0);
         VBox chart = new VBox(8,
-            flowHeader(),
+            flowHeader(title),
             flowBar("Dep\u00f3sitos", deposits, max, "bank-flow-income-fill"),
             flowBar("Salidas", withdrawals, max, "bank-flow-expense-fill")
         );
@@ -48,8 +56,8 @@ public class BankTotalsView {
         return chart;
     }
 
-    private Label flowHeader() {
-        Label label = new Label("Movimiento del periodo");
+    private Label flowHeader(String title) {
+        Label label = new Label(title);
         label.getStyleClass().add("bank-flow-title");
         return label;
     }
