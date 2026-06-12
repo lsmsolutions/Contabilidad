@@ -53,6 +53,7 @@ import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.BestBuyStatementSummaryView;
+import com.silveira.accounting.ui.card.CardAccountsHubView;
 import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
@@ -912,48 +913,18 @@ public class AppView {
         );
     }
     private void showCards() {
-        List<CreditCardAccount> accounts = creditCardAccountRepository.findAll();
-        Button add = new Button("+ Anadir tarjeta");
-        add.getStyleClass().add("primary");
-        add.setOnAction(event -> showAddCreditCard());
-        Button edit = new Button("Editar tarjeta");
-        edit.setOnAction(event -> editCreditCardFromHub());
-        Button delete = new Button("Eliminar tarjeta");
-        delete.getStyleClass().add("danger-button");
-        delete.setOnAction(event -> deleteCreditCardFromHub());
-        sameSize(add, edit, delete);
-        HBox hubActions = new HBox(10, add, edit, delete);
-        HBox cards = new HBox(14);
-        cards.getStyleClass().add("bank-account-hub");
-        for (CreditCardAccount account : accounts) {
-            cards.getChildren().add(creditCardCard(account));
-        }
-        if (accounts.isEmpty()) {
-            Label empty = new Label("No hay tarjetas creadas. Importa un PDF o anade una tarjeta manualmente.");
-            empty.getStyleClass().add("section-subtitle");
-            setPage(page("Tarjetas", empty, hubActions));
+        CardAccountsHubView.Hub hub = new CardAccountsHubView().build(
+            creditCardAccountRepository.findAll(),
+            this::showAddCreditCard,
+            this::editCreditCardFromHub,
+            this::deleteCreditCardFromHub,
+            this::showCardAccount
+        );
+        if (hub.empty()) {
+            setPage(page("Tarjetas", hub.content(), hub.actions()));
         } else {
-            setDarkHubPage("Tarjetas", cards, hubActions);
+            setDarkHubPage("Tarjetas", hub.content(), hub.actions());
         }
-    }
-
-    private VBox creditCardCard(CreditCardAccount account) {
-        Label alias = new Label(account.getAlias());
-        alias.getStyleClass().add("monthly-card-title");
-        VBox card = new VBox(6, alias);
-        card.getStyleClass().add("monthly-card");
-        if (account.getBankName() != null && !account.getBankName().isBlank()) {
-            Label bankName = new Label(account.getBankName());
-            bankName.getStyleClass().add("monthly-card-line");
-            card.getChildren().add(bankName);
-        }
-        if (account.getAccountLastDigits() != null && !account.getAccountLastDigits().isBlank()) {
-            Label digits = new Label("Ending " + account.getAccountLastDigits());
-            digits.getStyleClass().add("monthly-card-line");
-            card.getChildren().add(digits);
-        }
-        card.setOnMouseClicked(event -> showCardAccount(account.getAlias()));
-        return card;
     }
 
     private void showAddCreditCard() {
