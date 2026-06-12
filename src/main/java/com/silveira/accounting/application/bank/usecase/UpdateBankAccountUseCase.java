@@ -1,7 +1,7 @@
 package com.silveira.accounting.application.bank.usecase;
 
 import com.silveira.accounting.models.bank.BankAccount;
-import com.silveira.accounting.repositories.BankAccountRepository;
+import com.silveira.accounting.repositories.bank.BankAccountRepository;
 
 public class UpdateBankAccountUseCase {
     private final BankAccountRepository repository;

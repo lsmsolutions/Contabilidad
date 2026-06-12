@@ -6,7 +6,7 @@ import com.silveira.accounting.application.bank.usecase.NormalizeBankTransaction
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.MonthlySourceTotals;
 import com.silveira.accounting.models.SourceTotals;
-import com.silveira.accounting.repositories.BankTransactionRepository;
+import com.silveira.accounting.repositories.bank.BankTransactionRepository;
 
 import java.util.List;
 import java.util.Set;

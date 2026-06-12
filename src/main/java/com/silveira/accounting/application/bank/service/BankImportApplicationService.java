@@ -9,7 +9,7 @@ import com.silveira.accounting.application.bank.usecase.SaveBankImportRowsUseCas
 import com.silveira.accounting.application.bank.usecase.SaveBankPendingReviewRowsUseCase;
 import com.silveira.accounting.models.bank.BankStatementPeriod;
 import com.silveira.accounting.models.bank.BankTransaction;
-import com.silveira.accounting.repositories.BankStatementPeriodRepository;
+import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
 
 import java.time.LocalDate;
 import java.util.List;

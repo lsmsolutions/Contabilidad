@@ -3,7 +3,7 @@ package com.silveira.accounting.services;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.NylRecord;
 import com.silveira.accounting.models.ReconciliationItem;
-import com.silveira.accounting.repositories.BankTransactionRepository;
+import com.silveira.accounting.repositories.bank.BankTransactionRepository;
 import com.silveira.accounting.repositories.NylRecordRepository;
 
 import java.util.ArrayList;

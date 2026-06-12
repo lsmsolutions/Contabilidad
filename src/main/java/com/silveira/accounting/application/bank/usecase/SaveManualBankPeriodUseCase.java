@@ -1,7 +1,7 @@
 package com.silveira.accounting.application.bank.usecase;
 
 import com.silveira.accounting.models.bank.BankStatementPeriod;
-import com.silveira.accounting.repositories.BankStatementPeriodRepository;
+import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
 
 import java.time.LocalDate;
 

@@ -1,4 +1,4 @@
-package com.silveira.accounting.repositories;
+package com.silveira.accounting.repositories.bank;
 
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.bank.BankMonthlyClosing;

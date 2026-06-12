@@ -1,7 +1,7 @@
 package com.silveira.accounting.services;
 
 import com.silveira.accounting.models.DashboardSummary;
-import com.silveira.accounting.repositories.BankTransactionRepository;
+import com.silveira.accounting.repositories.bank.BankTransactionRepository;
 import com.silveira.accounting.repositories.NylRecordRepository;
 
 public class DashboardService {

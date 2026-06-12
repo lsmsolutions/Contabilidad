@@ -1,7 +1,7 @@
 package com.silveira.accounting.application.bank.usecase;
 
 import com.silveira.accounting.models.bank.BankMonthlyClosing;
-import com.silveira.accounting.repositories.BankMonthlyClosingRepository;
+import com.silveira.accounting.repositories.bank.BankMonthlyClosingRepository;
 
 public class GetBankMonthlyClosingUseCase {
     private final BankMonthlyClosingRepository closings;

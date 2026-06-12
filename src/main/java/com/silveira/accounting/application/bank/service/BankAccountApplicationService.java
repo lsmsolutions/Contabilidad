@@ -7,7 +7,7 @@ import com.silveira.accounting.application.bank.usecase.FindBankAccountUseCase;
 import com.silveira.accounting.application.bank.usecase.ListBankAccountsUseCase;
 import com.silveira.accounting.application.bank.usecase.UpdateBankAccountUseCase;
 import com.silveira.accounting.models.bank.BankAccount;
-import com.silveira.accounting.repositories.BankAccountRepository;
+import com.silveira.accounting.repositories.bank.BankAccountRepository;
 
 import java.util.List;
 import java.util.Optional;

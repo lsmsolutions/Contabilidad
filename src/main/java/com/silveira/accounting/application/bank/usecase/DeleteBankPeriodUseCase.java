@@ -3,7 +3,7 @@ package com.silveira.accounting.application.bank.usecase;
 import com.silveira.accounting.application.bank.service.BankTransactionApplicationService;
 import com.silveira.accounting.models.bank.BankStatementPeriod;
 import com.silveira.accounting.models.bank.BankTransaction;
-import com.silveira.accounting.repositories.BankStatementPeriodRepository;
+import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
 
 import java.util.List;
 

@@ -4,10 +4,10 @@ import com.silveira.accounting.application.bank.service.BankAccountApplicationSe
 import com.silveira.accounting.application.bank.service.BankImportApplicationService;
 import com.silveira.accounting.application.bank.service.BankPeriodApplicationService;
 import com.silveira.accounting.application.bank.service.BankTransactionApplicationService;
-import com.silveira.accounting.repositories.BankAccountRepository;
-import com.silveira.accounting.repositories.BankMonthlyClosingRepository;
-import com.silveira.accounting.repositories.BankStatementPeriodRepository;
-import com.silveira.accounting.repositories.BankTransactionRepository;
+import com.silveira.accounting.repositories.bank.BankAccountRepository;
+import com.silveira.accounting.repositories.bank.BankMonthlyClosingRepository;
+import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
+import com.silveira.accounting.repositories.bank.BankTransactionRepository;
 
 public class BankApplicationService {
     private final BankAccountApplicationService accounts;

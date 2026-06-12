@@ -8,9 +8,9 @@ import com.silveira.accounting.application.bank.usecase.SaveBankMonthlyClosingUs
 import com.silveira.accounting.application.bank.usecase.UpdateBankStatementPeriodUseCase;
 import com.silveira.accounting.models.bank.BankMonthlyClosing;
 import com.silveira.accounting.models.bank.BankStatementPeriod;
-import com.silveira.accounting.repositories.BankMonthlyClosingRepository;
-import com.silveira.accounting.repositories.BankStatementPeriodRepository;
-import com.silveira.accounting.repositories.BankTransactionRepository;
+import com.silveira.accounting.repositories.bank.BankMonthlyClosingRepository;
+import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
+import com.silveira.accounting.repositories.bank.BankTransactionRepository;
 
 import java.time.LocalDate;
 import java.util.List;

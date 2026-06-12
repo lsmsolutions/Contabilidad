@@ -1,6 +1,6 @@
 package com.silveira.accounting.application.bank.usecase;
 
-import com.silveira.accounting.repositories.BankAccountRepository;
+import com.silveira.accounting.repositories.bank.BankAccountRepository;
 
 public class DeleteBankAccountUseCase {
     private final BankAccountRepository repository;
