@@ -909,6 +909,65 @@
     -fx-spacing: 12;
 }
 
+.bank-detail-tabs {
+    -fx-min-height: 520;
+}
+
+.bank-breakdown {
+    -fx-padding: 18;
+    -fx-background-color: #ffffff;
+}
+
+.bank-breakdown-section {
+    -fx-padding: 0 0 12 0;
+}
+
+.bank-breakdown-section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #123c32;
+    -fx-padding: 8 0;
+}
+
+.bank-breakdown-group {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #d3dfd8;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 12;
+}
+
+.bank-breakdown-group-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #165a73;
+}
+
+.bank-breakdown-grid {
+    -fx-hgap: 14;
+    -fx-vgap: 6;
+}
+
+.bank-breakdown-amount {
+    -fx-font-weight: 700;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+}
+
+.bank-breakdown-group-total {
+    -fx-border-color: #c7d5cd transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 7 0 0 0;
+    -fx-font-weight: 800;
+}
+
+.bank-breakdown-section-total {
+    -fx-background-color: #e9f4ef;
+    -fx-padding: 9 12;
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+}
+
 .monthly-card,
 .monthly-card-general {
     -fx-background-color: #f7faf7;

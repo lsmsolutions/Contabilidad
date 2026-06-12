@@ -16,9 +16,12 @@ import javafx.collections.FXCollections;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 public class BankAccountDetailScreenView {
@@ -173,6 +176,23 @@ public class BankAccountDetailScreenView {
         reviewNote.getStyleClass().add("section-subtitle");
         reviewNote.setWrapText(true);
 
+        table.setMinHeight(420);
+        table.setPrefHeight(520);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        VBox movementsContent = new VBox(10, periodActions.row(), table);
+
+        BankBreakdownView breakdownView = new BankBreakdownView();
+        breakdownView.refresh(table.getItems());
+        Tab movementsTab = tab("Movements", movementsContent);
+        Tab breakdownTab = tab("Breakdown", breakdownView.node());
+        breakdownTab.setOnSelectionChanged(event -> {
+            if (breakdownTab.isSelected()) {
+                breakdownView.refresh(table.getItems());
+            }
+        });
+        TabPane transactionTabs = new TabPane(movementsTab, breakdownTab);
+        transactionTabs.getStyleClass().add("bank-detail-tabs");
+
         return new BankAccountDetailPageView().build(
             config.title(),
             config.backButton(),
@@ -180,9 +200,14 @@ public class BankAccountDetailScreenView {
             reviewNote,
             totals,
             monthlyCards,
-            periodActions.row(),
-            table
+            transactionTabs
         );
+    }
+
+    private Tab tab(String title, Node content) {
+        Tab tab = new Tab(title, content);
+        tab.setClosable(false);
+        return tab;
     }
 
     private VBox monthlyCards(TableView<BankTransaction> table, HBox totals, Config config, Consumer<BankPeriodSummary> selectPeriod) {
