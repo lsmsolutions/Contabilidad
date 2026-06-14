@@ -2120,7 +2120,7 @@ public class AppView {
         Map<Long, String> originalRows = new HashMap<>();
         TableView<HouseExpense> table = houseExpenseTable(null, originalRows);
         Runnable refresh = () -> {
-            table.setItems(FXCollections.observableArrayList(houseExpenseRepository.findByLoan(null, selectedYear(), selectedMonth())));
+            table.setItems(FXCollections.observableArrayList(houseExpenseRepository.findByLoan(null, null, null)));
             captureHouseExpenseRows(table, originalRows);
         };
         refresh.run();
