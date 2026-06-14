@@ -1,6 +1,7 @@
 package com.silveira.accounting.application.card.service;
 
 import com.silveira.accounting.application.card.dto.CardPeriodSummary;
+import com.silveira.accounting.application.card.dto.CardAnalysisSummary;
 import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.models.MonthlySourceTotals;
 import com.silveira.accounting.models.SourceTotals;
@@ -77,6 +78,20 @@ public class CardStatementApplicationService {
         return repository.monthlyTotals(alias, null).stream()
             .map(total -> periodSummary(alias, total))
             .toList();
+    }
+
+    public CardAnalysisSummary analysis(String alias) {
+        List<CreditCardStatement> reviewed = repository.findByAccount(alias, null, null).stream()
+            .filter(statement -> !statement.isPendingReview())
+            .filter(statement -> statement.getStatementEndDate() != null)
+            .sorted(Comparator.comparing(CreditCardStatement::getStatementEndDate))
+            .toList();
+        return new CardAnalysisSummary(
+            reviewed.stream().mapToDouble(CreditCardStatement::getNewBalance).sum(),
+            reviewed.stream().mapToDouble(CreditCardStatement::getPayments).sum(),
+            reviewed.stream().mapToDouble(CreditCardStatement::getTransactions).sum(),
+            reviewed.stream().mapToDouble(CreditCardStatement::getInterestCharged).sum()
+        );
     }
 
     public String periodTitle(List<CreditCardStatement> statements, MonthlySourceTotals fallback) {

@@ -4,8 +4,8 @@ import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
 import com.silveira.accounting.application.card.CardApplicationService;
 import com.silveira.accounting.application.card.dto.CardPeriodSummary;
 import com.silveira.accounting.application.card.service.CardAccountApplicationService;
-import com.silveira.accounting.application.card.service.CardFieldReviewApplicationService;
 import com.silveira.accounting.application.card.service.CardImportApplicationService;
+import com.silveira.accounting.application.card.service.CardReviewApplicationService;
 import com.silveira.accounting.application.card.service.CardStatementApplicationService;
 import com.silveira.accounting.application.card.service.CardTransactionApplicationService;
 import com.silveira.accounting.database.DatabaseManager;
@@ -56,6 +56,7 @@ import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.CardAccountFormView;
+import com.silveira.accounting.ui.card.CardAnalysisView;
 import com.silveira.accounting.ui.card.CardAccountDetailControls;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
@@ -247,9 +248,9 @@ public class AppView {
     private final VehicleLeaseModule vehicleLeaseModule;
     private final CardAccountApplicationService creditCardAccountRepository;
     private final CardStatementApplicationService creditCardStatementRepository;
-    private final CardFieldReviewApplicationService creditCardStatementFieldReviewRepository;
     private final CardTransactionApplicationService creditCardTransactionRepository;
     private final CardImportApplicationService creditCardImports;
+    private final CardReviewApplicationService creditCardReviews;
     private final HouseExpenseRepository houseExpenseRepository;
     private final InternalMovementRepository internalMovementRepository;
     private final MortgageStatementRepository mortgageStatementRepository;
@@ -296,9 +297,9 @@ public class AppView {
         );
         creditCardAccountRepository = cards.accounts();
         creditCardStatementRepository = cards.statements();
-        creditCardStatementFieldReviewRepository = cards.fieldReviews();
         creditCardTransactionRepository = cards.transactions();
         creditCardImports = cards.imports();
+        creditCardReviews = cards.reviews();
         houseExpenseRepository = new HouseExpenseRepository(databaseManager);
         internalMovementRepository = new InternalMovementRepository(databaseManager);
         mortgageStatementRepository = new MortgageStatementRepository(databaseManager);
@@ -1140,19 +1141,7 @@ public class AppView {
     }
 
     private void showCreditCardAnalysis(String alias) {
-        List<CreditCardStatement> reviewed = creditCardStatementRepository.findByAccount(alias, null, null).stream()
-            .filter(statement -> !statement.isPendingReview())
-            .filter(statement -> statement.getStatementEndDate() != null)
-            .sorted(Comparator.comparing(CreditCardStatement::getStatementEndDate))
-            .toList();
-        HBox totals = new HBox(12,
-            miniTotal("Deuda cierre", Money.format(reviewed.stream().mapToDouble(CreditCardStatement::getNewBalance).sum()), "expense-total"),
-            miniTotal("Pagos", Money.format(reviewed.stream().mapToDouble(CreditCardStatement::getPayments).sum()), "income-total"),
-            miniTotal("Compras", Money.format(reviewed.stream().mapToDouble(CreditCardStatement::getTransactions).sum()), "expense-total"),
-            miniTotal("Intereses", Money.format(reviewed.stream().mapToDouble(CreditCardStatement::getInterestCharged).sum()), "urgent-total")
-        );
-        totals.getStyleClass().add("totals-panel");
-        setPage(page("Analisis de tarjeta - " + alias, backButton("Volver al detalle", () -> showCardAccount(alias)), totals));
+        setPage(new CardAnalysisView().build(alias, creditCardStatementRepository.analysis(alias), () -> showCardAccount(alias)));
     }
 
     private void refreshCreditCardStatementCards(TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
@@ -1184,27 +1173,27 @@ public class AppView {
         return new CardStatementCardCoordinator().build(statement, new CardStatementCardCoordinator.Actions() {
             @Override
             public boolean isFieldReviewed(CreditCardStatement current, String fieldName, boolean defaultReviewed) {
-                return creditCardStatementFieldReviewRepository.isReviewed(current.getId(), fieldName, defaultReviewed);
+                return creditCardReviews.isFieldReviewed(current, fieldName, defaultReviewed);
             }
 
             @Override
             public void updateFieldReview(CreditCardStatement current, String fieldName, boolean reviewed, List<String> fieldKeys) {
-                updateCreditCardStatementFieldReview(current, fieldName, reviewed, fieldKeys);
+                creditCardReviews.updateField(current, fieldName, reviewed, fieldKeys);
             }
 
             @Override
             public void updateAllFieldReviews(CreditCardStatement current, List<String> fieldKeys, boolean reviewed) {
-                updateAllCreditCardStatementFieldReviews(current, fieldKeys, reviewed);
+                creditCardReviews.updateAllFields(current, fieldKeys, reviewed);
             }
 
             @Override
             public void updateMovementReview(CreditCardTransaction transaction, boolean reviewed) {
-                updateCreditCardMovementReview(transaction, reviewed);
+                creditCardReviews.updateMovement(transaction, reviewed);
             }
 
             @Override
             public List<CreditCardTransaction> transactionsFor(CreditCardStatement current) {
-                return creditCardTransactionsForStatement(current);
+                return creditCardTransactionRepository.findByStatement(current);
             }
 
             @Override
@@ -1252,57 +1241,6 @@ public class AppView {
                 refreshCreditCardStatementCards(table, cards, refreshTotals);
             }
         });
-    }
-
-    private List<CreditCardTransaction> creditCardTransactionsForStatement(CreditCardStatement statement) {
-        if (statement.getId() <= 0 || statement.getStatementEndDate() == null) {
-            return List.of();
-        }
-        return creditCardTransactionRepository
-            .findByAccount(statement.getAccountAlias(), statement.getStatementEndDate().getYear(), statement.getStatementEndDate().getMonthValue())
-            .stream()
-            .filter(transaction -> transaction.getStatementId() == statement.getId())
-            .toList();
-    }
-
-    private void updateCreditCardStatementFieldReview(CreditCardStatement statement, String fieldName, boolean reviewed, List<String> fieldKeys) {
-        creditCardStatementFieldReviewRepository.setReviewed(statement.getId(), fieldName, reviewed);
-        updateCreditCardStatementReview(statement, allCreditCardStatementFieldsReviewed(statement, fieldKeys));
-    }
-
-    private void updateAllCreditCardStatementFieldReviews(CreditCardStatement statement, List<String> fieldKeys, boolean reviewed) {
-        creditCardStatementFieldReviewRepository.setReviewed(statement.getId(), fieldKeys, reviewed);
-        updateCreditCardStatementReview(statement, reviewed);
-    }
-
-    private boolean allCreditCardStatementFieldsReviewed(CreditCardStatement statement, List<String> fieldKeys) {
-        boolean defaultReviewed = !statement.isPendingReview();
-        return fieldKeys.stream()
-            .allMatch(fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed));
-    }
-
-    private void updateCreditCardStatementReview(CreditCardStatement statement, boolean reviewed) {
-        statement.setPendingReview(!reviewed);
-        statement.setReviewRequired(!reviewed);
-        if (reviewed && (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank() || statement.getReviewNotes().startsWith("Revisar"))) {
-            statement.setReviewNotes("Revisado");
-        } else if (!reviewed && "Revisado".equalsIgnoreCase(statement.getReviewNotes())) {
-            statement.setReviewNotes("Revisar contra el PDF original");
-        }
-        if (statement.getId() > 0) {
-            creditCardStatementRepository.updateRecord(statement);
-        }
-    }
-
-    private void updateCreditCardMovementReview(CreditCardTransaction movement, boolean reviewed) {
-        movement.setPendingReview(!reviewed);
-        movement.setReviewRequired(!reviewed);
-        if (reviewed && (movement.getReviewNotes() == null || movement.getReviewNotes().isBlank() || movement.getReviewNotes().startsWith("Revisar"))) {
-            movement.setReviewNotes("Revisado");
-        }
-        if (movement.getId() > 0) {
-            creditCardTransactionRepository.update(movement);
-        }
     }
 
     private String cardStatementTitle(CreditCardStatement statement) {
@@ -4550,7 +4488,7 @@ public class AppView {
 
     private TableView<CreditCardStatement> creditCardStatementTable() {
         return new CardStatementTableView().build(
-            this::updateCreditCardStatementReview,
+            creditCardReviews::updateStatement,
             statement -> {
                 if (statement.getId() > 0) {
                     creditCardStatementRepository.delete(statement.getId());
@@ -4688,7 +4626,7 @@ public class AppView {
 
     private TableView<CreditCardTransaction> creditCardTransactionTable() {
         return new CardTransactionTableView().build(
-            this::updateCreditCardMovementReview,
+            creditCardReviews::updateMovement,
             movement -> {
                 if (movement.getId() > 0) {
                     creditCardTransactionRepository.delete(movement.getId());

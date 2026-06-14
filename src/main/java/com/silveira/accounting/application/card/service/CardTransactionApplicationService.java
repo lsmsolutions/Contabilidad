@@ -1,5 +1,6 @@
 package com.silveira.accounting.application.card.service;
 
+import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.models.CreditCardTransaction;
 import com.silveira.accounting.repositories.card.CreditCardTransactionRepository;
 import java.time.LocalDate;
@@ -51,6 +52,19 @@ public class CardTransactionApplicationService {
 
     public List<CreditCardTransaction> findByAccount(String alias, Integer year, Integer month) {
         return repository.findByAccount(alias, year, month);
+    }
+
+    public List<CreditCardTransaction> findByStatement(CreditCardStatement statement) {
+        if (statement.getId() <= 0 || statement.getStatementEndDate() == null) {
+            return List.of();
+        }
+        return repository.findByAccount(
+                statement.getAccountAlias(),
+                statement.getStatementEndDate().getYear(),
+                statement.getStatementEndDate().getMonthValue()
+            ).stream()
+            .filter(transaction -> transaction.getStatementId() == statement.getId())
+            .toList();
     }
 
     public void update(CreditCardTransaction transaction) {
