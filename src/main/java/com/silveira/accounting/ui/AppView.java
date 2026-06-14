@@ -27,7 +27,6 @@ import com.silveira.accounting.models.ReconciliationItem;
 import com.silveira.accounting.models.SourceTotals;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseAccount;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
-import com.silveira.accounting.parsers.CreditCardStatementParser;
 import com.silveira.accounting.parsers.NylPdfParser;
 import com.silveira.accounting.repositories.HouseExpenseRepository;
 import com.silveira.accounting.repositories.InternalMovementRepository;
@@ -57,6 +56,7 @@ import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.CardAccountFormView;
 import com.silveira.accounting.ui.card.CardAnalysisView;
+import com.silveira.accounting.ui.card.CardImportWorkflow;
 import com.silveira.accounting.ui.card.CardAccountDetailControls;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
@@ -1012,7 +1012,7 @@ public class AppView {
             refresh.run();
             monthlyCards.getChildren().setAll(monthlyCardCards(alias, statements, totals, statementCards).getChildren());
         });
-        controls.importPdf().setOnAction(event -> importCreditCardPdf(alias, refresh));
+        controls.importPdf().setOnAction(event -> importCreditCardPdf(alias));
         controls.analysis().setOnAction(event -> showCreditCardAnalysis(alias));
         controls.addStatement().setOnAction(event -> addManualCreditCardStatement(alias, () -> showCardAccount(alias)));
         Label note = helperNote("Haz clic en una card para abrir el detalle completo de ese periodo.");
@@ -1058,33 +1058,15 @@ public class AppView {
         ));
     }
 
-    private void importCreditCardPdf(String alias, Runnable refresh) {
-        File file = choosePdf();
-        if (file == null) {
-            return;
-        }
-        cardImportInProgress = true;
-        showProcessing("Importando tarjeta", "Leyendo el PDF de la tarjeta. Si es escaneado, se usara OCR y puede tardar unos minutos.");
-        Task<CreditCardStatementParser.ParsedCreditCardStatement> task = new Task<>() {
-            @Override
-            protected CreditCardStatementParser.ParsedCreditCardStatement call() {
-                return creditCardImports.importPdf(file.toPath());
-            }
-        };
-        task.setOnSucceeded(event -> {
-            cardImportInProgress = false;
-            CreditCardStatementParser.ParsedCreditCardStatement parsed = task.getValue();
-            creditCardImports.saveImported(alias, parsed);
-            showCardAccount(alias);
-        });
-        task.setOnFailed(event -> {
-            cardImportInProgress = false;
-            alert(Alert.AlertType.ERROR, "No se pudo importar tarjeta", rootCauseMessage(task.getException()));
-            showCardAccount(alias);
-        });
-        Thread thread = new Thread(task, "silveira-card-import");
-        thread.setDaemon(true);
-        thread.start();
+    private void importCreditCardPdf(String alias) {
+        new CardImportWorkflow(creditCardImports, new CardImportWorkflow.Config(
+            this::choosePdf,
+            this::showProcessing,
+            importing -> cardImportInProgress = importing,
+            message -> alert(Alert.AlertType.ERROR, "No se pudo importar tarjeta", message),
+            this::showCardAccount,
+            this::rootCauseMessage
+        )).importPdf(alias);
     }
 
     private void addManualCreditCardStatement(String alias, Runnable refresh) {
