@@ -62,6 +62,7 @@ import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
 import com.silveira.accounting.ui.card.CardPeriodDetailView;
 import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
+import com.silveira.accounting.ui.card.CardStatementTableView;
 import com.silveira.accounting.ui.card.CardTransactionDialogView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
@@ -4664,100 +4665,15 @@ public class AppView {
     }
 
     private TableView<CreditCardStatement> creditCardStatementTable() {
-        TableView<CreditCardStatement> table = new TableView<>();
-        table.setEditable(true);
-
-        TableColumn<CreditCardStatement, Integer> year = new TableColumn<>("Año");
-        year.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getStatementEndDate() == null ? 0 : data.getValue().getStatementEndDate().getYear()).asObject());
-        TableColumn<CreditCardStatement, Integer> month = new TableColumn<>("Mes");
-        month.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getStatementEndDate() == null ? 0 : data.getValue().getStatementEndDate().getMonthValue()).asObject());
-
-        TableColumn<CreditCardStatement, String> startDate = cardDateColumn("Inicio ciclo", CreditCardStatement::getStatementStartDate, CreditCardStatement::setStatementStartDate);
-        TableColumn<CreditCardStatement, String> endDate = cardDateColumn("Cierre ciclo", CreditCardStatement::getStatementEndDate, CreditCardStatement::setStatementEndDate);
-        TableColumn<CreditCardStatement, Double> newBalance = cardMoneyColumn("Deuda cierre", CreditCardStatement::getNewBalance, CreditCardStatement::setNewBalance);
-        TableColumn<CreditCardStatement, Boolean> reviewed = new TableColumn<>("Revisado");
-        reviewed.setCellValueFactory(data -> new SimpleBooleanProperty(!data.getValue().isPendingReview()).asObject());
-        reviewed.setCellFactory(column -> new TableCell<>() {
-            private final CheckBox checkBox = new CheckBox();
-            {
-                checkBox.setOnAction(event -> {
-                    CreditCardStatement statement = getTableView().getItems().get(getIndex());
-                    boolean isReviewed = checkBox.isSelected();
-                    updateCreditCardStatementReview(statement, isReviewed);
-                    getTableView().refresh();
-                });
-            }
-
-            @Override
-            protected void updateItem(Boolean item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    checkBox.setSelected(Boolean.TRUE.equals(item));
-                    setGraphic(checkBox);
+        return new CardStatementTableView().build(
+            this::updateCreditCardStatementReview,
+            statement -> {
+                if (statement.getId() > 0) {
+                    creditCardStatementRepository.delete(statement.getId());
                 }
-            }
-        });
-
-        TableColumn<CreditCardStatement, Double> minimum = cardMoneyColumn("Pago mínimo", CreditCardStatement::getMinimumPaymentDue, CreditCardStatement::setMinimumPaymentDue);
-        TableColumn<CreditCardStatement, String> dueDate = cardDateColumn("Fecha límite de pago", CreditCardStatement::getPaymentDueDate, CreditCardStatement::setPaymentDueDate);
-        TableColumn<CreditCardStatement, Double> previous = cardMoneyColumn("Saldo anterior", CreditCardStatement::getPreviousBalance, CreditCardStatement::setPreviousBalance);
-        TableColumn<CreditCardStatement, Double> payments = cardMoneyColumn("Pagos", CreditCardStatement::getPayments, CreditCardStatement::setPayments);
-        TableColumn<CreditCardStatement, Double> credits = cardMoneyColumn("Créditos", CreditCardStatement::getOtherCredits, CreditCardStatement::setOtherCredits);
-        TableColumn<CreditCardStatement, Double> purchases = cardMoneyColumn("Compras", CreditCardStatement::getTransactions, CreditCardStatement::setTransactions);
-        TableColumn<CreditCardStatement, Double> cash = cardMoneyColumn("Cash advances", CreditCardStatement::getCashAdvances, CreditCardStatement::setCashAdvances);
-        TableColumn<CreditCardStatement, Double> fees = cardMoneyColumn("Fees", CreditCardStatement::getFeesCharged, CreditCardStatement::setFeesCharged);
-        TableColumn<CreditCardStatement, Double> interest = cardMoneyColumn("Intereses", CreditCardStatement::getInterestCharged, CreditCardStatement::setInterestCharged);
-        TableColumn<CreditCardStatement, Double> limit = cardMoneyColumn("Limite banco", CreditCardStatement::getCreditLimit, CreditCardStatement::setCreditLimit);
-        TableColumn<CreditCardStatement, Double> available = cardMoneyColumn("Crédito disponible", CreditCardStatement::getAvailableCredit, CreditCardStatement::setAvailableCredit);
-        TableColumn<CreditCardStatement, String> status = new TableColumn<>("Revisión");
-        status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
-        TableColumn<CreditCardStatement, String> notes = new TableColumn<>("Notas");
-        notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
-        notes.setCellFactory(TextFieldTableCell.forTableColumn());
-        notes.setOnEditCommit(event -> event.getRowValue().setReviewNotes(event.getNewValue()));
-        notes.setPrefWidth(260);
-        TableColumn<CreditCardStatement, Void> delete = new TableColumn<>("Eliminar");
-        delete.setCellFactory(column -> new TableCell<>() {
-            private final Button button = new Button("Eliminar");
-            {
-                button.setOnAction(event -> {
-                    CreditCardStatement statement = getTableView().getItems().get(getIndex());
-                    if (statement.getId() > 0) {
-                        creditCardStatementRepository.delete(statement.getId());
-                    }
-                    getTableView().getItems().remove(statement);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : button);
-            }
-        });
-
-        table.getColumns().setAll(year, month, startDate, endDate, newBalance, reviewed, minimum, dueDate, previous, payments, credits, purchases, cash, fees, interest, limit, available, status, notes, delete);
-        return table;
-    }
-
-    private TableColumn<CreditCardStatement, Double> cardMoneyColumn(String title, java.util.function.ToDoubleFunction<CreditCardStatement> getter, java.util.function.BiConsumer<CreditCardStatement, Double> setter) {
-        TableColumn<CreditCardStatement, Double> column = new TableColumn<>(title);
-        column.setCellValueFactory(data -> new SimpleDoubleProperty(getter.applyAsDouble(data.getValue())).asObject());
-        column.setCellFactory(TextFieldTableCell.forTableColumn(twoDecimalConverter()));
-        column.setOnEditCommit(event -> setter.accept(event.getRowValue(), event.getNewValue()));
-        column.setPrefWidth(120);
-        return column;
-    }
-
-    private TableColumn<CreditCardStatement, String> cardDateColumn(String title, java.util.function.Function<CreditCardStatement, LocalDate> getter, java.util.function.BiConsumer<CreditCardStatement, LocalDate> setter) {
-        TableColumn<CreditCardStatement, String> column = new TableColumn<>(title);
-        column.setCellValueFactory(data -> new SimpleStringProperty(getter.apply(data.getValue()) == null ? "" : getter.apply(data.getValue()).toString()));
-        column.setCellFactory(TextFieldTableCell.forTableColumn());
-        column.setOnEditCommit(event -> setter.accept(event.getRowValue(), parseDateOrNull(event.getNewValue())));
-        column.setPrefWidth(120);
-        return column;
+            },
+            this::parseDateOrNull
+        );
     }
 
     private LocalDate parseDateOrNull(String value) {
