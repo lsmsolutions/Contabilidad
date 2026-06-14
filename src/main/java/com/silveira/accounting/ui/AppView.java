@@ -61,6 +61,7 @@ import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
 import com.silveira.accounting.ui.card.CardPeriodDetailView;
+import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
 import com.silveira.accounting.ui.card.CardTransactionDialogView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
@@ -3686,151 +3687,45 @@ public class AppView {
             alert(Alert.AlertType.INFORMATION, "Sin resumen", "No hay resumen de tarjeta para editar en este mes.");
             return;
         }
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Editar datos de tarjeta");
-        ComboBox<CreditCardStatement> selector = new ComboBox<>(FXCollections.observableArrayList(statements));
-        selector.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(CreditCardStatement statement) {
-                return statement == null ? "" : cardStatementTitle(statement);
-            }
-
-            @Override
-            public CreditCardStatement fromString(String value) {
-                return selector.getValue();
-            }
-        });
-        selector.setValue(statements.get(0));
-        DatePicker start = new DatePicker(selector.getValue().getStatementStartDate());
-        DatePicker end = new DatePicker(selector.getValue().getStatementEndDate());
-        DatePicker due = new DatePicker(selector.getValue().getPaymentDueDate());
-        DatePicker nextClosing = new DatePicker(selector.getValue().getNextClosingDate());
-        TextField previous = cardDialogMoneyField(selector.getValue().getPreviousBalance());
-        TextField payments = cardDialogMoneyField(selector.getValue().getPayments());
-        TextField credits = cardDialogMoneyField(selector.getValue().getOtherCredits());
-        TextField purchases = cardDialogMoneyField(selector.getValue().getTransactions());
-        TextField transfers = cardDialogMoneyField(selector.getValue().getBalanceTransfers());
-        TextField cash = cardDialogMoneyField(selector.getValue().getCashAdvances());
-        TextField fees = cardDialogMoneyField(selector.getValue().getFeesCharged());
-        TextField interest = cardDialogMoneyField(selector.getValue().getInterestCharged());
-        TextField newBalance = cardDialogMoneyField(selector.getValue().getNewBalance());
-        TextField minimum = cardDialogMoneyField(selector.getValue().getMinimumPaymentDue());
-        TextField limit = cardDialogMoneyField(selector.getValue().getCreditLimit());
-        TextField available = cardDialogMoneyField(selector.getValue().getAvailableCredit());
-        TextField cashLimit = cardDialogMoneyField(selector.getValue().getCashAdvanceLimit());
-        TextField cashAvailable = cardDialogMoneyField(selector.getValue().getAvailableCashAdvanceCredit());
-        TextField rewardsBalance = cardDialogMoneyField(selector.getValue().getRewardsBalance());
-        TextField rewardsPrevious = cardDialogMoneyField(selector.getValue().getRewardsPreviousBalance());
-        TextField rewardsEarned = cardDialogMoneyField(selector.getValue().getRewardsEarned());
-        TextField rewardsRedeemed = cardDialogMoneyField(selector.getValue().getRewardsRedeemed());
-        CheckBox reviewed = new CheckBox("Revisado");
-        reviewed.setSelected(!selector.getValue().isPendingReview());
-        TextArea notes = new TextArea(text(selector.getValue().getReviewNotes()));
-        notes.setPrefRowCount(2);
-        selector.setOnAction(event -> {
-            CreditCardStatement selected = selector.getValue();
-            start.setValue(selected == null ? null : selected.getStatementStartDate());
-            end.setValue(selected == null ? null : selected.getStatementEndDate());
-            due.setValue(selected == null ? null : selected.getPaymentDueDate());
-            nextClosing.setValue(selected == null ? null : selected.getNextClosingDate());
-            cardDialogSetMoney(previous, selected == null ? 0 : selected.getPreviousBalance());
-            cardDialogSetMoney(payments, selected == null ? 0 : selected.getPayments());
-            cardDialogSetMoney(credits, selected == null ? 0 : selected.getOtherCredits());
-            cardDialogSetMoney(purchases, selected == null ? 0 : selected.getTransactions());
-            cardDialogSetMoney(transfers, selected == null ? 0 : selected.getBalanceTransfers());
-            cardDialogSetMoney(cash, selected == null ? 0 : selected.getCashAdvances());
-            cardDialogSetMoney(fees, selected == null ? 0 : selected.getFeesCharged());
-            cardDialogSetMoney(interest, selected == null ? 0 : selected.getInterestCharged());
-            cardDialogSetMoney(newBalance, selected == null ? 0 : selected.getNewBalance());
-            cardDialogSetMoney(minimum, selected == null ? 0 : selected.getMinimumPaymentDue());
-            cardDialogSetMoney(limit, selected == null ? 0 : selected.getCreditLimit());
-            cardDialogSetMoney(available, selected == null ? 0 : selected.getAvailableCredit());
-            cardDialogSetMoney(cashLimit, selected == null ? 0 : selected.getCashAdvanceLimit());
-            cardDialogSetMoney(cashAvailable, selected == null ? 0 : selected.getAvailableCashAdvanceCredit());
-            cardDialogSetMoney(rewardsBalance, selected == null ? 0 : selected.getRewardsBalance());
-            cardDialogSetMoney(rewardsPrevious, selected == null ? 0 : selected.getRewardsPreviousBalance());
-            cardDialogSetMoney(rewardsEarned, selected == null ? 0 : selected.getRewardsEarned());
-            cardDialogSetMoney(rewardsRedeemed, selected == null ? 0 : selected.getRewardsRedeemed());
-            reviewed.setSelected(selected != null && !selected.isPendingReview());
-            notes.setText(selected == null ? "" : text(selected.getReviewNotes()));
-        });
-
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        int row = 0;
-        if (statements.size() > 1) {
-            form.addRow(row++, new Label("Resumen"), selector);
-        }
-        form.addRow(row++, new Label("Statement Start Date"), start);
-        form.addRow(row++, new Label("Statement End Date"), end);
-        form.addRow(row++, new Label("Payment Due Date"), due);
-        form.addRow(row++, new Label("Next Statement Closing Date"), nextClosing);
-        form.addRow(row++, new Label("Previous Balance"), previous);
-        form.addRow(row++, new Label("Payments and Credits"), payments);
-        form.addRow(row++, new Label("Other Credits"), credits);
-        form.addRow(row++, new Label("Purchases"), purchases);
-        form.addRow(row++, new Label("Balance Transfers"), transfers);
-        form.addRow(row++, new Label("Cash Advances"), cash);
-        form.addRow(row++, new Label("Fees Charged"), fees);
-        form.addRow(row++, new Label("Interest Charged"), interest);
-        form.addRow(row++, new Label("New Balance"), newBalance);
-        form.addRow(row++, new Label("Minimum Payment Due"), minimum);
-        form.addRow(row++, new Label("Credit Line"), limit);
-        form.addRow(row++, new Label("Credit Line Available"), available);
-        form.addRow(row++, new Label("Cash Advance Credit Line"), cashLimit);
-        form.addRow(row++, new Label("Cash Advance Credit Line Available"), cashAvailable);
-        form.addRow(row++, new Label("Rewards Balance"), rewardsBalance);
-        form.addRow(row++, new Label("Previous Rewards"), rewardsPrevious);
-        form.addRow(row++, new Label("Earned This Period"), rewardsEarned);
-        form.addRow(row++, new Label("Redeemed This Period"), rewardsRedeemed);
-        form.addRow(row++, new Label("Review"), reviewed);
-        form.addRow(row, new Label("Notes"), notes);
-        ScrollPane scroll = new ScrollPane(form);
-        scroll.setFitToWidth(true);
-        scroll.setPrefViewportWidth(560);
-        scroll.setPrefViewportHeight(620);
-        dialog.getDialogPane().setContent(scroll);
-        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> {
-            CreditCardStatement selected = selector.getValue();
+        new CardPeriodEditDialogView().show(statements, this::cardStatementTitle).ifPresent(form -> {
+            CreditCardStatement selected = form.statement();
             if (selected == null) {
                 return;
             }
-            if (start.getValue() == null || end.getValue() == null) {
+            if (form.start() == null || form.end() == null) {
                 alert(Alert.AlertType.WARNING, "Periodo incompleto", "Indica fecha Desde y Hasta para el resumen de tarjeta.");
                 return;
             }
-            if (start.getValue().isAfter(end.getValue())) {
+            if (form.start().isAfter(form.end())) {
                 alert(Alert.AlertType.WARNING, "Periodo no valido", "La fecha Desde no puede ser posterior a Hasta.");
                 return;
             }
             try {
-                selected.setStatementStartDate(start.getValue());
-                selected.setStatementEndDate(end.getValue());
-                selected.setPaymentDueDate(due.getValue());
-                selected.setNextClosingDate(nextClosing.getValue());
-                selected.setPreviousBalance(cardDialogMoney(previous));
-                selected.setPayments(cardDialogMoney(payments));
-                selected.setOtherCredits(cardDialogMoney(credits));
-                selected.setTransactions(cardDialogMoney(purchases));
-                selected.setBalanceTransfers(cardDialogMoney(transfers));
-                selected.setCashAdvances(cardDialogMoney(cash));
-                selected.setFeesCharged(cardDialogMoney(fees));
-                selected.setInterestCharged(cardDialogMoney(interest));
-                selected.setNewBalance(cardDialogMoney(newBalance));
-                selected.setMinimumPaymentDue(cardDialogMoney(minimum));
-                selected.setCreditLimit(cardDialogMoney(limit));
-                selected.setAvailableCredit(cardDialogMoney(available));
-                selected.setCashAdvanceLimit(cardDialogMoney(cashLimit));
-                selected.setAvailableCashAdvanceCredit(cardDialogMoney(cashAvailable));
-                selected.setRewardsBalance(cardDialogMoney(rewardsBalance));
-                selected.setRewardsPreviousBalance(cardDialogMoney(rewardsPrevious));
-                selected.setRewardsEarned(cardDialogMoney(rewardsEarned));
-                selected.setRewardsRedeemed(cardDialogMoney(rewardsRedeemed));
-                selected.setPendingReview(!reviewed.isSelected());
-                selected.setReviewRequired(!reviewed.isSelected());
-                selected.setReviewNotes(notes.getText());
+                selected.setStatementStartDate(form.start());
+                selected.setStatementEndDate(form.end());
+                selected.setPaymentDueDate(form.due());
+                selected.setNextClosingDate(form.nextClosing());
+                selected.setPreviousBalance(Money.parse(form.previous()));
+                selected.setPayments(Money.parse(form.payments()));
+                selected.setOtherCredits(Money.parse(form.credits()));
+                selected.setTransactions(Money.parse(form.purchases()));
+                selected.setBalanceTransfers(Money.parse(form.transfers()));
+                selected.setCashAdvances(Money.parse(form.cash()));
+                selected.setFeesCharged(Money.parse(form.fees()));
+                selected.setInterestCharged(Money.parse(form.interest()));
+                selected.setNewBalance(Money.parse(form.newBalance()));
+                selected.setMinimumPaymentDue(Money.parse(form.minimum()));
+                selected.setCreditLimit(Money.parse(form.limit()));
+                selected.setAvailableCredit(Money.parse(form.available()));
+                selected.setCashAdvanceLimit(Money.parse(form.cashLimit()));
+                selected.setAvailableCashAdvanceCredit(Money.parse(form.cashAvailable()));
+                selected.setRewardsBalance(Money.parse(form.rewardsBalance()));
+                selected.setRewardsPreviousBalance(Money.parse(form.rewardsPrevious()));
+                selected.setRewardsEarned(Money.parse(form.rewardsEarned()));
+                selected.setRewardsRedeemed(Money.parse(form.rewardsRedeemed()));
+                selected.setPendingReview(!form.reviewed());
+                selected.setReviewRequired(!form.reviewed());
+                selected.setReviewNotes(form.notes());
                 if (selected.getId() > 0) {
                     creditCardStatementRepository.updateRecord(selected);
                 }
@@ -3839,20 +3734,6 @@ public class AppView {
                 alert(Alert.AlertType.ERROR, "No se pudieron editar los datos", rootCauseMessage(exception));
             }
         });
-    }
-
-    private TextField cardDialogMoneyField(double value) {
-        TextField field = new TextField();
-        cardDialogSetMoney(field, value);
-        return field;
-    }
-
-    private void cardDialogSetMoney(TextField field, double value) {
-        field.setText(String.format(java.util.Locale.US, "%.2f", value));
-    }
-
-    private double cardDialogMoney(TextField field) {
-        return Money.parse(field.getText());
     }
 
     private List<BankPeriodSummary> bankPeriodSummaries(String accountAliasFilter) {
