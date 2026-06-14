@@ -2,6 +2,7 @@ package com.silveira.accounting.ui;
 
 import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
 import com.silveira.accounting.application.card.CardApplicationService;
+import com.silveira.accounting.application.card.dto.CardPeriodSummary;
 import com.silveira.accounting.application.card.service.CardAccountApplicationService;
 import com.silveira.accounting.application.card.service.CardFieldReviewApplicationService;
 import com.silveira.accounting.application.card.service.CardImportApplicationService;
@@ -56,6 +57,7 @@ import com.silveira.accounting.ui.card.CardAccountFormView;
 import com.silveira.accounting.ui.card.CardAccountDetailControls;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
+import com.silveira.accounting.ui.card.CardMonthlyCardsView;
 import com.silveira.accounting.ui.card.CardStatementCardCoordinator;
 import com.silveira.accounting.ui.card.CardPeriodDetailView;
 import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
@@ -3410,90 +3412,44 @@ public class AppView {
     }
 
     private VBox monthlyCardCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards) {
-        Label title = new Label("Resumen mensual Tarjeta");
-        title.getStyleClass().add("section-title");
-        FlowPane cards = new FlowPane(12, 12);
-        cards.getStyleClass().add("monthly-card-row");
-
-        for (MonthlySourceTotals total : creditCardStatementRepository.monthlyTotals(alias, null)) {
-            List<CreditCardStatement> allMonthlyStatements = creditCardStatementRepository.findByAccount(alias, total.year(), total.month());
-            List<CreditCardStatement> monthlyStatements = allMonthlyStatements.stream()
-                .filter(statement -> !statement.isPendingReview())
-                .toList();
-            double payments = monthlyStatements.stream().mapToDouble(CreditCardStatement::getPayments).sum();
-            double purchases = monthlyStatements.stream().mapToDouble(CreditCardStatement::getTransactions).sum();
-            double interest = monthlyStatements.stream().mapToDouble(CreditCardStatement::getInterestCharged).sum();
-            VBox card = new PeriodActionCardView().build(
-                cardPeriodTitle(allMonthlyStatements, total),
-                reviewMarkLabel("card", alias, total.year(), total.month()),
-                () -> {
-                    selectedYearValue = total.year();
-                    selectedMonthValue = total.month();
-                    showCardPeriodDetail(alias, total.year(), total.month());
+        FlowPane[] visibleCards = new FlowPane[1];
+        VBox box = new CardMonthlyCardsView().build(
+            creditCardStatementRepository.periodSummaries(alias),
+            period -> reviewMarkLabel("card", alias, period.year(), period.month()),
+            new CardMonthlyCardsView.Actions() {
+                @Override
+                public void open(CardPeriodSummary period) {
+                    selectedYearValue = period.year();
+                    selectedMonthValue = period.month();
+                    showCardPeriodDetail(alias, period.year(), period.month());
                 }
-            );
-            card.getChildren().get(0).getStyleClass().add("card-period-title-row");
-            CreditCardStatement openingStatement = cardOpeningStatement(allMonthlyStatements);
-            CreditCardStatement closingStatement = cardClosingStatement(allMonthlyStatements);
-            if (openingStatement != null) {
-                addMonthlyCardLine(card, "Saldo inicial: " + Money.format(openingStatement.getPreviousBalance()));
-            }
-            addMonthlyCardLine(card, "Pagos al banco: " + Money.format(payments));
-            addMonthlyCardLine(card, "Compras: " + Money.format(purchases));
-            addMonthlyCardLine(card, "Intereses: " + Money.format(interest));
-            if (closingStatement != null) {
-                addMonthlyCardLine(card, "Saldo usado: " + Money.format(closingStatement.getNewBalance()));
-                addMonthlyCardLine(card, "Límite de crédito: " + Money.format(closingStatement.getCreditLimit()));
-                addMonthlyCardLine(card, "Crédito disponible: " + Money.format(closingStatement.getAvailableCredit()), "monthly-card-value-strong");
-            }
-            Button editPeriod = new Button("Editar datos");
-            editPeriod.setOnAction(event -> {
-                event.consume();
-                showCreditCardPeriodDialog(allMonthlyStatements, () -> {
-                    table.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, selectedYear(), selectedMonth())));
-                    Runnable visibleTotals = () -> totalsPanel.getChildren().setAll(cardAccumulatedTotalsNodes(alias, selectedYear(), selectedMonth()));
-                    visibleTotals.run();
-                    refreshCreditCardStatementCards(table, statementCards, visibleTotals);
-                    refreshCreditCardMonthlyCards(alias, table, totalsPanel, statementCards, cards);
-                });
-            });
-            Button deletePeriod = new Button("Eliminar");
-            deletePeriod.getStyleClass().add("danger-button");
-            deletePeriod.setOnAction(event -> {
-                event.consume();
-                deleteCreditCardPeriod(alias, allMonthlyStatements, table, totalsPanel, statementCards, cards);
-            });
-            Button download = monthlyExportButton(() -> exportMonthlyCard(alias, total.year(), total.month()));
-            download.setText("Descargar");
-            HBox mainActions = new HBox(8, editPeriod, download);
-            mainActions.getStyleClass().add("card-monthly-actions");
-            HBox deleteActions = new HBox(8, deletePeriod);
-            deleteActions.getStyleClass().add("card-monthly-actions");
-            deleteActions.getStyleClass().add("card-monthly-delete-actions");
-            card.getChildren().addAll(mainActions, deleteActions);
-            card.getStyleClass().add("monthly-card");
-            cards.getChildren().add(card);
-        }
 
-        VBox box = new VBox(10, title, cards);
-        box.getStyleClass().add("monthly-section");
+                @Override
+                public void edit(CardPeriodSummary period) {
+                    showCreditCardPeriodDialog(period.statements(), () -> refreshCreditCardPeriodViews(alias, table, totalsPanel, statementCards, visibleCards[0]));
+                }
+
+                @Override
+                public void delete(CardPeriodSummary period) {
+                    deleteCreditCardPeriod(alias, period, table, totalsPanel, statementCards, visibleCards[0]);
+                }
+
+                @Override
+                public Button downloadButton(CardPeriodSummary period) {
+                    return monthlyExportButton(() -> exportMonthlyCard(alias, period.year(), period.month()));
+                }
+            }
+        );
+        visibleCards[0] = (FlowPane) box.getChildren().get(1);
         return box;
     }
 
-    private CreditCardStatement cardOpeningStatement(List<CreditCardStatement> statements) {
-        return statements.stream()
-            .min(Comparator
-                .comparing(CreditCardStatement::getStatementStartDate, Comparator.nullsLast(LocalDate::compareTo))
-                .thenComparingLong(CreditCardStatement::getId))
-            .orElse(null);
-    }
-
-    private CreditCardStatement cardClosingStatement(List<CreditCardStatement> statements) {
-        return statements.stream()
-            .max(Comparator
-                .comparing(CreditCardStatement::getStatementEndDate, Comparator.nullsFirst(LocalDate::compareTo))
-                .thenComparingLong(CreditCardStatement::getId))
-            .orElse(null);
+    private void refreshCreditCardPeriodViews(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
+        table.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, selectedYear(), selectedMonth())));
+        Runnable visibleTotals = () -> totalsPanel.getChildren().setAll(cardAccumulatedTotalsNodes(alias, selectedYear(), selectedMonth()));
+        visibleTotals.run();
+        refreshCreditCardStatementCards(table, statementCards, visibleTotals);
+        refreshCreditCardMonthlyCards(alias, table, totalsPanel, statementCards, cards);
     }
 
     private void refreshCreditCardMonthlyCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
@@ -3501,62 +3457,24 @@ public class AppView {
         cards.getChildren().setAll(refreshed.getChildren());
     }
 
-    private void deleteCreditCardPeriod(String alias, List<CreditCardStatement> statements, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
-        if (statements.isEmpty()) {
+    private void deleteCreditCardPeriod(String alias, CardPeriodSummary period, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
+        if (period.statements().isEmpty()) {
             return;
         }
-        String period = cardPeriodTitle(statements, new MonthlySourceTotals(
-            statements.get(0).getStatementEndDate() == null ? selectedYear() : statements.get(0).getStatementEndDate().getYear(),
-            statements.get(0).getStatementEndDate() == null ? selectedMonth() : statements.get(0).getStatementEndDate().getMonthValue(),
-            0, 0, 0, 0, 0
-        ));
         boolean proceed = confirm(
             "Eliminar periodo de tarjeta",
-            "Se eliminaran " + statements.size() + " resumen(es) de tarjeta del periodo " + period + ", junto con sus movimientos y alertas.\n\nEsta accion no se puede deshacer.",
+            "Se eliminaran " + period.statements().size() + " resumen(es) de tarjeta del periodo " + period.title() + ", junto con sus movimientos y alertas.\n\nEsta accion no se puede deshacer.",
             "Eliminar periodo"
         );
         if (!proceed) {
             return;
         }
-        for (CreditCardStatement statement : statements) {
-            if (statement.getId() > 0) {
-                creditCardStatementRepository.delete(statement.getId());
-            }
-        }
-        table.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, selectedYear(), selectedMonth())));
-        Runnable refreshTotals = () -> totalsPanel.getChildren().setAll(cardAccumulatedTotalsNodes(alias, selectedYear(), selectedMonth()));
-        refreshTotals.run();
-        refreshCreditCardStatementCards(table, statementCards, refreshTotals);
-        refreshCreditCardMonthlyCards(alias, table, totalsPanel, statementCards, cards);
-    }
-
-    private LocalDate cardPeriodStart(List<CreditCardStatement> statements) {
-        return statements.stream()
-            .map(CreditCardStatement::getStatementStartDate)
-            .filter(java.util.Objects::nonNull)
-            .min(LocalDate::compareTo)
-            .orElse(null);
-    }
-
-    private LocalDate cardPeriodEnd(List<CreditCardStatement> statements) {
-        return statements.stream()
-            .map(CreditCardStatement::getStatementEndDate)
-            .filter(java.util.Objects::nonNull)
-            .max(LocalDate::compareTo)
-            .orElse(null);
-    }
-
-    private String cardPeriodDate(LocalDate date) {
-        return date == null ? "Sin fecha" : shortDate(date);
+        creditCardStatementRepository.deletePeriod(period.statements());
+        refreshCreditCardPeriodViews(alias, table, totalsPanel, statementCards, cards);
     }
 
     private String cardPeriodTitle(List<CreditCardStatement> statements, MonthlySourceTotals fallback) {
-        LocalDate start = cardPeriodStart(statements);
-        LocalDate end = cardPeriodEnd(statements);
-        if (start != null && end != null) {
-            return cardPeriodDate(start) + " - " + cardPeriodDate(end);
-        }
-        return monthName(fallback.month()) + " " + fallback.year();
+        return creditCardStatementRepository.periodTitle(statements, fallback);
     }
 
     private void showCreditCardPeriodDialog(List<CreditCardStatement> statements, Runnable refresh) {
