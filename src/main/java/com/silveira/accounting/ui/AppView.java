@@ -54,11 +54,13 @@ import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.BestBuyStatementSummaryView;
 import com.silveira.accounting.ui.card.CardAccountFormView;
+import com.silveira.accounting.ui.card.CardAccountDetailControls;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
 import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
+import com.silveira.accounting.ui.card.CardPeriodDetailView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
 import com.silveira.accounting.utils.Fingerprint;
@@ -984,35 +986,18 @@ public class AppView {
         refresh.run();
         VBox monthlyCards = monthlyCardCards(alias, statements, totals, statementCards);
 
-        ComboBox<Integer> year = new ComboBox<>(FXCollections.observableArrayList(null, 2022, 2023, 2024, 2025, 2026));
-        year.setValue(selectedYearValue);
-        year.setPromptText("Ano");
-        year.getStyleClass().add("compact-combo");
-        ComboBox<Integer> month = new ComboBox<>(FXCollections.observableArrayList(null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
-        month.setValue(selectedMonthValue);
-        month.setPromptText("Mes");
-        month.getStyleClass().add("compact-combo");
-        Button filter = new Button("Aplicar filtros");
-        filter.getStyleClass().add("primary");
-        filter.setOnAction(event -> {
-            selectedYearValue = year.getValue();
-            selectedMonthValue = month.getValue();
+        CardAccountDetailControls controls = new CardAccountDetailControls(selectedYearValue, selectedMonthValue);
+        controls.filter().setOnAction(event -> {
+            selectedYearValue = controls.year().getValue();
+            selectedMonthValue = controls.month().getValue();
             refresh.run();
             monthlyCards.getChildren().setAll(monthlyCardCards(alias, statements, totals, statementCards).getChildren());
         });
-        Button importPdf = new Button("Importar PDF");
-        importPdf.getStyleClass().add("primary");
-        importPdf.setOnAction(event -> importCreditCardPdf(alias, refresh));
-        Button analysis = new Button("Ver analisis");
-        analysis.setOnAction(event -> showCreditCardAnalysis(alias));
-        Button addStatement = new Button("Anadir resumen");
-        addStatement.setOnAction(event -> addManualCreditCardStatement(alias, () -> showCardAccount(alias)));
-        VBox actions = actionHeader(
-            new HBox(10, new Label("Ano"), year, new Label("Mes"), month, filter),
-            new HBox(10, importPdf, analysis, addStatement)
-        );
+        controls.importPdf().setOnAction(event -> importCreditCardPdf(alias, refresh));
+        controls.analysis().setOnAction(event -> showCreditCardAnalysis(alias));
+        controls.addStatement().setOnAction(event -> addManualCreditCardStatement(alias, () -> showCardAccount(alias)));
         Label note = helperNote("Haz clic en una card para abrir el detalle completo de ese periodo.");
-        setPage(page("Tarjeta - " + alias, backButton("Volver a Tarjetas", this::showCards), actions, totals, note, monthlyCards));
+        setPage(page("Tarjeta - " + alias, backButton("Volver a Tarjetas", this::showCards), controls.actions(), totals, note, monthlyCards));
     }
 
     private void showCardPeriodDetail(String alias, int year, int month) {
@@ -1032,34 +1017,17 @@ public class AppView {
         };
         refresh.run();
 
-        Button saveStatements = new Button("Guardar resumen");
-        saveStatements.getStyleClass().add("primary");
-        saveStatements.setPrefWidth(220);
-        saveStatements.setOnAction(event -> saveVisibleCardStatements(statements, refresh));
-        Button addMovement = new Button("Añadir movimiento");
-        addMovement.getStyleClass().add("primary");
-        addMovement.setPrefWidth(220);
-        addMovement.setOnAction(event -> addManualCreditCardMovement(statements, movements));
-        Button saveMovements = new Button("Guardar");
-        saveMovements.getStyleClass().add("primary");
-        saveMovements.setPrefWidth(220);
-        saveMovements.setOnAction(event -> {
-            movements.requestFocus();
-            saveVisibleCardMovements(statements, movements, refresh);
-        });
-        HBox summaryActions = new HBox(10, saveStatements);
-        summaryActions.setPadding(new Insets(14, 0, 0, 0));
-        HBox movementActions = new HBox(16, addMovement, saveMovements);
-        movementActions.setPadding(new Insets(14, 0, 0, 0));
-        VBox summariesTab = new VBox(14, summaryActions, statementCards);
-        VBox movementsTab = new VBox(14, movementActions, movements);
-        VBox.setVgrow(movements, Priority.ALWAYS);
-        TabPane tabs = new TabPane(tab("Resumen", summariesTab), tab("Movimientos", movementsTab));
-        showCardMovementsTabAction = () -> {
-            tabs.getSelectionModel().select(1);
-            movements.requestFocus();
-        };
-        VBox.setVgrow(tabs, Priority.ALWAYS);
+        CardPeriodDetailView.View periodView = new CardPeriodDetailView().build(
+            statementCards,
+            movements,
+            () -> saveVisibleCardStatements(statements, refresh),
+            () -> addManualCreditCardMovement(statements, movements),
+            () -> {
+                movements.requestFocus();
+                saveVisibleCardMovements(statements, movements, refresh);
+            }
+        );
+        showCardMovementsTabAction = periodView.showMovements();
         String periodTitle = statements.getItems().isEmpty()
             ? String.format("%02d/%d", month, year)
             : cardPeriodTitle(statements.getItems(), new MonthlySourceTotals(year, month, 0, 0, 0, 0, 0));
@@ -1067,7 +1035,7 @@ public class AppView {
             "Tarjeta - " + alias + " - " + periodTitle,
             backButton("Volver a la tarjeta", () -> showCardAccount(alias)),
             totals,
-            tabs
+            periodView.tabs()
         ));
     }
 
