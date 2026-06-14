@@ -19,6 +19,19 @@ public class CardStatementApplicationService {
         return repository.save(statement);
     }
 
+    public CreditCardStatement createManual(String alias, LocalDate today) {
+        CreditCardStatement statement = new CreditCardStatement();
+        statement.setAccountAlias(alias);
+        statement.setStatementStartDate(today.withDayOfMonth(1));
+        statement.setStatementEndDate(today);
+        statement.setPaymentDueDate(today.plusDays(21));
+        statement.setPendingReview(true);
+        statement.setReviewRequired(true);
+        statement.setReviewNotes("Anadido manualmente");
+        statement.setId(repository.save(statement));
+        return statement;
+    }
+
     public List<CreditCardStatement> findByAccount(String alias) {
         return repository.findByAccount(alias);
     }

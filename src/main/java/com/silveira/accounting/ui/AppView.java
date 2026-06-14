@@ -1070,34 +1070,13 @@ public class AppView {
     }
 
     private void addManualCreditCardStatement(String alias, Runnable refresh) {
-        CreditCardStatement statement = new CreditCardStatement();
-        statement.setAccountAlias(alias);
-        LocalDate today = LocalDate.now();
-        statement.setStatementStartDate(today.withDayOfMonth(1));
-        statement.setStatementEndDate(today);
-        statement.setPaymentDueDate(today.plusDays(21));
-        statement.setPendingReview(true);
-        statement.setReviewRequired(true);
-        statement.setReviewNotes("Anadido manualmente");
-        long id = creditCardStatementRepository.save(statement);
-        statement.setId(id);
+        CreditCardStatement statement = creditCardStatementRepository.createManual(alias, LocalDate.now());
         showCreditCardPeriodDialog(List.of(statement), refresh);
     }
 
     private void addManualCreditCardMovement(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> table) {
         long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
-        CreditCardTransaction movement = new CreditCardTransaction(
-            0,
-            statementId,
-            LocalDate.now(),
-            LocalDate.now(),
-            "Movimiento manual",
-            0,
-            "gasto",
-            "manual"
-        );
-        movement.setPendingReview(true);
-        movement.setReviewRequired(true);
+        CreditCardTransaction movement = creditCardTransactionRepository.createManual(statementId, LocalDate.now());
         table.getItems().add(movement);
         table.getSelectionModel().select(movement);
     }
