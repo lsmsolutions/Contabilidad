@@ -1082,29 +1082,14 @@ public class AppView {
     }
 
     private void saveVisibleCardStatements(TableView<CreditCardStatement> statements, Runnable refresh) {
-        for (CreditCardStatement statement : statements.getItems()) {
-            if (statement.getId() > 0) {
-                creditCardStatementRepository.updateRecord(statement);
-            } else {
-                statement.setId(creditCardStatementRepository.save(statement));
-            }
-        }
+        creditCardStatementRepository.saveVisible(statements.getItems());
         refresh.run();
         alert(Alert.AlertType.INFORMATION, "Resumen guardado", "Resumen visible guardado con su estado actual.");
     }
 
     private void saveVisibleCardMovements(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> movements, Runnable refresh) {
-        for (CreditCardTransaction movement : movements.getItems()) {
-            long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
-            if (movement.getStatementId() <= 0 && statementId > 0) {
-                movement.setStatementId(statementId);
-            }
-            if (movement.getId() > 0) {
-                creditCardTransactionRepository.update(movement);
-            } else if (movement.getStatementId() > 0) {
-                movement.setId(creditCardTransactionRepository.save(movement.getStatementId(), movement));
-            }
-        }
+        long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
+        creditCardTransactionRepository.saveVisible(statementId, movements.getItems());
         refresh.run();
         alert(Alert.AlertType.INFORMATION, "Movimientos guardados", "Movimientos visibles guardados con su estado actual.");
     }

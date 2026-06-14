@@ -36,6 +36,19 @@ public class CardTransactionApplicationService {
         return movement;
     }
 
+    public void saveVisible(long defaultStatementId, List<CreditCardTransaction> movements) {
+        for (CreditCardTransaction movement : movements) {
+            if (movement.getStatementId() <= 0 && defaultStatementId > 0) {
+                movement.setStatementId(defaultStatementId);
+            }
+            if (movement.getId() > 0) {
+                repository.update(movement);
+            } else if (movement.getStatementId() > 0) {
+                movement.setId(repository.save(movement.getStatementId(), movement));
+            }
+        }
+    }
+
     public List<CreditCardTransaction> findByAccount(String alias, Integer year, Integer month) {
         return repository.findByAccount(alias, year, month);
     }

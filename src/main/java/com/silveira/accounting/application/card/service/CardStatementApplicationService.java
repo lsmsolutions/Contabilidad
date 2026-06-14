@@ -32,6 +32,16 @@ public class CardStatementApplicationService {
         return statement;
     }
 
+    public void saveVisible(List<CreditCardStatement> statements) {
+        for (CreditCardStatement statement : statements) {
+            if (statement.getId() > 0) {
+                repository.updateRecord(statement);
+            } else {
+                statement.setId(repository.save(statement));
+            }
+        }
+    }
+
     public List<CreditCardStatement> findByAccount(String alias) {
         return repository.findByAccount(alias);
     }
