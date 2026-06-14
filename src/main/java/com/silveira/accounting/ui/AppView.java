@@ -52,14 +52,11 @@ import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
-import com.silveira.accounting.ui.card.BestBuyStatementSummaryView;
 import com.silveira.accounting.ui.card.CardAccountFormView;
 import com.silveira.accounting.ui.card.CardAccountDetailControls;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
-import com.silveira.accounting.ui.card.CitiStatementSummaryView;
-import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
-import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
+import com.silveira.accounting.ui.card.CardStatementCardCoordinator;
 import com.silveira.accounting.ui.card.CardPeriodDetailView;
 import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
 import com.silveira.accounting.ui.card.CardStatementTableView;
@@ -1167,199 +1164,77 @@ public class AppView {
     }
 
     private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        if (isBestBuyStatement(statement)) {
-            return editableBestBuyCreditCardStatementCard(statement, table, cards, refreshTotals);
-        }
-        if (isDiscoverStatement(statement)) {
-            return editableDiscoverCreditCardStatementCard(statement, table, cards, refreshTotals);
-        }
-        if (isCitiStatement(statement)) {
-            return editableCitiCreditCardStatementCard(statement, table, cards, refreshTotals);
-        }
-        if (!isCapitalOneStatement(statement)) {
-            return editableGenericCreditCardStatementCard(statement, table, cards, refreshTotals);
-        }
-        CreditCardStatementSummaryView summaryView = new CreditCardStatementSummaryView();
-        List<String> fieldKeys = summaryView.fieldKeys(statement);
-        boolean defaultReviewed = !statement.isPendingReview();
-        VBox card = summaryView.build(
-            statement,
-            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
-            (fieldName, reviewed) -> {
-                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            reviewed -> {
-                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            })
-        );
-        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
-        return card;
-    }
+        return new CardStatementCardCoordinator().build(statement, new CardStatementCardCoordinator.Actions() {
+            @Override
+            public boolean isFieldReviewed(CreditCardStatement current, String fieldName, boolean defaultReviewed) {
+                return creditCardStatementFieldReviewRepository.isReviewed(current.getId(), fieldName, defaultReviewed);
+            }
 
-    private VBox editableBestBuyCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        BestBuyStatementSummaryView summaryView = new BestBuyStatementSummaryView();
-        List<String> fieldKeys = summaryView.fieldKeys(statement);
-        boolean defaultReviewed = !statement.isPendingReview();
-        List<CreditCardTransaction> transactions = creditCardTransactionsForStatement(statement);
-        VBox card = summaryView.build(
-            statement,
-            transactions,
-            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
-            (fieldName, reviewed) -> {
-                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            reviewed -> {
-                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
-                for (CreditCardTransaction transaction : transactions) {
-                    updateCreditCardMovementReview(transaction, reviewed);
-                }
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            (transaction, reviewed) -> {
+            @Override
+            public void updateFieldReview(CreditCardStatement current, String fieldName, boolean reviewed, List<String> fieldKeys) {
+                updateCreditCardStatementFieldReview(current, fieldName, reviewed, fieldKeys);
+            }
+
+            @Override
+            public void updateAllFieldReviews(CreditCardStatement current, List<String> fieldKeys, boolean reviewed) {
+                updateAllCreditCardStatementFieldReviews(current, fieldKeys, reviewed);
+            }
+
+            @Override
+            public void updateMovementReview(CreditCardTransaction transaction, boolean reviewed) {
                 updateCreditCardMovementReview(transaction, reviewed);
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            })
-        );
-        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
-        return card;
-    }
+            }
 
-    private VBox editableDiscoverCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        DiscoverStatementSummaryView summaryView = new DiscoverStatementSummaryView();
-        List<String> fieldKeys = summaryView.fieldKeys(statement);
-        boolean defaultReviewed = !statement.isPendingReview();
-        List<CreditCardTransaction> transactions = creditCardTransactionsForStatement(statement);
-        VBox card = summaryView.build(
-            statement,
-            transactions,
-            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
-            (fieldName, reviewed) -> {
-                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
-                table.refresh();
-                refreshTotals.run();
-            },
-            reviewed -> {
-                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
-                for (CreditCardTransaction transaction : transactions) {
-                    updateCreditCardMovementReview(transaction, reviewed);
-                }
+            @Override
+            public List<CreditCardTransaction> transactionsFor(CreditCardStatement current) {
+                return creditCardTransactionsForStatement(current);
+            }
+
+            @Override
+            public void edit(CreditCardStatement current) {
+                showCreditCardPeriodDialog(List.of(current), this::refreshAll);
+            }
+
+            @Override
+            public void select(CreditCardStatement current) {
+                table.getSelectionModel().select(current);
+            }
+
+            @Override
+            public String title(CreditCardStatement current) {
+                return cardStatementTitle(current);
+            }
+
+            @Override
+            public void showMovements() {
+                showCardMovementsTabAction.run();
+            }
+
+            @Override
+            public void refreshAll() {
                 table.refresh();
                 refreshTotals.run();
                 refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            (transaction, reviewed) -> {
-                updateCreditCardMovementReview(transaction, reviewed);
-                refreshTotals.run();
-                table.refresh();
-            },
-            () -> showCardMovementsTabAction.run(),
-            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            })
-        );
-        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
-        return card;
-    }
+            }
 
-    private VBox editableCitiCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        CitiStatementSummaryView summaryView = new CitiStatementSummaryView();
-        List<String> fieldKeys = summaryView.fieldKeys(statement);
-        boolean defaultReviewed = !statement.isPendingReview();
-        VBox card = summaryView.build(
-            statement,
-            fieldName -> creditCardStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, defaultReviewed),
-            (fieldName, reviewed) -> {
-                updateCreditCardStatementFieldReview(statement, fieldName, reviewed, fieldKeys);
+            @Override
+            public void refreshTableAndTotals() {
                 table.refresh();
+                refreshTotals.run();
+            }
+
+            @Override
+            public void refreshTotalsThenTable() {
+                refreshTotals.run();
+                table.refresh();
+            }
+
+            @Override
+            public void refreshTotalsAndCards() {
                 refreshTotals.run();
                 refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            reviewed -> {
-                updateAllCreditCardStatementFieldReviews(statement, fieldKeys, reviewed);
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            },
-            () -> showCreditCardPeriodDialog(List.of(statement), () -> {
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            })
-        );
-        card.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
-        return card;
-    }
-
-    private VBox editableGenericCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        VBox card = monthlyActionCard(
-            cardStatementTitle(statement),
-            "Saldo anterior: " + Money.format(statement.getPreviousBalance()),
-            "Saldo usado: " + Money.format(statement.getNewBalance()),
-            "Pago minimo: " + Money.format(statement.getMinimumPaymentDue()),
-            "Pendiente revision: " + (statement.isPendingReview() ? "Si" : "No"),
-            () -> table.getSelectionModel().select(statement)
-        );
-        Button edit = new Button("Editar datos");
-        edit.setOnAction(event -> showCreditCardPeriodDialog(List.of(statement), () -> {
-            table.refresh();
-            refreshTotals.run();
-            refreshCreditCardStatementCards(table, cards, refreshTotals);
-        }));
-        card.getChildren().add(edit);
-        card.getStyleClass().add("monthly-card");
-        return card;
-    }
-
-    private boolean isCapitalOneStatement(CreditCardStatement statement) {
-        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
-        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
-        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
-        return bank.contains("capital one") || alias.contains("capitalone") || card.contains("capital one");
-    }
-
-    private boolean isBestBuyStatement(CreditCardStatement statement) {
-        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
-        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
-        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
-        return bank.contains("best buy") || alias.contains("bestbuy") || alias.contains("best_buy") || card.contains("best buy");
-    }
-
-    private boolean isCitiStatement(CreditCardStatement statement) {
-        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
-        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
-        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
-        return bank.contains("citi") || alias.contains("citi") || card.contains("citi");
-    }
-
-    private boolean isDiscoverStatement(CreditCardStatement statement) {
-        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
-        String alias = text(statement.getAccountAlias()).toLowerCase(java.util.Locale.ROOT);
-        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
-        return bank.contains("discover") || alias.contains("discover") || card.contains("discover");
+            }
+        });
     }
 
     private List<CreditCardTransaction> creditCardTransactionsForStatement(CreditCardStatement statement) {
