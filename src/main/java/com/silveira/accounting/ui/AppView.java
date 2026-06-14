@@ -53,6 +53,8 @@ import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.BestBuyStatementSummaryView;
+import com.silveira.accounting.ui.card.CardAccountFormView;
+import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
 import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
@@ -953,92 +955,19 @@ public class AppView {
             alert(Alert.AlertType.INFORMATION, "Sin tarjetas", emptyMessage);
             return Optional.empty();
         }
-        Dialog<CreditCardAccount> dialog = new Dialog<>();
-        dialog.setTitle(title);
-        dialog.setHeaderText("Selecciona una tarjeta");
-        ComboBox<CreditCardAccount> cards = new ComboBox<>(FXCollections.observableArrayList(accounts));
-        cards.setMaxWidth(Double.MAX_VALUE);
-        cards.setValue(accounts.get(0));
-        cards.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(CreditCardAccount account) {
-                return creditCardAccountLabel(account);
-            }
-
-            @Override
-            public CreditCardAccount fromString(String value) {
-                return accounts.stream()
-                    .filter(account -> creditCardAccountLabel(account).equals(value))
-                    .findFirst()
-                    .orElse(null);
-            }
-        });
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        form.addRow(0, new Label("Tarjeta:"), cards);
-        GridPane.setHgrow(cards, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(form);
-        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-        dialog.setResultConverter(button -> ButtonType.OK.equals(button) ? cards.getValue() : null);
-        return dialog.showAndWait();
-    }
-
-    private String creditCardAccountLabel(CreditCardAccount account) {
-        if (account == null) {
-            return "";
-        }
-        List<String> details = new ArrayList<>();
-        if (account.getBankName() != null && !account.getBankName().isBlank()) {
-            details.add(account.getBankName().trim());
-        }
-        if (account.getCardName() != null && !account.getCardName().isBlank()) {
-            details.add(account.getCardName().trim());
-        }
-        if (account.getAccountLastDigits() != null && !account.getAccountLastDigits().isBlank()) {
-            details.add("Ending " + account.getAccountLastDigits().trim());
-        }
-        String alias = account.getAlias() == null || account.getAlias().isBlank() ? "Tarjeta" : account.getAlias().trim();
-        return details.isEmpty() ? alias : alias + " - " + String.join(" - ", details);
+        return new CardAccountSelectorDialogView().show(title, accounts);
     }
 
     private void showCreditCardAccountDialog(CreditCardAccount current) {
         boolean editing = current != null;
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(editing ? "Editar tarjeta" : "Anadir tarjeta");
-        TextField alias = new TextField(editing ? text(current.getAlias()) : "");
-        TextField bankName = new TextField(editing ? text(current.getBankName()) : "");
-        TextField cardName = new TextField(editing ? text(current.getCardName()) : "");
-        TextField digits = new TextField(editing ? text(current.getAccountLastDigits()) : "");
-        TextArea notes = new TextArea(editing ? text(current.getNotes()) : "");
-        notes.setPrefRowCount(3);
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        form.addRow(0, new Label("Alias"), alias);
-        form.addRow(1, new Label("Banco"), bankName);
-        form.addRow(2, new Label("Tarjeta"), cardName);
-        form.addRow(3, new Label("Ultimos digitos"), digits);
-        form.addRow(4, new Label("Notas"), notes);
-        dialog.getDialogPane().setContent(form);
-        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> {
-            String newAlias = alias.getText().isBlank() ? "tarjeta_" + last4(digits.getText()) : alias.getText().trim();
-            CreditCardAccount account = new CreditCardAccount(
-                editing ? current.getId() : 0,
-                newAlias,
-                bankName.getText(),
-                cardName.getText(),
-                digits.getText(),
-                notes.getText()
-            );
+        new CardAccountFormView().show(current).ifPresent(account -> {
             if (editing) {
                 creditCardAccountRepository.update(current.getAlias(), account);
             } else {
                 creditCardAccountRepository.save(account);
             }
             rebuildSidebar();
-            showCardAccount(newAlias);
+            showCardAccount(account.getAlias());
         });
     }
 
