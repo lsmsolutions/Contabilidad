@@ -64,6 +64,7 @@ import com.silveira.accounting.ui.card.CardPeriodDetailView;
 import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
 import com.silveira.accounting.ui.card.CardStatementTableView;
 import com.silveira.accounting.ui.card.CardTransactionDialogView;
+import com.silveira.accounting.ui.card.CardTransactionTableView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
 import com.silveira.accounting.utils.Fingerprint;
@@ -4803,93 +4804,17 @@ public class AppView {
     }
 
     private TableView<CreditCardTransaction> creditCardTransactionTable() {
-        TableView<CreditCardTransaction> table = new TableView<>();
-        table.setEditable(true);
-
-        TableColumn<CreditCardTransaction, String> transactionDate = cardTransactionDateColumn("Fecha", CreditCardTransaction::getTransactionDate, (movement, date) -> {
-            movement.setTransactionDate(date);
-            movement.setPostDate(date);
-        });
-        TableColumn<CreditCardTransaction, String> description = new TableColumn<>("Descripción");
-        description.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
-        description.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        description.setOnEditCommit(event -> event.getRowValue().setDescription(event.getNewValue()));
-        description.setPrefWidth(360);
-        TableColumn<CreditCardTransaction, Double> amount = new TableColumn<>("Importe");
-        amount.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getAmount()).asObject());
-        amount.setCellFactory(commitOnFocusLostCellFactory(twoDecimalConverter()));
-        amount.setOnEditCommit(event -> event.getRowValue().setAmount(event.getNewValue()));
-        amount.setPrefWidth(110);
-        TableColumn<CreditCardTransaction, Boolean> reviewed = new TableColumn<>("Revisado");
-        reviewed.setCellValueFactory(data -> new SimpleBooleanProperty(!data.getValue().isPendingReview()).asObject());
-        reviewed.setCellFactory(column -> new TableCell<>() {
-            private final CheckBox checkBox = new CheckBox();
-            {
-                checkBox.setOnAction(event -> {
-                    CreditCardTransaction movement = getTableView().getItems().get(getIndex());
-                    boolean isReviewed = checkBox.isSelected();
-                    updateCreditCardMovementReview(movement, isReviewed);
-                    getTableView().refresh();
-                });
-            }
-
-            @Override
-            protected void updateItem(Boolean item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    checkBox.setSelected(Boolean.TRUE.equals(item));
-                    setGraphic(checkBox);
+        return new CardTransactionTableView().build(
+            this::updateCreditCardMovementReview,
+            movement -> {
+                if (movement.getId() > 0) {
+                    creditCardTransactionRepository.delete(movement.getId());
                 }
-            }
-        });
-        TableColumn<CreditCardTransaction, String> type = new TableColumn<>("Tipo");
-        type.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getType()));
-        type.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        type.setOnEditCommit(event -> event.getRowValue().setType(event.getNewValue()));
-        TableColumn<CreditCardTransaction, String> category = new TableColumn<>("Categoría");
-        category.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategory()));
-        category.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        category.setOnEditCommit(event -> event.getRowValue().setCategory(event.getNewValue()));
-        TableColumn<CreditCardTransaction, String> status = new TableColumn<>("Revisión");
-        status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
-        TableColumn<CreditCardTransaction, String> notes = new TableColumn<>("Notas");
-        notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
-        notes.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        notes.setOnEditCommit(event -> event.getRowValue().setReviewNotes(event.getNewValue()));
-        notes.setPrefWidth(260);
-        TableColumn<CreditCardTransaction, Void> delete = new TableColumn<>("Eliminar");
-        delete.setCellFactory(column -> new TableCell<>() {
-            private final Button button = new Button("Eliminar");
-            {
-                button.setOnAction(event -> {
-                    CreditCardTransaction movement = getTableView().getItems().get(getIndex());
-                    if (movement.getId() > 0) {
-                        creditCardTransactionRepository.delete(movement.getId());
-                    }
-                    getTableView().getItems().remove(movement);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : button);
-            }
-        });
-
-        table.getColumns().setAll(transactionDate, description, amount, reviewed, type, category, status, notes, delete);
-        return table;
-    }
-
-    private TableColumn<CreditCardTransaction, String> cardTransactionDateColumn(String title, java.util.function.Function<CreditCardTransaction, LocalDate> getter, java.util.function.BiConsumer<CreditCardTransaction, LocalDate> setter) {
-        TableColumn<CreditCardTransaction, String> column = new TableColumn<>(title);
-        column.setCellValueFactory(data -> new SimpleStringProperty(getter.apply(data.getValue()) == null ? "" : getter.apply(data.getValue()).toString()));
-        column.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        column.setOnEditCommit(event -> setter.accept(event.getRowValue(), parseDateOrNull(event.getNewValue())));
-        column.setPrefWidth(110);
-        return column;
+            },
+            this::parseDateOrNull,
+            commitOnFocusLostCellFactory(stringConverter()),
+            commitOnFocusLostCellFactory(twoDecimalConverter())
+        );
     }
 
     private TableView<NylRecord> nylTable() {
