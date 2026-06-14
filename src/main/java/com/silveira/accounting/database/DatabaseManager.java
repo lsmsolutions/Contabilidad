@@ -333,6 +333,59 @@ public class DatabaseManager {
                 statement.execute("CREATE INDEX IF NOT EXISTS idx_house_expenses_loan_date_id ON house_expenses(loan_alias, expense_date DESC, id DESC)");
                 statement.execute("CREATE INDEX IF NOT EXISTS idx_house_expenses_date_id ON house_expenses(expense_date DESC, id DESC)");
                 statement.execute("""
+                    CREATE TABLE IF NOT EXISTS vehicle_lease_accounts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        alias TEXT NOT NULL UNIQUE,
+                        provider_name TEXT NOT NULL,
+                        vehicle_year INTEGER NOT NULL DEFAULT 0,
+                        make TEXT,
+                        model TEXT,
+                        trim_name TEXT,
+                        account_number TEXT,
+                        vin TEXT,
+                        maturity_date TEXT,
+                        notes TEXT,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS vehicle_lease_statements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        account_alias TEXT NOT NULL,
+                        statement_date TEXT NOT NULL,
+                        due_date TEXT,
+                        total_amount_due REAL NOT NULL DEFAULT 0,
+                        last_payment_date TEXT,
+                        last_payment_amount REAL NOT NULL DEFAULT 0,
+                        payments_made INTEGER NOT NULL DEFAULT 0,
+                        payments_remaining INTEGER NOT NULL DEFAULT 0,
+                        lease_payment REAL NOT NULL DEFAULT 0,
+                        sales_use_tax REAL NOT NULL DEFAULT 0,
+                        property_tax REAL NOT NULL DEFAULT 0,
+                        parking_tickets REAL NOT NULL DEFAULT 0,
+                        returned_check_fees REAL NOT NULL DEFAULT 0,
+                        miscellaneous_charges REAL NOT NULL DEFAULT 0,
+                        past_due_amount REAL NOT NULL DEFAULT 0,
+                        late_charges REAL NOT NULL DEFAULT 0,
+                        source_pdf_path TEXT NOT NULL,
+                        review_required INTEGER NOT NULL DEFAULT 1,
+                        pending_review INTEGER NOT NULL DEFAULT 1,
+                        review_notes TEXT,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(account_alias, statement_date)
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS vehicle_lease_statement_field_reviews (
+                        statement_id INTEGER NOT NULL,
+                        field_name TEXT NOT NULL,
+                        reviewed INTEGER NOT NULL DEFAULT 0,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY(statement_id, field_name),
+                        FOREIGN KEY(statement_id) REFERENCES vehicle_lease_statements(id)
+                    )
+                    """);
+                statement.execute("""
                     CREATE TABLE IF NOT EXISTS internal_movements (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         source_type TEXT NOT NULL,

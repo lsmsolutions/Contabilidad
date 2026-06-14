@@ -25,6 +25,8 @@ import com.silveira.accounting.models.MortgageTransaction;
 import com.silveira.accounting.models.NylRecord;
 import com.silveira.accounting.models.ReconciliationItem;
 import com.silveira.accounting.models.SourceTotals;
+import com.silveira.accounting.models.vehiclelease.VehicleLeaseAccount;
+import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
 import com.silveira.accounting.parsers.CreditCardStatementParser;
 import com.silveira.accounting.parsers.NylPdfParser;
 import com.silveira.accounting.repositories.HouseExpenseRepository;
@@ -66,6 +68,10 @@ import com.silveira.accounting.ui.card.CardTransactionDialogView;
 import com.silveira.accounting.ui.card.CardTransactionTableView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
+import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
+import com.silveira.accounting.ui.vehiclelease.VehicleLeaseHubView;
+import com.silveira.accounting.ui.vehiclelease.VehicleLeaseModule;
+import com.silveira.accounting.ui.vehiclelease.VehicleLeaseStatementEditDialogView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
 import javafx.application.Platform;
@@ -238,6 +244,7 @@ public class AppView {
     );
 
     private final BankModule bankModule;
+    private final VehicleLeaseModule vehicleLeaseModule;
     private final CardAccountApplicationService creditCardAccountRepository;
     private final CardStatementApplicationService creditCardStatementRepository;
     private final CardFieldReviewApplicationService creditCardStatementFieldReviewRepository;
@@ -274,10 +281,12 @@ public class AppView {
     private boolean bankMenuExpanded;
     private boolean cardMenuExpanded;
     private boolean mortgageMenuExpanded;
+    private boolean vehicleLeaseMenuExpanded;
     private boolean nylMenuExpanded;
 
     public AppView(DatabaseManager databaseManager) {
         bankModule = new BankModule(databaseManager, ocrService);
+        vehicleLeaseModule = new VehicleLeaseModule(databaseManager);
         CardApplicationService cards = new CardApplicationService(
             new CreditCardAccountRepository(databaseManager),
             new CreditCardStatementRepository(databaseManager),
@@ -339,6 +348,11 @@ public class AppView {
             mortgageSubmenu.getChildren().add(subnav(alias, () -> showMortgageDetail(alias)));
         }
         mortgageSubmenu.getChildren().add(subnav("Casa - Gastos", this::showHouseExpenses));
+        VBox vehicleLeaseSubmenu = new VBox(4);
+        vehicleLeaseSubmenu.getStyleClass().add("submenu");
+        for (VehicleLeaseAccount account : vehicleLeaseModule.controller().accounts()) {
+            vehicleLeaseSubmenu.getChildren().add(subnav(account.getAlias(), () -> showVehicleLeaseDetail(account.getAlias())));
+        }
         VBox nylSubmenu = new VBox(4);
         nylSubmenu.getStyleClass().add("submenu");
         nylSubmenu.getChildren().add(subnav("Resumen NYL", this::showNyl));
@@ -351,6 +365,7 @@ public class AppView {
             collapsibleNav("Banco", this::showBank, bankSubmenu, () -> bankMenuExpanded, value -> bankMenuExpanded = value),
             collapsibleNav("Tarjetas", this::showCards, cardSubmenu, () -> cardMenuExpanded, value -> cardMenuExpanded = value),
             collapsibleNav("Hipotecas", this::showMortgages, mortgageSubmenu, () -> mortgageMenuExpanded, value -> mortgageMenuExpanded = value),
+            collapsibleNav("Vehicle Leases", this::showVehicleLeases, vehicleLeaseSubmenu, () -> vehicleLeaseMenuExpanded, value -> vehicleLeaseMenuExpanded = value),
             nav("Movimientos internos", this::showInternalMovements),
             collapsibleNav("New York Life", this::showNylHub, nylSubmenu, () -> nylMenuExpanded, value -> nylMenuExpanded = value)
         );
@@ -1300,6 +1315,81 @@ public class AppView {
             return monthName(end.getMonthValue()) + " " + end.getYear();
         }
         return text(statement.getAccountAlias()).isBlank() ? "Resumen de tarjeta" : statement.getAccountAlias();
+    }
+
+    private void showVehicleLeases() {
+        setPage(new VehicleLeaseHubView().build(
+            vehicleLeaseModule.controller().accounts(),
+            () -> importVehicleLeasePdf(null),
+            this::showVehicleLeaseDetail
+        ));
+    }
+
+    private void showVehicleLeaseDetail(String alias) {
+        Optional<VehicleLeaseAccount> account = vehicleLeaseModule.controller().account(alias);
+        if (account.isEmpty()) {
+            showVehicleLeases();
+            return;
+        }
+        List<VehicleLeaseStatement> statements = vehicleLeaseModule.controller().statements(alias);
+        setPage(new VehicleLeaseDetailView().build(
+            account.get(),
+            statements,
+            this::showVehicleLeases,
+            () -> importVehicleLeasePdf(alias),
+            vehicleLeaseModule.controller()::isFieldReviewed,
+            (statement, field, reviewed) -> {
+                vehicleLeaseModule.controller().setFieldReviewed(statement, field, reviewed);
+                showVehicleLeaseDetail(alias);
+            },
+            (statement, reviewed) -> {
+                vehicleLeaseModule.controller().setAllReviewed(statement, reviewed);
+                showVehicleLeaseDetail(alias);
+            },
+            statement -> {
+                try {
+                    new VehicleLeaseStatementEditDialogView().show(statement).ifPresent(updated -> {
+                    vehicleLeaseModule.controller().update(updated);
+                    showVehicleLeaseDetail(alias);
+                    });
+                } catch (RuntimeException exception) {
+                    alert(Alert.AlertType.ERROR, "No se pudo editar el statement", rootCauseMessage(exception));
+                }
+            },
+            statement -> {
+                boolean proceed = confirm(
+                    "Eliminar periodo de leasing",
+                    "Se eliminara el statement del " + (statement.getStatementDate() == null ? "periodo seleccionado" : statement.getStatementDate())
+                        + ".\n\nEsta accion no se puede deshacer.",
+                    "Eliminar periodo"
+                );
+                if (proceed) {
+                    vehicleLeaseModule.controller().delete(statement);
+                    showVehicleLeaseDetail(alias);
+                }
+            }
+        ));
+    }
+
+    private void importVehicleLeasePdf(String currentAlias) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Import vehicle lease statement");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
+        File file = chooser.showOpenDialog(root.getScene() == null ? null : root.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        try {
+            VehicleLeaseStatement imported = vehicleLeaseModule.controller().importPdf(file.toPath());
+            rebuildSidebar();
+            showVehicleLeaseDetail(imported.getAccountAlias());
+            alert(Alert.AlertType.INFORMATION, "Vehicle lease imported", "The statement was imported and is ready for review.");
+        } catch (RuntimeException exception) {
+            alert(Alert.AlertType.ERROR, "No se pudo importar el leasing", rootCauseMessage(exception));
+            if (currentAlias != null) {
+                showVehicleLeaseDetail(currentAlias);
+            }
+        }
     }
 
     private void showMortgages() {
