@@ -61,6 +61,7 @@ import com.silveira.accounting.ui.card.CitiStatementSummaryView;
 import com.silveira.accounting.ui.card.CreditCardStatementSummaryView;
 import com.silveira.accounting.ui.card.DiscoverStatementSummaryView;
 import com.silveira.accounting.ui.card.CardPeriodDetailView;
+import com.silveira.accounting.ui.card.CardTransactionDialogView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
 import com.silveira.accounting.utils.Fingerprint;
@@ -1134,50 +1135,24 @@ public class AppView {
             alert(Alert.AlertType.WARNING, "Resumen sin guardar", "Guarda primero el resumen de la tarjeta antes de añadir movimientos.");
             return;
         }
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Añadir movimiento");
-        DatePicker transactionDate = new DatePicker(statement.getStatementEndDate() == null ? LocalDate.now() : statement.getStatementEndDate());
-        DatePicker postDate = new DatePicker(transactionDate.getValue());
-        TextField description = new TextField();
-        description.setPromptText("Description");
-        TextField amount = cardDialogMoneyField(0);
-        TextField type = new TextField("gasto");
-        TextField category = new TextField("manual");
-        CheckBox reviewed = new CheckBox("Revisado");
-        TextArea notes = new TextArea("Añadido manualmente");
-        notes.setPrefRowCount(2);
-
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        form.addRow(0, new Label("Date"), transactionDate);
-        form.addRow(1, new Label("Posted Date"), postDate);
-        form.addRow(2, new Label("Description"), description);
-        form.addRow(3, new Label("Amount"), amount);
-        form.addRow(4, new Label("Type"), type);
-        form.addRow(5, new Label("Category"), category);
-        form.addRow(6, new Label("Review"), reviewed);
-        form.addRow(7, new Label("Notes"), notes);
-        dialog.getDialogPane().setContent(form);
-        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> {
-            if (transactionDate.getValue() == null || postDate.getValue() == null || description.getText().isBlank()) {
+        new CardTransactionDialogView().show(statement).ifPresent(form -> {
+            if (form.transactionDate() == null || form.postDate() == null || form.description().isBlank()) {
                 alert(Alert.AlertType.WARNING, "Movimiento incompleto", "Indica fecha, posteo y descripción.");
                 return;
             }
             CreditCardTransaction movement = new CreditCardTransaction(
                 0,
                 statement.getId(),
-                transactionDate.getValue(),
-                postDate.getValue(),
-                description.getText().trim(),
-                cardDialogMoney(amount),
-                type.getText().isBlank() ? "gasto" : type.getText().trim(),
-                category.getText().isBlank() ? "manual" : category.getText().trim()
+                form.transactionDate(),
+                form.postDate(),
+                form.description().trim(),
+                Money.parse(form.amount()),
+                form.type().isBlank() ? "gasto" : form.type().trim(),
+                form.category().isBlank() ? "manual" : form.category().trim()
             );
-            movement.setPendingReview(!reviewed.isSelected());
-            movement.setReviewRequired(!reviewed.isSelected());
-            movement.setReviewNotes(notes.getText());
+            movement.setPendingReview(!form.reviewed());
+            movement.setReviewRequired(!form.reviewed());
+            movement.setReviewNotes(form.notes());
             movement.setId(creditCardTransactionRepository.save(statement.getId(), movement));
             refresh.run();
         });
