@@ -59,8 +59,7 @@ import com.silveira.accounting.ui.card.CardImportAnalysisWorkflow;
 import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
 import com.silveira.accounting.ui.card.CardStatementCardsWorkflow;
-import com.silveira.accounting.ui.card.CardStatementTableView;
-import com.silveira.accounting.ui.card.CardTransactionTableView;
+import com.silveira.accounting.ui.card.CardTableFactory;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
@@ -964,8 +963,8 @@ public class AppView {
                 this::page,
                 this::backButton,
                 this::showCards,
-                this::creditCardStatementTable,
-                this::creditCardTransactionTable,
+                cardTableFactory()::statementTable,
+                cardTableFactory()::transactionTable,
                 this::selectedYear,
                 this::selectedMonth,
                 () -> selectedYearValue,
@@ -1051,6 +1050,19 @@ public class AppView {
                 this::showCardAccount,
                 this::rootCauseMessage,
                 this::setPage
+            )
+        );
+    }
+
+    private CardTableFactory cardTableFactory() {
+        return new CardTableFactory(
+            creditCardReviews,
+            creditCardStatementRepository,
+            creditCardTransactionRepository,
+            new CardTableFactory.Config(
+                this::parseDateOrNull,
+                commitOnFocusLostCellFactory(stringConverter()),
+                commitOnFocusLostCellFactory(twoDecimalConverter())
             )
         );
     }
@@ -4183,18 +4195,6 @@ public class AppView {
         }
     }
 
-    private TableView<CreditCardStatement> creditCardStatementTable() {
-        return new CardStatementTableView().build(
-            creditCardReviews::updateStatement,
-            statement -> {
-                if (statement.getId() > 0) {
-                    creditCardStatementRepository.delete(statement.getId());
-                }
-            },
-            this::parseDateOrNull
-        );
-    }
-
     private LocalDate parseDateOrNull(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -4319,20 +4319,6 @@ public class AppView {
                 }
             }
         };
-    }
-
-    private TableView<CreditCardTransaction> creditCardTransactionTable() {
-        return new CardTransactionTableView().build(
-            creditCardReviews::updateMovement,
-            movement -> {
-                if (movement.getId() > 0) {
-                    creditCardTransactionRepository.delete(movement.getId());
-                }
-            },
-            this::parseDateOrNull,
-            commitOnFocusLostCellFactory(stringConverter()),
-            commitOnFocusLostCellFactory(twoDecimalConverter())
-        );
     }
 
     private TableView<NylRecord> nylTable() {
