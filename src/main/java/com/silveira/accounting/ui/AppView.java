@@ -57,12 +57,11 @@ import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.CardAccountFormView;
 import com.silveira.accounting.ui.card.CardAnalysisView;
 import com.silveira.accounting.ui.card.CardImportWorkflow;
-import com.silveira.accounting.ui.card.CardAccountDetailControls;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
 import com.silveira.accounting.ui.card.CardMonthlyCardsView;
+import com.silveira.accounting.ui.card.CardShellWorkflow;
 import com.silveira.accounting.ui.card.CardStatementCardCoordinator;
-import com.silveira.accounting.ui.card.CardPeriodDetailView;
 import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
 import com.silveira.accounting.ui.card.CardStatementTableView;
 import com.silveira.accounting.ui.card.CardTransactionDialogView;
@@ -993,69 +992,46 @@ public class AppView {
     }
 
     private void showCardAccount(String alias) {
-        TableView<CreditCardStatement> statements = creditCardStatementTable();
-        HBox totals = new HBox(12);
-        totals.getStyleClass().add("totals-panel");
-        VBox statementCards = new VBox(10);
-        Runnable refreshTotals = () -> totals.getChildren().setAll(cardAccumulatedTotalsNodes(alias, selectedYear(), selectedMonth()));
-        Runnable refresh = () -> {
-            statements.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, selectedYear(), selectedMonth())));
-            refreshTotals.run();
-        };
-        refresh.run();
-        VBox monthlyCards = monthlyCardCards(alias, statements, totals, statementCards);
-
-        CardAccountDetailControls controls = new CardAccountDetailControls(selectedYearValue, selectedMonthValue);
-        controls.filter().setOnAction(event -> {
-            selectedYearValue = controls.year().getValue();
-            selectedMonthValue = controls.month().getValue();
-            refresh.run();
-            monthlyCards.getChildren().setAll(monthlyCardCards(alias, statements, totals, statementCards).getChildren());
-        });
-        controls.importPdf().setOnAction(event -> importCreditCardPdf(alias));
-        controls.analysis().setOnAction(event -> showCreditCardAnalysis(alias));
-        controls.addStatement().setOnAction(event -> addManualCreditCardStatement(alias, () -> showCardAccount(alias)));
-        Label note = helperNote("Haz clic en una card para abrir el detalle completo de ese periodo.");
-        setPage(page("Tarjeta - " + alias, backButton("Volver a Tarjetas", this::showCards), controls.actions(), totals, note, monthlyCards));
+        cardShellWorkflow().showAccount(alias);
     }
 
     private void showCardPeriodDetail(String alias, int year, int month) {
-        selectedYearValue = year;
-        selectedMonthValue = month;
-        TableView<CreditCardStatement> statements = creditCardStatementTable();
-        TableView<CreditCardTransaction> movements = creditCardTransactionTable();
-        HBox totals = new HBox(12);
-        totals.getStyleClass().add("totals-panel");
-        VBox statementCards = new VBox(10);
-        Runnable refreshTotals = () -> totals.getChildren().setAll(cardPeriodActivityTotalsNodes(statements.getItems()));
-        Runnable refresh = () -> {
-            statements.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, year, month)));
-            movements.setItems(FXCollections.observableArrayList(creditCardTransactionRepository.findByAccount(alias, year, month)));
-            refreshTotals.run();
-            refreshCreditCardStatementCards(statements, statementCards, refreshTotals);
-        };
-        refresh.run();
+        cardShellWorkflow().showPeriodDetail(alias, year, month);
+    }
 
-        CardPeriodDetailView.View periodView = new CardPeriodDetailView().build(
-            statementCards,
-            movements,
-            () -> saveVisibleCardStatements(statements, refresh),
-            () -> addManualCreditCardMovement(statements, movements),
-            () -> {
-                movements.requestFocus();
-                saveVisibleCardMovements(statements, movements, refresh);
-            }
+    private CardShellWorkflow cardShellWorkflow() {
+        return new CardShellWorkflow(
+            creditCardStatementRepository,
+            creditCardTransactionRepository,
+            new CardShellWorkflow.Config(
+                this::setPage,
+                this::page,
+                this::backButton,
+                this::showCards,
+                this::creditCardStatementTable,
+                this::creditCardTransactionTable,
+                this::selectedYear,
+                this::selectedMonth,
+                () -> selectedYearValue,
+                () -> selectedMonthValue,
+                (year, month) -> {
+                    selectedYearValue = year;
+                    selectedMonthValue = month;
+                },
+                this::cardAccumulatedTotalsNodes,
+                this::cardPeriodActivityTotalsNodes,
+                this::monthlyCardCards,
+                this::refreshCreditCardStatementCards,
+                this::importCreditCardPdf,
+                this::showCreditCardAnalysis,
+                this::addManualCreditCardStatement,
+                this::helperNote,
+                this::saveVisibleCardStatements,
+                this::addManualCreditCardMovement,
+                this::saveVisibleCardMovements,
+                action -> showCardMovementsTabAction = action
+            )
         );
-        showCardMovementsTabAction = periodView.showMovements();
-        String periodTitle = statements.getItems().isEmpty()
-            ? String.format("%02d/%d", month, year)
-            : cardPeriodTitle(statements.getItems(), new MonthlySourceTotals(year, month, 0, 0, 0, 0, 0));
-        setPage(page(
-            "Tarjeta - " + alias + " - " + periodTitle,
-            backButton("Volver a la tarjeta", () -> showCardAccount(alias)),
-            totals,
-            periodView.tabs()
-        ));
     }
 
     private void importCreditCardPdf(String alias) {
