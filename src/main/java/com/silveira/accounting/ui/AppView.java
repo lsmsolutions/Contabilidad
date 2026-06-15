@@ -53,11 +53,9 @@ import com.silveira.accounting.ui.bank.BankDashboardPanelView;
 import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
-import com.silveira.accounting.ui.card.CardAccountFormView;
+import com.silveira.accounting.ui.card.CardAccountWorkflow;
 import com.silveira.accounting.ui.card.CardAnalysisView;
 import com.silveira.accounting.ui.card.CardImportWorkflow;
-import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
-import com.silveira.accounting.ui.card.CardAccountsHubView;
 import com.silveira.accounting.ui.card.CardEditWorkflow;
 import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
@@ -933,60 +931,21 @@ public class AppView {
         );
     }
     private void showCards() {
-        CardAccountsHubView.Hub hub = new CardAccountsHubView().build(
-            creditCardAccountRepository.findAll(),
-            this::showAddCreditCard,
-            this::editCreditCardFromHub,
-            this::deleteCreditCardFromHub,
-            this::showCardAccount
+        cardAccountWorkflow().showHub();
+    }
+
+    private CardAccountWorkflow cardAccountWorkflow() {
+        return new CardAccountWorkflow(
+            creditCardAccountRepository,
+            new CardAccountWorkflow.Config(
+                (title, nodes) -> setPage(page(title, nodes)),
+                this::setDarkHubPage,
+                this::showCardAccount,
+                this::rebuildSidebar,
+                this::confirm,
+                this::alert
+            )
         );
-        if (hub.empty()) {
-            setPage(page("Tarjetas", hub.content(), hub.actions()));
-        } else {
-            setDarkHubPage("Tarjetas", hub.content(), hub.actions());
-        }
-    }
-
-    private void showAddCreditCard() {
-        showCreditCardAccountDialog(null);
-    }
-
-    private void editCreditCardFromHub() {
-        chooseCreditCardAccount("Editar tarjeta", "No hay tarjetas para editar.")
-            .ifPresent(this::showCreditCardAccountDialog);
-    }
-
-    private void deleteCreditCardFromHub() {
-        chooseCreditCardAccount("Eliminar tarjeta", "No hay tarjetas para eliminar.").ifPresent(account -> {
-            if (!confirm("Eliminar tarjeta", "Se eliminaran la tarjeta, sus estados, movimientos y alertas.", "Eliminar")) {
-                return;
-            }
-            creditCardAccountRepository.delete(account.getAlias());
-            rebuildSidebar();
-            showCards();
-        });
-    }
-
-    private Optional<CreditCardAccount> chooseCreditCardAccount(String title, String emptyMessage) {
-        List<CreditCardAccount> accounts = creditCardAccountRepository.findAll();
-        if (accounts.isEmpty()) {
-            alert(Alert.AlertType.INFORMATION, "Sin tarjetas", emptyMessage);
-            return Optional.empty();
-        }
-        return new CardAccountSelectorDialogView().show(title, accounts);
-    }
-
-    private void showCreditCardAccountDialog(CreditCardAccount current) {
-        boolean editing = current != null;
-        new CardAccountFormView().show(current).ifPresent(account -> {
-            if (editing) {
-                creditCardAccountRepository.update(current.getAlias(), account);
-            } else {
-                creditCardAccountRepository.save(account);
-            }
-            rebuildSidebar();
-            showCardAccount(account.getAlias());
-        });
     }
 
     private void showCardAccount(String alias) {
