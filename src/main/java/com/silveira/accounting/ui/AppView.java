@@ -11,7 +11,6 @@ import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.bank.BankAccount;
 import com.silveira.accounting.models.CreditCardAccount;
-import com.silveira.accounting.models.CreditCardAnalysis;
 import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.models.CreditCardTransaction;
 import com.silveira.accounting.models.DashboardSummary;
@@ -59,7 +58,9 @@ import com.silveira.accounting.ui.card.CardImportAnalysisWorkflow;
 import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
 import com.silveira.accounting.ui.card.CardStatementCardsWorkflow;
+import com.silveira.accounting.ui.card.CardStatementTitleFormatter;
 import com.silveira.accounting.ui.card.CardTableFactory;
+import com.silveira.accounting.ui.card.CardTotalsView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
@@ -973,8 +974,8 @@ public class AppView {
                     selectedYearValue = year;
                     selectedMonthValue = month;
                 },
-                this::cardAccumulatedTotalsNodes,
-                this::cardPeriodActivityTotalsNodes,
+                cardTotalsView()::accumulatedNodes,
+                cardTotalsView()::periodActivityNodes,
                 cardPeriodWorkflow()::build,
                 cardStatementCardsWorkflow()::refresh,
                 cardImportAnalysisWorkflow()::importPdf,
@@ -1004,7 +1005,7 @@ public class AppView {
                 },
                 this::selectedYear,
                 this::selectedMonth,
-                this::cardAccumulatedTotalsNodes,
+                cardTotalsView()::accumulatedNodes,
                 cardStatementCardsWorkflow()::refresh,
                 this::confirm,
                 this::chooseExcel,
@@ -1021,7 +1022,7 @@ public class AppView {
             new CardEditWorkflow.Config(
                 this::alert,
                 this::rootCauseMessage,
-                this::cardStatementTitle
+                cardStatementTitleFormatter()::title
             )
         );
     }
@@ -1032,7 +1033,7 @@ public class AppView {
             creditCardTransactionRepository,
             cardEditWorkflow(),
             new CardStatementCardsWorkflow.Config(
-                this::cardStatementTitle,
+                cardStatementTitleFormatter()::title,
                 () -> showCardMovementsTabAction
             )
         );
@@ -1067,11 +1068,12 @@ public class AppView {
         );
     }
 
-    private List<CreditCardTransaction> visibleCardMovements(String alias, Integer year, Integer month) {
-        if (month == null) {
-            return creditCardTransactionRepository.findByAccount(alias, null, null);
-        }
-        return creditCardTransactionRepository.findByAccount(alias, year, month);
+    private CardTotalsView cardTotalsView() {
+        return new CardTotalsView(creditCardStatementRepository);
+    }
+
+    private CardStatementTitleFormatter cardStatementTitleFormatter() {
+        return new CardStatementTitleFormatter();
     }
 
     private ScrollPane horizontalStatementScroll(Node statementCard) {
@@ -1083,18 +1085,6 @@ public class AppView {
         scroll.setPannable(true);
         scroll.setMaxWidth(Double.MAX_VALUE);
         return scroll;
-    }
-
-    private String cardStatementTitle(CreditCardStatement statement) {
-        LocalDate start = statement.getStatementStartDate();
-        LocalDate end = statement.getStatementEndDate();
-        if (start != null && end != null) {
-            return shortDate(start) + " - " + shortDate(end);
-        }
-        if (end != null) {
-            return monthName(end.getMonthValue()) + " " + end.getYear();
-        }
-        return text(statement.getAccountAlias()).isBlank() ? "Resumen de tarjeta" : statement.getAccountAlias();
     }
 
     private void showVehicleLeases() {
@@ -3115,52 +3105,6 @@ public class AppView {
         HBox row = new HBox(10, name, track, value);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
-    }
-
-    private List<javafx.scene.Node> cardTotalsNodes(SourceTotals totals) {
-        return List.of(
-            miniTotal("OK", String.valueOf(totals.reviewedCount()), "neutral-total"),
-            miniTotal("Pendientes", String.valueOf(totals.pendingCount()), "pending-total"),
-            miniTotal("Deuda OK", Money.format(totals.income()), "income-total"),
-            miniTotal("Pago mínimo OK", Money.format(totals.expenses()), "pending-total"),
-            miniTotal("Intereses OK", Money.format(totals.net()), "expense-total")
-        );
-    }
-
-    private SourceTotals totalsFromCardStatements(List<CreditCardStatement> statements) {
-        int reviewed = (int) statements.stream().filter(statement -> !statement.isPendingReview()).count();
-        int pending = (int) statements.stream().filter(CreditCardStatement::isPendingReview).count();
-        double debt = statements.stream().filter(statement -> !statement.isPendingReview()).mapToDouble(CreditCardStatement::getNewBalance).sum();
-        double minimum = statements.stream().filter(statement -> !statement.isPendingReview()).mapToDouble(CreditCardStatement::getMinimumPaymentDue).sum();
-        double interest = statements.stream().filter(statement -> !statement.isPendingReview()).mapToDouble(CreditCardStatement::getInterestCharged).sum();
-        return new SourceTotals(reviewed, pending, debt, minimum, interest);
-    }
-
-    private List<javafx.scene.Node> cardAccumulatedTotalsNodes(String alias, Integer year, Integer throughMonth) {
-        List<CreditCardStatement> statements = creditCardStatementRepository.findByAccount(alias, year, null).stream()
-            .filter(statement -> throughMonth == null || (statement.getStatementEndDate() != null && statement.getStatementEndDate().getMonthValue() == throughMonth))
-            .toList();
-        return cardPeriodActivityTotalsNodes(statements);
-    }
-
-    private List<javafx.scene.Node> cardPeriodActivityTotalsNodes(List<CreditCardStatement> statements) {
-        List<CreditCardStatement> reviewed = statements.stream().filter(statement -> !statement.isPendingReview()).toList();
-        List<CreditCardStatement> source = reviewed.isEmpty() ? statements : reviewed;
-        double payments = source.stream().mapToDouble(CreditCardStatement::getPayments).sum();
-        double purchases = source.stream().mapToDouble(CreditCardStatement::getTransactions).sum();
-        double interest = source.stream().mapToDouble(CreditCardStatement::getInterestCharged).sum();
-        return List.of(
-            miniTotal("Pagos (al Banco)", Money.format(payments), "income-total"),
-            miniTotal("Compras", Money.format(purchases), "expense-total"),
-            miniTotal("Intereses", Money.format(interest), "urgent-total")
-        );
-    }
-
-    private CreditCardStatement nextDueStatement(List<CreditCardStatement> statements) {
-        return statements.stream()
-            .filter(statement -> statement.getPaymentDueDate() != null)
-            .min(Comparator.comparing(CreditCardStatement::getPaymentDueDate))
-            .orElse(statements.isEmpty() ? null : statements.get(0));
     }
 
     private List<javafx.scene.Node> mortgageTotalsNodes(List<MortgageStatement> statements, List<MortgageTransaction> movements) {

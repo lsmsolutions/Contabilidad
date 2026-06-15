@@ -2,6 +2,7 @@ package com.silveira.accounting.application.card.service;
 
 import com.silveira.accounting.application.card.dto.CardPeriodSummary;
 import com.silveira.accounting.application.card.dto.CardAnalysisSummary;
+import com.silveira.accounting.application.card.dto.CardActivityTotals;
 import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.models.MonthlySourceTotals;
 import com.silveira.accounting.models.SourceTotals;
@@ -91,6 +92,23 @@ public class CardStatementApplicationService {
             reviewed.stream().mapToDouble(CreditCardStatement::getPayments).sum(),
             reviewed.stream().mapToDouble(CreditCardStatement::getTransactions).sum(),
             reviewed.stream().mapToDouble(CreditCardStatement::getInterestCharged).sum()
+        );
+    }
+
+    public CardActivityTotals accumulatedActivityTotals(String alias, Integer year, Integer throughMonth) {
+        List<CreditCardStatement> statements = repository.findByAccount(alias, year, null).stream()
+            .filter(statement -> throughMonth == null || (statement.getStatementEndDate() != null && statement.getStatementEndDate().getMonthValue() == throughMonth))
+            .toList();
+        return activityTotals(statements);
+    }
+
+    public CardActivityTotals activityTotals(List<CreditCardStatement> statements) {
+        List<CreditCardStatement> reviewed = statements.stream().filter(statement -> !statement.isPendingReview()).toList();
+        List<CreditCardStatement> source = reviewed.isEmpty() ? statements : reviewed;
+        return new CardActivityTotals(
+            source.stream().mapToDouble(CreditCardStatement::getPayments).sum(),
+            source.stream().mapToDouble(CreditCardStatement::getTransactions).sum(),
+            source.stream().mapToDouble(CreditCardStatement::getInterestCharged).sum()
         );
     }
 
