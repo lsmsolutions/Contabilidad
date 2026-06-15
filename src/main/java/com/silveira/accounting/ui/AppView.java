@@ -54,9 +54,8 @@ import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankReconciliationView;
 import com.silveira.accounting.ui.bank.BankShellWorkflow;
 import com.silveira.accounting.ui.card.CardAccountWorkflow;
-import com.silveira.accounting.ui.card.CardAnalysisView;
-import com.silveira.accounting.ui.card.CardImportWorkflow;
 import com.silveira.accounting.ui.card.CardEditWorkflow;
+import com.silveira.accounting.ui.card.CardImportAnalysisWorkflow;
 import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
 import com.silveira.accounting.ui.card.CardStatementCardsWorkflow;
@@ -979,8 +978,8 @@ public class AppView {
                 this::cardPeriodActivityTotalsNodes,
                 cardPeriodWorkflow()::build,
                 cardStatementCardsWorkflow()::refresh,
-                this::importCreditCardPdf,
-                this::showCreditCardAnalysis,
+                cardImportAnalysisWorkflow()::importPdf,
+                cardImportAnalysisWorkflow()::showAnalysis,
                 cardEditWorkflow()::addManualStatement,
                 this::helperNote,
                 cardEditWorkflow()::saveVisibleStatements,
@@ -1040,19 +1039,20 @@ public class AppView {
         );
     }
 
-    private void importCreditCardPdf(String alias) {
-        new CardImportWorkflow(creditCardImports, new CardImportWorkflow.Config(
-            this::choosePdf,
-            this::showProcessing,
-            importing -> cardImportInProgress = importing,
-            message -> alert(Alert.AlertType.ERROR, "No se pudo importar tarjeta", message),
-            this::showCardAccount,
-            this::rootCauseMessage
-        )).importPdf(alias);
-    }
-
-    private void showCreditCardAnalysis(String alias) {
-        setPage(new CardAnalysisView().build(alias, creditCardStatementRepository.analysis(alias), () -> showCardAccount(alias)));
+    private CardImportAnalysisWorkflow cardImportAnalysisWorkflow() {
+        return new CardImportAnalysisWorkflow(
+            creditCardImports,
+            creditCardStatementRepository,
+            new CardImportAnalysisWorkflow.Config(
+                this::choosePdf,
+                this::showProcessing,
+                importing -> cardImportInProgress = importing,
+                (title, message) -> alert(Alert.AlertType.ERROR, title, message),
+                this::showCardAccount,
+                this::rootCauseMessage,
+                this::setPage
+            )
+        );
     }
 
     private List<CreditCardTransaction> visibleCardMovements(String alias, Integer year, Integer month) {
