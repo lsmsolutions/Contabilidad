@@ -2,7 +2,6 @@ package com.silveira.accounting.ui;
 
 import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
 import com.silveira.accounting.application.card.CardApplicationService;
-import com.silveira.accounting.application.card.dto.CardPeriodSummary;
 import com.silveira.accounting.application.card.service.CardAccountApplicationService;
 import com.silveira.accounting.application.card.service.CardImportApplicationService;
 import com.silveira.accounting.application.card.service.CardReviewApplicationService;
@@ -59,7 +58,7 @@ import com.silveira.accounting.ui.card.CardAnalysisView;
 import com.silveira.accounting.ui.card.CardImportWorkflow;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
-import com.silveira.accounting.ui.card.CardMonthlyCardsView;
+import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
 import com.silveira.accounting.ui.card.CardStatementCardCoordinator;
 import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
@@ -1020,7 +1019,7 @@ public class AppView {
                 },
                 this::cardAccumulatedTotalsNodes,
                 this::cardPeriodActivityTotalsNodes,
-                this::monthlyCardCards,
+                cardPeriodWorkflow()::build,
                 this::refreshCreditCardStatementCards,
                 this::importCreditCardPdf,
                 this::showCreditCardAnalysis,
@@ -1030,6 +1029,31 @@ public class AppView {
                 this::addManualCreditCardMovement,
                 this::saveVisibleCardMovements,
                 action -> showCardMovementsTabAction = action
+            )
+        );
+    }
+
+    private CardPeriodWorkflow cardPeriodWorkflow() {
+        return new CardPeriodWorkflow(
+            creditCardStatementRepository,
+            creditCardTransactionRepository,
+            excelExportService,
+            new CardPeriodWorkflow.Config(
+                (alias, year, month) -> reviewMarkLabel("card", alias, year, month),
+                this::showCardPeriodDetail,
+                this::showCreditCardPeriodDialog,
+                (year, month) -> {
+                    selectedYearValue = year;
+                    selectedMonthValue = month;
+                },
+                this::selectedYear,
+                this::selectedMonth,
+                this::cardAccumulatedTotalsNodes,
+                this::refreshCreditCardStatementCards,
+                this::confirm,
+                this::chooseExcel,
+                this::safeFileName,
+                (title, message) -> alert(Alert.AlertType.INFORMATION, title, message)
             )
         );
     }
@@ -3397,72 +3421,6 @@ public class AppView {
         alert(Alert.AlertType.INFORMATION, "Exportacion lista", "Se descargo el resumen mensual de hipoteca.");
     }
 
-    private VBox monthlyCardCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards) {
-        FlowPane[] visibleCards = new FlowPane[1];
-        VBox box = new CardMonthlyCardsView().build(
-            creditCardStatementRepository.periodSummaries(alias),
-            period -> reviewMarkLabel("card", alias, period.year(), period.month()),
-            new CardMonthlyCardsView.Actions() {
-                @Override
-                public void open(CardPeriodSummary period) {
-                    selectedYearValue = period.year();
-                    selectedMonthValue = period.month();
-                    showCardPeriodDetail(alias, period.year(), period.month());
-                }
-
-                @Override
-                public void edit(CardPeriodSummary period) {
-                    showCreditCardPeriodDialog(period.statements(), () -> refreshCreditCardPeriodViews(alias, table, totalsPanel, statementCards, visibleCards[0]));
-                }
-
-                @Override
-                public void delete(CardPeriodSummary period) {
-                    deleteCreditCardPeriod(alias, period, table, totalsPanel, statementCards, visibleCards[0]);
-                }
-
-                @Override
-                public Button downloadButton(CardPeriodSummary period) {
-                    return monthlyExportButton(() -> exportMonthlyCard(alias, period.year(), period.month()));
-                }
-            }
-        );
-        visibleCards[0] = (FlowPane) box.getChildren().get(1);
-        return box;
-    }
-
-    private void refreshCreditCardPeriodViews(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
-        table.setItems(FXCollections.observableArrayList(creditCardStatementRepository.findByAccount(alias, selectedYear(), selectedMonth())));
-        Runnable visibleTotals = () -> totalsPanel.getChildren().setAll(cardAccumulatedTotalsNodes(alias, selectedYear(), selectedMonth()));
-        visibleTotals.run();
-        refreshCreditCardStatementCards(table, statementCards, visibleTotals);
-        refreshCreditCardMonthlyCards(alias, table, totalsPanel, statementCards, cards);
-    }
-
-    private void refreshCreditCardMonthlyCards(String alias, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
-        FlowPane refreshed = (FlowPane) monthlyCardCards(alias, table, totalsPanel, statementCards).getChildren().get(1);
-        cards.getChildren().setAll(refreshed.getChildren());
-    }
-
-    private void deleteCreditCardPeriod(String alias, CardPeriodSummary period, TableView<CreditCardStatement> table, HBox totalsPanel, VBox statementCards, FlowPane cards) {
-        if (period.statements().isEmpty()) {
-            return;
-        }
-        boolean proceed = confirm(
-            "Eliminar periodo de tarjeta",
-            "Se eliminaran " + period.statements().size() + " resumen(es) de tarjeta del periodo " + period.title() + ", junto con sus movimientos y alertas.\n\nEsta accion no se puede deshacer.",
-            "Eliminar periodo"
-        );
-        if (!proceed) {
-            return;
-        }
-        creditCardStatementRepository.deletePeriod(period.statements());
-        refreshCreditCardPeriodViews(alias, table, totalsPanel, statementCards, cards);
-    }
-
-    private String cardPeriodTitle(List<CreditCardStatement> statements, MonthlySourceTotals fallback) {
-        return creditCardStatementRepository.periodTitle(statements, fallback);
-    }
-
     private void showCreditCardPeriodDialog(List<CreditCardStatement> statements, Runnable refresh) {
         if (statements.isEmpty()) {
             alert(Alert.AlertType.INFORMATION, "Sin resumen", "No hay resumen de tarjeta para editar en este mes.");
@@ -3651,19 +3609,6 @@ public class AppView {
             return;
         }
         excelExportService.exportNylMonthly(file.toPath(), nylRepository.find(year, month, null, null));
-        alert(Alert.AlertType.INFORMATION, "Mes exportado", file.getAbsolutePath());
-    }
-
-    private void exportMonthlyCard(String alias, int year, int month) {
-        File file = chooseExcel("tarjeta-" + safeFileName(alias) + "-" + year + "-" + String.format("%02d", month) + ".xlsx");
-        if (file == null) {
-            return;
-        }
-        excelExportService.exportCreditCardMonthly(
-            file.toPath(),
-            creditCardStatementRepository.findByAccount(alias, year, month),
-            creditCardTransactionRepository.findByAccount(alias, year, month)
-        );
         alert(Alert.AlertType.INFORMATION, "Mes exportado", file.getAbsolutePath());
     }
 
