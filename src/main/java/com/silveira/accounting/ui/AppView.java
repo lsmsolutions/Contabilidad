@@ -58,12 +58,11 @@ import com.silveira.accounting.ui.card.CardAnalysisView;
 import com.silveira.accounting.ui.card.CardImportWorkflow;
 import com.silveira.accounting.ui.card.CardAccountSelectorDialogView;
 import com.silveira.accounting.ui.card.CardAccountsHubView;
+import com.silveira.accounting.ui.card.CardEditWorkflow;
 import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
 import com.silveira.accounting.ui.card.CardStatementCardCoordinator;
-import com.silveira.accounting.ui.card.CardPeriodEditDialogView;
 import com.silveira.accounting.ui.card.CardStatementTableView;
-import com.silveira.accounting.ui.card.CardTransactionDialogView;
 import com.silveira.accounting.ui.card.CardTransactionTableView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryView;
@@ -1023,11 +1022,11 @@ public class AppView {
                 this::refreshCreditCardStatementCards,
                 this::importCreditCardPdf,
                 this::showCreditCardAnalysis,
-                this::addManualCreditCardStatement,
+                cardEditWorkflow()::addManualStatement,
                 this::helperNote,
-                this::saveVisibleCardStatements,
-                this::addManualCreditCardMovement,
-                this::saveVisibleCardMovements,
+                cardEditWorkflow()::saveVisibleStatements,
+                cardEditWorkflow()::addManualMovement,
+                cardEditWorkflow()::saveVisibleMovements,
                 action -> showCardMovementsTabAction = action
             )
         );
@@ -1041,7 +1040,7 @@ public class AppView {
             new CardPeriodWorkflow.Config(
                 (alias, year, month) -> reviewMarkLabel("card", alias, year, month),
                 this::showCardPeriodDetail,
-                this::showCreditCardPeriodDialog,
+                cardEditWorkflow()::showPeriodDialog,
                 (year, month) -> {
                     selectedYearValue = year;
                     selectedMonthValue = month;
@@ -1058,6 +1057,18 @@ public class AppView {
         );
     }
 
+    private CardEditWorkflow cardEditWorkflow() {
+        return new CardEditWorkflow(
+            creditCardStatementRepository,
+            creditCardTransactionRepository,
+            new CardEditWorkflow.Config(
+                this::alert,
+                this::rootCauseMessage,
+                this::cardStatementTitle
+            )
+        );
+    }
+
     private void importCreditCardPdf(String alias) {
         new CardImportWorkflow(creditCardImports, new CardImportWorkflow.Config(
             this::choosePdf,
@@ -1067,59 +1078,6 @@ public class AppView {
             this::showCardAccount,
             this::rootCauseMessage
         )).importPdf(alias);
-    }
-
-    private void addManualCreditCardStatement(String alias, Runnable refresh) {
-        CreditCardStatement statement = creditCardStatementRepository.createManual(alias, LocalDate.now());
-        showCreditCardPeriodDialog(List.of(statement), refresh);
-    }
-
-    private void addManualCreditCardMovement(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> table) {
-        long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
-        CreditCardTransaction movement = creditCardTransactionRepository.createManual(statementId, LocalDate.now());
-        table.getItems().add(movement);
-        table.getSelectionModel().select(movement);
-    }
-
-    private void saveVisibleCardStatements(TableView<CreditCardStatement> statements, Runnable refresh) {
-        creditCardStatementRepository.saveVisible(statements.getItems());
-        refresh.run();
-        alert(Alert.AlertType.INFORMATION, "Resumen guardado", "Resumen visible guardado con su estado actual.");
-    }
-
-    private void saveVisibleCardMovements(TableView<CreditCardStatement> statements, TableView<CreditCardTransaction> movements, Runnable refresh) {
-        long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
-        creditCardTransactionRepository.saveVisible(statementId, movements.getItems());
-        refresh.run();
-        alert(Alert.AlertType.INFORMATION, "Movimientos guardados", "Movimientos visibles guardados con su estado actual.");
-    }
-
-    private void showCreditCardTransactionDialog(CreditCardStatement statement, Runnable refresh) {
-        if (statement == null || statement.getId() <= 0) {
-            alert(Alert.AlertType.WARNING, "Resumen sin guardar", "Guarda primero el resumen de la tarjeta antes de añadir movimientos.");
-            return;
-        }
-        new CardTransactionDialogView().show(statement).ifPresent(form -> {
-            if (form.transactionDate() == null || form.postDate() == null || form.description().isBlank()) {
-                alert(Alert.AlertType.WARNING, "Movimiento incompleto", "Indica fecha, posteo y descripción.");
-                return;
-            }
-            CreditCardTransaction movement = new CreditCardTransaction(
-                0,
-                statement.getId(),
-                form.transactionDate(),
-                form.postDate(),
-                form.description().trim(),
-                Money.parse(form.amount()),
-                form.type().isBlank() ? "gasto" : form.type().trim(),
-                form.category().isBlank() ? "manual" : form.category().trim()
-            );
-            movement.setPendingReview(!form.reviewed());
-            movement.setReviewRequired(!form.reviewed());
-            movement.setReviewNotes(form.notes());
-            movement.setId(creditCardTransactionRepository.save(statement.getId(), movement));
-            refresh.run();
-        });
     }
 
     private void showCreditCardAnalysis(String alias) {
@@ -1180,7 +1138,7 @@ public class AppView {
 
             @Override
             public void edit(CreditCardStatement current) {
-                showCreditCardPeriodDialog(List.of(current), this::refreshAll);
+                cardEditWorkflow().showPeriodDialog(List.of(current), this::refreshAll);
             }
 
             @Override
@@ -3419,60 +3377,6 @@ public class AppView {
             mortgageTransactionRepository.findByLoan(alias, year, month)
         );
         alert(Alert.AlertType.INFORMATION, "Exportacion lista", "Se descargo el resumen mensual de hipoteca.");
-    }
-
-    private void showCreditCardPeriodDialog(List<CreditCardStatement> statements, Runnable refresh) {
-        if (statements.isEmpty()) {
-            alert(Alert.AlertType.INFORMATION, "Sin resumen", "No hay resumen de tarjeta para editar en este mes.");
-            return;
-        }
-        new CardPeriodEditDialogView().show(statements, this::cardStatementTitle).ifPresent(form -> {
-            CreditCardStatement selected = form.statement();
-            if (selected == null) {
-                return;
-            }
-            if (form.start() == null || form.end() == null) {
-                alert(Alert.AlertType.WARNING, "Periodo incompleto", "Indica fecha Desde y Hasta para el resumen de tarjeta.");
-                return;
-            }
-            if (form.start().isAfter(form.end())) {
-                alert(Alert.AlertType.WARNING, "Periodo no valido", "La fecha Desde no puede ser posterior a Hasta.");
-                return;
-            }
-            try {
-                selected.setStatementStartDate(form.start());
-                selected.setStatementEndDate(form.end());
-                selected.setPaymentDueDate(form.due());
-                selected.setNextClosingDate(form.nextClosing());
-                selected.setPreviousBalance(Money.parse(form.previous()));
-                selected.setPayments(Money.parse(form.payments()));
-                selected.setOtherCredits(Money.parse(form.credits()));
-                selected.setTransactions(Money.parse(form.purchases()));
-                selected.setBalanceTransfers(Money.parse(form.transfers()));
-                selected.setCashAdvances(Money.parse(form.cash()));
-                selected.setFeesCharged(Money.parse(form.fees()));
-                selected.setInterestCharged(Money.parse(form.interest()));
-                selected.setNewBalance(Money.parse(form.newBalance()));
-                selected.setMinimumPaymentDue(Money.parse(form.minimum()));
-                selected.setCreditLimit(Money.parse(form.limit()));
-                selected.setAvailableCredit(Money.parse(form.available()));
-                selected.setCashAdvanceLimit(Money.parse(form.cashLimit()));
-                selected.setAvailableCashAdvanceCredit(Money.parse(form.cashAvailable()));
-                selected.setRewardsBalance(Money.parse(form.rewardsBalance()));
-                selected.setRewardsPreviousBalance(Money.parse(form.rewardsPrevious()));
-                selected.setRewardsEarned(Money.parse(form.rewardsEarned()));
-                selected.setRewardsRedeemed(Money.parse(form.rewardsRedeemed()));
-                selected.setPendingReview(!form.reviewed());
-                selected.setReviewRequired(!form.reviewed());
-                selected.setReviewNotes(form.notes());
-                if (selected.getId() > 0) {
-                    creditCardStatementRepository.updateRecord(selected);
-                }
-                refresh.run();
-            } catch (RuntimeException exception) {
-                alert(Alert.AlertType.ERROR, "No se pudieron editar los datos", rootCauseMessage(exception));
-            }
-        });
     }
 
     private List<BankPeriodSummary> bankPeriodSummaries(String accountAliasFilter) {
