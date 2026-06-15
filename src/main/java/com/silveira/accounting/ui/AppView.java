@@ -61,7 +61,7 @@ import com.silveira.accounting.ui.card.CardAccountsHubView;
 import com.silveira.accounting.ui.card.CardEditWorkflow;
 import com.silveira.accounting.ui.card.CardPeriodWorkflow;
 import com.silveira.accounting.ui.card.CardShellWorkflow;
-import com.silveira.accounting.ui.card.CardStatementCardCoordinator;
+import com.silveira.accounting.ui.card.CardStatementCardsWorkflow;
 import com.silveira.accounting.ui.card.CardStatementTableView;
 import com.silveira.accounting.ui.card.CardTransactionTableView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
@@ -1019,7 +1019,7 @@ public class AppView {
                 this::cardAccumulatedTotalsNodes,
                 this::cardPeriodActivityTotalsNodes,
                 cardPeriodWorkflow()::build,
-                this::refreshCreditCardStatementCards,
+                cardStatementCardsWorkflow()::refresh,
                 this::importCreditCardPdf,
                 this::showCreditCardAnalysis,
                 cardEditWorkflow()::addManualStatement,
@@ -1048,7 +1048,7 @@ public class AppView {
                 this::selectedYear,
                 this::selectedMonth,
                 this::cardAccumulatedTotalsNodes,
-                this::refreshCreditCardStatementCards,
+                cardStatementCardsWorkflow()::refresh,
                 this::confirm,
                 this::chooseExcel,
                 this::safeFileName,
@@ -1069,6 +1069,18 @@ public class AppView {
         );
     }
 
+    private CardStatementCardsWorkflow cardStatementCardsWorkflow() {
+        return new CardStatementCardsWorkflow(
+            creditCardReviews,
+            creditCardTransactionRepository,
+            cardEditWorkflow(),
+            new CardStatementCardsWorkflow.Config(
+                this::cardStatementTitle,
+                () -> showCardMovementsTabAction
+            )
+        );
+    }
+
     private void importCreditCardPdf(String alias) {
         new CardImportWorkflow(creditCardImports, new CardImportWorkflow.Config(
             this::choosePdf,
@@ -1082,13 +1094,6 @@ public class AppView {
 
     private void showCreditCardAnalysis(String alias) {
         setPage(new CardAnalysisView().build(alias, creditCardStatementRepository.analysis(alias), () -> showCardAccount(alias)));
-    }
-
-    private void refreshCreditCardStatementCards(TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        cards.getChildren().clear();
-        for (CreditCardStatement statement : table.getItems()) {
-            cards.getChildren().add(horizontalStatementScroll(editableCreditCardStatementCard(statement, table, cards, refreshTotals)));
-        }
     }
 
     private List<CreditCardTransaction> visibleCardMovements(String alias, Integer year, Integer month) {
@@ -1107,80 +1112,6 @@ public class AppView {
         scroll.setPannable(true);
         scroll.setMaxWidth(Double.MAX_VALUE);
         return scroll;
-    }
-
-    private VBox editableCreditCardStatementCard(CreditCardStatement statement, TableView<CreditCardStatement> table, VBox cards, Runnable refreshTotals) {
-        return new CardStatementCardCoordinator().build(statement, new CardStatementCardCoordinator.Actions() {
-            @Override
-            public boolean isFieldReviewed(CreditCardStatement current, String fieldName, boolean defaultReviewed) {
-                return creditCardReviews.isFieldReviewed(current, fieldName, defaultReviewed);
-            }
-
-            @Override
-            public void updateFieldReview(CreditCardStatement current, String fieldName, boolean reviewed, List<String> fieldKeys) {
-                creditCardReviews.updateField(current, fieldName, reviewed, fieldKeys);
-            }
-
-            @Override
-            public void updateAllFieldReviews(CreditCardStatement current, List<String> fieldKeys, boolean reviewed) {
-                creditCardReviews.updateAllFields(current, fieldKeys, reviewed);
-            }
-
-            @Override
-            public void updateMovementReview(CreditCardTransaction transaction, boolean reviewed) {
-                creditCardReviews.updateMovement(transaction, reviewed);
-            }
-
-            @Override
-            public List<CreditCardTransaction> transactionsFor(CreditCardStatement current) {
-                return creditCardTransactionRepository.findByStatement(current);
-            }
-
-            @Override
-            public void edit(CreditCardStatement current) {
-                cardEditWorkflow().showPeriodDialog(List.of(current), this::refreshAll);
-            }
-
-            @Override
-            public void select(CreditCardStatement current) {
-                table.getSelectionModel().select(current);
-            }
-
-            @Override
-            public String title(CreditCardStatement current) {
-                return cardStatementTitle(current);
-            }
-
-            @Override
-            public void showMovements() {
-                showCardMovementsTabAction.run();
-            }
-
-            @Override
-            public void refreshAll() {
-                table.refresh();
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            }
-
-            @Override
-            public void refreshTableAndTotals() {
-                table.refresh();
-                refreshTotals.run();
-            }
-
-            @Override
-            public void refreshTotalsThenTable() {
-                refreshTotals.run();
-                table.refresh();
-            }
-
-            @Override
-            public void refreshTotalsAndCards() {
-                refreshTotals.run();
-                refreshCreditCardStatementCards(table, cards, refreshTotals);
-            }
-        });
     }
 
     private String cardStatementTitle(CreditCardStatement statement) {
