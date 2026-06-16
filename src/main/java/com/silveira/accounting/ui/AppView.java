@@ -64,6 +64,7 @@ import com.silveira.accounting.ui.card.CardTableFactory;
 import com.silveira.accounting.ui.card.CardTotalsView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.HouseExpensePageView;
+import com.silveira.accounting.ui.mortgage.MortgageHubWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageAnalysisPageView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageTableFactory;
@@ -1165,32 +1166,21 @@ public class AppView {
     }
 
     private void showMortgages() {
-        List<String> aliases = mortgageApplication.statements().findLoanAliases();
-        Button add = new Button("+ Anadir hipoteca");
-        add.getStyleClass().add("primary");
-        add.setOnAction(event -> showAddMortgageLoan());
-        Button houseExpenses = new Button("Casa - Gastos");
-        houseExpenses.setOnAction(event -> showHouseExpenses());
-        HBox actions = new HBox(10, add, houseExpenses);
-        HBox cards = new HBox(14);
-        cards.getStyleClass().add("monthly-card-row");
-        for (String alias : aliases) {
-            VBox card = monthlyActionCard(alias, "Statements: " + mortgageApplication.statements().findByLoan(alias, null, null).size(), "", "", "", () -> showMortgageDetail(alias));
-            card.getStyleClass().add("monthly-card");
-            cards.getChildren().add(card);
-        }
-        setDarkHubPage("Hipotecas", cards, actions);
+        mortgageHubWorkflow().showMortgages();
     }
 
-    private void showAddMortgageLoan() {
-        Optional<String> alias = promptText("Nueva hipoteca", "Alias de la hipoteca");
-        if (alias.isEmpty() || alias.get().isBlank()) {
-            return;
-        }
-        String value = alias.get().trim();
-        mortgageApplication.statements().saveLoan(value, "", "", "", "");
-        rebuildSidebar();
-        showMortgageDetail(value);
+    private MortgageHubWorkflow mortgageHubWorkflow() {
+        return new MortgageHubWorkflow(
+            mortgageApplication,
+            new MortgageHubWorkflow.Config(
+                this::promptText,
+                this::rebuildSidebar,
+                this::showMortgageDetail,
+                this::showHouseExpenses,
+                this::monthlyActionCard,
+                this::setDarkHubPage
+            )
+        );
     }
 
     private void showMortgageDetail(String alias) {
