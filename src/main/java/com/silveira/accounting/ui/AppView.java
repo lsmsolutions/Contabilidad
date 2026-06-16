@@ -7,6 +7,7 @@ import com.silveira.accounting.application.card.service.CardImportApplicationSer
 import com.silveira.accounting.application.card.service.CardReviewApplicationService;
 import com.silveira.accounting.application.card.service.CardStatementApplicationService;
 import com.silveira.accounting.application.card.service.CardTransactionApplicationService;
+import com.silveira.accounting.application.mortgage.MortgageApplicationService;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.models.bank.BankAccount;
@@ -245,12 +246,8 @@ public class AppView {
     private final CardTransactionApplicationService creditCardTransactionRepository;
     private final CardImportApplicationService creditCardImports;
     private final CardReviewApplicationService creditCardReviews;
-    private final HouseExpenseRepository houseExpenseRepository;
     private final InternalMovementRepository internalMovementRepository;
-    private final MortgageStatementRepository mortgageStatementRepository;
-    private final MortgageStatementFieldReviewRepository mortgageStatementFieldReviewRepository;
-    private final MortgageTransactionRepository mortgageTransactionRepository;
-    private final MortgageAlertRepository mortgageAlertRepository;
+    private final MortgageApplicationService mortgageApplication;
     private final NylMonthlyResultRepository nylMonthlyResultRepository;
     private final NylRecordRepository nylRepository;
     private final ReconciliationRepository reconciliationRepository;
@@ -294,12 +291,14 @@ public class AppView {
         creditCardTransactionRepository = cards.transactions();
         creditCardImports = cards.imports();
         creditCardReviews = cards.reviews();
-        houseExpenseRepository = new HouseExpenseRepository(databaseManager);
         internalMovementRepository = new InternalMovementRepository(databaseManager);
-        mortgageStatementRepository = new MortgageStatementRepository(databaseManager);
-        mortgageStatementFieldReviewRepository = new MortgageStatementFieldReviewRepository(databaseManager);
-        mortgageTransactionRepository = new MortgageTransactionRepository(databaseManager);
-        mortgageAlertRepository = new MortgageAlertRepository(databaseManager);
+        mortgageApplication = new MortgageApplicationService(
+            new MortgageStatementRepository(databaseManager),
+            new MortgageTransactionRepository(databaseManager),
+            new MortgageAlertRepository(databaseManager),
+            new MortgageStatementFieldReviewRepository(databaseManager),
+            new HouseExpenseRepository(databaseManager)
+        );
         nylMonthlyResultRepository = new NylMonthlyResultRepository(databaseManager);
         nylRepository = new NylRecordRepository(databaseManager);
         reconciliationRepository = new ReconciliationRepository(databaseManager);
@@ -339,7 +338,7 @@ public class AppView {
         }
         VBox mortgageSubmenu = new VBox(4);
         mortgageSubmenu.getStyleClass().add("submenu");
-        for (String alias : mortgageStatementRepository.findLoanAliases()) {
+        for (String alias : mortgageApplication.statements().findLoanAliases()) {
             mortgageSubmenu.getChildren().add(subnav(alias, () -> showMortgageDetail(alias)));
         }
         mortgageSubmenu.getChildren().add(subnav("Casa - Gastos", this::showHouseExpenses));
@@ -770,7 +769,7 @@ public class AppView {
     private VBox dashboardMortgageDebtPanel() {
         Label title = new Label("Deuda hipoteca Casa");
         title.getStyleClass().add("dashboard-panel-title");
-        List<MortgageStatement> statements = mortgageStatementRepository.findByLoan("CasaH", null, null).stream()
+        List<MortgageStatement> statements = mortgageApplication.statements().findByLoan("CasaH", null, null).stream()
             .filter(statement -> !statement.isPendingReview())
             .sorted(Comparator.comparing(MortgageStatement::getStatementDate, Comparator.nullsLast(LocalDate::compareTo)))
             .toList();
@@ -1163,7 +1162,7 @@ public class AppView {
     }
 
     private void showMortgages() {
-        List<String> aliases = mortgageStatementRepository.findLoanAliases();
+        List<String> aliases = mortgageApplication.statements().findLoanAliases();
         Button add = new Button("+ Anadir hipoteca");
         add.getStyleClass().add("primary");
         add.setOnAction(event -> showAddMortgageLoan());
@@ -1173,7 +1172,7 @@ public class AppView {
         HBox cards = new HBox(14);
         cards.getStyleClass().add("monthly-card-row");
         for (String alias : aliases) {
-            VBox card = monthlyActionCard(alias, "Statements: " + mortgageStatementRepository.findByLoan(alias, null, null).size(), "", "", "", () -> showMortgageDetail(alias));
+            VBox card = monthlyActionCard(alias, "Statements: " + mortgageApplication.statements().findByLoan(alias, null, null).size(), "", "", "", () -> showMortgageDetail(alias));
             card.getStyleClass().add("monthly-card");
             cards.getChildren().add(card);
         }
@@ -1186,7 +1185,7 @@ public class AppView {
             return;
         }
         String value = alias.get().trim();
-        mortgageStatementRepository.saveLoan(value, "", "", "", "");
+        mortgageApplication.statements().saveLoan(value, "", "", "", "");
         rebuildSidebar();
         showMortgageDetail(value);
     }
@@ -1200,8 +1199,8 @@ public class AppView {
         statementSummaries.getStyleClass().add("statement-card-list");
         Runnable refreshTotals = () -> totals.getChildren().setAll(mortgageTotalsNodes(statements.getItems(), movements.getItems()));
         Runnable refresh = () -> {
-            statements.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, selectedYear(), selectedMonth())));
-            movements.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, selectedYear(), selectedMonth())));
+            statements.setItems(FXCollections.observableArrayList(mortgageApplication.statements().findByLoan(alias, selectedYear(), selectedMonth())));
+            movements.setItems(FXCollections.observableArrayList(mortgageApplication.transactions().findByLoan(alias, selectedYear(), selectedMonth())));
             refreshTotals.run();
             refreshMortgageStatementSummaries(statements, statementSummaries, refreshTotals);
         };
@@ -1260,7 +1259,7 @@ public class AppView {
         VBox summary = new MortgageStatementSummaryView().build(
             statement,
             mortgageTransactionsForStatement(statement),
-            fieldName -> mortgageStatementFieldReviewRepository.isReviewed(statement.getId(), fieldName, !statement.isPendingReview()),
+            fieldName -> mortgageApplication.fieldReviews().isReviewed(statement.getId(), fieldName, !statement.isPendingReview()),
             (fieldName, reviewed) -> {
                 updateMortgageStatementFieldReview(statement, fieldName, reviewed);
                 table.refresh();
@@ -1298,7 +1297,7 @@ public class AppView {
                     return;
                 }
                 if (statement.getId() > 0) {
-                    mortgageStatementRepository.delete(statement.getId());
+                    mortgageApplication.statements().delete(statement.getId());
                 }
                 showMortgageDetail(statement.getLoanAlias());
             }
@@ -1311,7 +1310,7 @@ public class AppView {
         if (statement.getId() <= 0 || statement.getStatementDate() == null) {
             return List.of();
         }
-        return mortgageTransactionRepository
+        return mortgageApplication.transactions()
             .findByLoan(statement.getLoanAlias(), statement.getStatementDate().getYear(), statement.getStatementDate().getMonthValue())
             .stream()
             .filter(transaction -> transaction.getStatementId() == statement.getId())
@@ -1373,7 +1372,7 @@ public class AppView {
             }
         }
         if (statement.getId() > 0) {
-            mortgageStatementRepository.updateRecord(statement);
+            mortgageApplication.statements().updateRecord(statement);
         }
     }
 
@@ -1392,22 +1391,22 @@ public class AppView {
             }
         }
         if (transaction.getId() > 0) {
-            mortgageTransactionRepository.update(transaction);
+            mortgageApplication.transactions().update(transaction);
         }
     }
 
     private void updateMortgageStatementFieldReview(MortgageStatement statement, String fieldName, boolean reviewed) {
-        if (!mortgageStatementFieldReviewRepository.hasReviews(statement.getId())) {
-            mortgageStatementFieldReviewRepository.setReviewed(statement.getId(), mortgageStatementFieldKeys(), !statement.isPendingReview());
+        if (!mortgageApplication.fieldReviews().hasReviews(statement.getId())) {
+            mortgageApplication.fieldReviews().setReviewed(statement.getId(), mortgageStatementFieldKeys(), !statement.isPendingReview());
         }
-        mortgageStatementFieldReviewRepository.setReviewed(statement.getId(), fieldName, reviewed);
+        mortgageApplication.fieldReviews().setReviewed(statement.getId(), fieldName, reviewed);
         boolean allReviewed = mortgageStatementFieldKeys().stream()
-            .allMatch(key -> mortgageStatementFieldReviewRepository.isReviewed(statement.getId(), key, !statement.isPendingReview()));
+            .allMatch(key -> mortgageApplication.fieldReviews().isReviewed(statement.getId(), key, !statement.isPendingReview()));
         updateMortgageStatementReview(statement, allReviewed);
     }
 
     private void updateAllMortgageStatementFieldReviews(MortgageStatement statement, boolean reviewed) {
-        mortgageStatementFieldReviewRepository.setReviewed(statement.getId(), mortgageStatementFieldKeys(), reviewed);
+        mortgageApplication.fieldReviews().setReviewed(statement.getId(), mortgageStatementFieldKeys(), reviewed);
     }
 
     private void updateMortgageStatementReview(MortgageStatement statement, boolean reviewed) {
@@ -1419,7 +1418,7 @@ public class AppView {
             statement.setReviewNotes("Revisar contra el PDF original");
         }
         if (statement.getId() > 0) {
-            mortgageStatementRepository.updateRecord(statement);
+            mortgageApplication.statements().updateRecord(statement);
         }
     }
 
@@ -1432,7 +1431,7 @@ public class AppView {
             transaction.setReviewNotes("Revisar contra el PDF original");
         }
         if (transaction.getId() > 0) {
-            mortgageTransactionRepository.update(transaction);
+            mortgageApplication.transactions().update(transaction);
         }
     }
 
@@ -1445,9 +1444,9 @@ public class AppView {
             var parsed = mortgageImportService.importPdf(file.toPath());
             MortgageStatement statement = parsed.statement();
             statement.setLoanAlias(alias);
-            long statementId = mortgageStatementRepository.save(statement);
-            mortgageTransactionRepository.saveAll(statementId, parsed.transactions());
-            mortgageAlertRepository.saveAll(statementId, mortgageAnalysisService.analyze(statement).alerts());
+            long statementId = mortgageApplication.statements().save(statement);
+            mortgageApplication.transactions().saveAll(statementId, parsed.transactions());
+            mortgageApplication.alerts().saveAll(statementId, mortgageAnalysisService.analyze(statement).alerts());
             if (statement.getStatementDate() != null) {
                 selectedYearValue = statement.getStatementDate().getYear();
                 selectedMonthValue = statement.getStatementDate().getMonthValue();
@@ -1474,7 +1473,7 @@ public class AppView {
 
     private void updateMortgageTransactionIfSaved(MortgageTransaction movement) {
         if (movement.getId() > 0) {
-            mortgageTransactionRepository.update(movement);
+            mortgageApplication.transactions().update(movement);
         }
     }
 
@@ -1529,7 +1528,7 @@ public class AppView {
             statement.setPastPaidEscrowSinceLastStatement(Money.parse(paidEscrow.getText()));
             statement.setPastPaidTotalSinceLastStatement(Money.parse(paidTotal.getText()));
             if (statement.getId() > 0) {
-                mortgageStatementRepository.updateRecord(statement);
+                mortgageApplication.statements().updateRecord(statement);
             }
             refresh.run();
         });
@@ -1593,15 +1592,15 @@ public class AppView {
     private void saveVisibleMortgageRows(TableView<MortgageStatement> statements, TableView<MortgageTransaction> movements, Runnable refresh) {
         for (MortgageStatement statement : statements.getItems()) {
             if (statement.getId() > 0) {
-                mortgageStatementRepository.updateRecord(statement);
+                mortgageApplication.statements().updateRecord(statement);
             } else {
-                statement.setId(mortgageStatementRepository.save(statement));
+                statement.setId(mortgageApplication.statements().save(statement));
             }
         }
         for (MortgageTransaction movement : movements.getItems()) {
             long statementId = statements.getItems().isEmpty() ? 0 : statements.getItems().get(0).getId();
             if (movement.getId() <= 0 && statementId > 0) {
-                movement.setId(mortgageTransactionRepository.save(statementId, movement));
+                movement.setId(mortgageApplication.transactions().save(statementId, movement));
             }
         }
         refresh.run();
@@ -1609,7 +1608,7 @@ public class AppView {
     }
 
     private void showMortgageAnalysis(String alias) {
-        List<MortgageStatement> statements = mortgageStatementRepository.findByLoan(alias, null, null).stream()
+        List<MortgageStatement> statements = mortgageApplication.statements().findByLoan(alias, null, null).stream()
             .filter(statement -> statement.getStatementDate() != null)
             .sorted(Comparator.comparing(MortgageStatement::getStatementDate))
             .toList();
@@ -1696,7 +1695,7 @@ public class AppView {
         Map<Long, String> originalRows = new HashMap<>();
         TableView<HouseExpense> table = houseExpenseTable(null, originalRows);
         Runnable refresh = () -> {
-            table.setItems(FXCollections.observableArrayList(houseExpenseRepository.findByLoan(null, null, null)));
+            table.setItems(FXCollections.observableArrayList(mortgageApplication.houseExpenses().findByLoan(null, null, null)));
             captureHouseExpenseRows(table, originalRows);
         };
         refresh.run();
@@ -2019,9 +2018,9 @@ public class AppView {
         cards.getStyleClass().add("monthly-card-row");
         int year = selectedYear() == null ? LocalDate.now().getYear() : selectedYear();
         int month = selectedMonth() == null ? LocalDate.now().getMonthValue() : selectedMonth();
-        for (String alias : mortgageStatementRepository.findLoanAliases()) {
-            List<MortgageStatement> statements = mortgageStatementRepository.findByLoan(alias, year, month);
-            List<MortgageTransaction> movements = mortgageTransactionRepository.findByLoan(alias, year, month);
+        for (String alias : mortgageApplication.statements().findLoanAliases()) {
+            List<MortgageStatement> statements = mortgageApplication.statements().findByLoan(alias, year, month);
+            List<MortgageTransaction> movements = mortgageApplication.transactions().findByLoan(alias, year, month);
             double totalDue = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(s -> s.getTotalDue() > 0 ? s.getTotalDue() : s.getPaymentAmountDue()).sum();
             double principal = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getPrincipalDue).sum();
             double interest = statements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getInterestDue).sum();
@@ -3151,16 +3150,16 @@ public class AppView {
         cards.getStyleClass().add("monthly-card-row");
 
         VBox general = monthlyActionCard("General", "Ver todos", "", "", "", () -> {
-            table.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, selectedYear(), null)));
-            movementTable.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, selectedYear(), null)));
+            table.setItems(FXCollections.observableArrayList(mortgageApplication.statements().findByLoan(alias, selectedYear(), null)));
+            movementTable.setItems(FXCollections.observableArrayList(mortgageApplication.transactions().findByLoan(alias, selectedYear(), null)));
             totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems()));
             refreshMortgageStatementSummaries(table, statementSummaries, () -> totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems())));
         });
         general.getStyleClass().add("monthly-card-general");
         cards.getChildren().add(general);
 
-        for (MonthlySourceTotals total : mortgageStatementRepository.monthlyTotals(alias, null)) {
-            List<MortgageStatement> monthStatements = mortgageStatementRepository.findByLoan(alias, total.year(), total.month());
+        for (MonthlySourceTotals total : mortgageApplication.statements().monthlyTotals(alias, null)) {
+            List<MortgageStatement> monthStatements = mortgageApplication.statements().findByLoan(alias, total.year(), total.month());
             VBox card = monthlyActionCard(
                 monthName(total.month()) + " " + total.year(),
                 "Principal: " + Money.format(mortgagePaidPrincipal(monthStatements)),
@@ -3168,8 +3167,8 @@ public class AppView {
                 "Escrow: " + Money.format(mortgagePaidEscrow(monthStatements)),
                 "Deuda pendiente: " + Money.format(mortgageOutstandingPrincipal(monthStatements)),
                 () -> {
-                    table.setItems(FXCollections.observableArrayList(mortgageStatementRepository.findByLoan(alias, total.year(), total.month())));
-                    movementTable.setItems(FXCollections.observableArrayList(mortgageTransactionRepository.findByLoan(alias, total.year(), total.month())));
+                    table.setItems(FXCollections.observableArrayList(mortgageApplication.statements().findByLoan(alias, total.year(), total.month())));
+                    movementTable.setItems(FXCollections.observableArrayList(mortgageApplication.transactions().findByLoan(alias, total.year(), total.month())));
                     totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems()));
                     refreshMortgageStatementSummaries(table, statementSummaries, () -> totalsPanel.getChildren().setAll(mortgageTotalsNodes(table.getItems(), movementTable.getItems())));
                 }
@@ -3219,8 +3218,8 @@ public class AppView {
         }
         excelExportService.exportMortgageMonthly(
             target.toPath(),
-            mortgageStatementRepository.findByLoan(alias, year, month),
-            mortgageTransactionRepository.findByLoan(alias, year, month)
+            mortgageApplication.statements().findByLoan(alias, year, month),
+            mortgageApplication.transactions().findByLoan(alias, year, month)
         );
         alert(Alert.AlertType.INFORMATION, "Exportacion lista", "Se descargo el resumen mensual de hipoteca.");
     }
@@ -3395,14 +3394,14 @@ public class AppView {
     }
 
     private List<MortgageStatement> allMortgageStatements(int year, int month) {
-        return mortgageStatementRepository.findLoanAliases().stream()
-            .flatMap(alias -> mortgageStatementRepository.findByLoan(alias, year, month).stream())
+        return mortgageApplication.statements().findLoanAliases().stream()
+            .flatMap(alias -> mortgageApplication.statements().findByLoan(alias, year, month).stream())
             .toList();
     }
 
     private List<MortgageTransaction> allMortgageTransactions(int year, int month) {
-        return mortgageStatementRepository.findLoanAliases().stream()
-            .flatMap(alias -> mortgageTransactionRepository.findByLoan(alias, year, month).stream())
+        return mortgageApplication.statements().findLoanAliases().stream()
+            .flatMap(alias -> mortgageApplication.transactions().findByLoan(alias, year, month).stream())
             .toList();
     }
 
@@ -3565,7 +3564,7 @@ public class AppView {
                 button.setOnAction(event -> {
                     MortgageStatement statement = getTableView().getItems().get(getIndex());
                     if (statement.getId() > 0) {
-                        mortgageStatementRepository.delete(statement.getId());
+                        mortgageApplication.statements().delete(statement.getId());
                     }
                     getTableView().getItems().remove(statement);
                 });
@@ -3678,7 +3677,7 @@ public class AppView {
                 delete.setOnAction(event -> {
                     MortgageTransaction movement = getTableView().getItems().get(getIndex());
                     if (movement.getId() > 0) {
-                        mortgageTransactionRepository.delete(movement.getId());
+                        mortgageApplication.transactions().delete(movement.getId());
                     }
                     getTableView().getItems().remove(movement);
                 });
@@ -3840,7 +3839,7 @@ public class AppView {
                     HouseExpense expense = getTableView().getItems().get(getIndex());
                     if (expense.getId() > 0) {
                         deleteHouseExpenseDocumentFile(expense);
-                        houseExpenseRepository.delete(expense.getId());
+                        mortgageApplication.houseExpenses().delete(expense.getId());
                         originalRows.remove(expense.getId());
                     }
                     getTableView().getItems().remove(expense);
@@ -4016,10 +4015,10 @@ public class AppView {
 
     private void saveHouseExpense(HouseExpense expense) {
         if (expense.getId() == 0) {
-            long id = houseExpenseRepository.save(expense);
+            long id = mortgageApplication.houseExpenses().save(expense);
             expense.setId(id);
         } else {
-            houseExpenseRepository.update(expense);
+            mortgageApplication.houseExpenses().update(expense);
         }
     }
 
@@ -4049,7 +4048,7 @@ public class AppView {
             deleteHouseExpenseDocumentFile(expense);
             expense.setDocumentPath(target.toString());
             expense.setDocumentName(originalName);
-            houseExpenseRepository.update(expense);
+            mortgageApplication.houseExpenses().update(expense);
             originalRows.put(expense.getId(), houseExpenseSnapshot(expense));
             refreshRowsChanged(rowsChanged);
         } catch (IOException | RuntimeException exception) {
@@ -4082,7 +4081,7 @@ public class AppView {
         expense.setDocumentPath(null);
         expense.setDocumentName(null);
         if (expense.getId() > 0) {
-            houseExpenseRepository.update(expense);
+            mortgageApplication.houseExpenses().update(expense);
             originalRows.put(expense.getId(), houseExpenseSnapshot(expense));
         }
         refreshRowsChanged(rowsChanged);
