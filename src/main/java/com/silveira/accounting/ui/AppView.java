@@ -64,6 +64,7 @@ import com.silveira.accounting.ui.card.CardTableFactory;
 import com.silveira.accounting.ui.card.CardTotalsView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.HouseExpensePageView;
+import com.silveira.accounting.ui.mortgage.MortgageAnalysisPageView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageTableFactory;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
@@ -775,7 +776,7 @@ public class AppView {
             .filter(statement -> !statement.isPendingReview())
             .sorted(Comparator.comparing(MortgageStatement::getStatementDate, Comparator.nullsLast(LocalDate::compareTo)))
             .toList();
-        LineChart<String, Number> chart = mortgageDebtChart(statements);
+        LineChart<String, Number> chart = mortgageAnalysisPageView().debtChart(statements);
         chart.setTitle("");
         chart.setAnimated(false);
         VBox panel = new VBox(8, title, chart);
@@ -1434,87 +1435,20 @@ public class AppView {
     }
 
     private void showMortgageAnalysis(String alias) {
-        List<MortgageStatement> statements = mortgageApplication.statements().findByLoan(alias, null, null).stream()
-            .filter(statement -> statement.getStatementDate() != null)
-            .sorted(Comparator.comparing(MortgageStatement::getStatementDate))
-            .toList();
-        List<MortgageStatement> source = mortgageReviewedOrAll(statements);
-        HBox totals = new HBox(12);
-        totals.getChildren().setAll(mortgageAnalysisTotalsNodes(source));
-        totals.getStyleClass().add("totals-panel");
-        setPage(page("Analisis de hipoteca - " + alias, backButton("Volver al detalle", () -> showMortgageDetail(alias)), totals, mortgageDebtChart(source), mortgagePaymentChart(source)));
+        MortgageAnalysisPageView.Content content = mortgageAnalysisPageView().build(alias);
+        setPage(page("Analisis de hipoteca - " + alias, backButton("Volver al detalle", () -> showMortgageDetail(alias)), content.totals(), content.debtChart(), content.paymentChart()));
     }
 
-    private LineChart<String, Number> mortgageDebtChart(List<MortgageStatement> statements) {
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Mes");
-        yAxis.setLabel("Deuda principal pendiente");
-        LineChart<String, Number> chart = new LineChart<>(xAxis, yAxis);
-        chart.setTitle("Evolucion de deuda pendiente");
-        chart.setLegendVisible(false);
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        List<Double> debtValues = new ArrayList<>();
-        double initialDebt = mortgageInitialDebt(statements);
-        double debt = initialDebt;
-        if (initialDebt > 0) {
-            series.getData().add(new XYChart.Data<>("Initial Debt", initialDebt));
-            debtValues.add(initialDebt);
-        }
-        for (MortgageStatement statement : statements) {
-            if (statement.getStatementDate() == null) {
-                continue;
-            }
-            debt -= statement.getPastPaidPrincipalSinceLastStatement();
-            double value = debt > 0 ? debt : statement.getOutstandingPrincipalBalance();
-            series.getData().add(new XYChart.Data<>(monthName(statement.getStatementDate().getMonthValue()) + " " + statement.getStatementDate().getYear(), value));
-            debtValues.add(value);
-        }
-        configureDebtAxis(yAxis, debtValues);
-        chart.getData().add(series);
-        chart.setMinHeight(320);
-        return chart;
-    }
-
-    private void configureDebtAxis(NumberAxis yAxis, List<Double> values) {
-        if (values.isEmpty()) {
-            return;
-        }
-        double min = values.stream().mapToDouble(Double::doubleValue).min().orElse(0);
-        double max = values.stream().mapToDouble(Double::doubleValue).max().orElse(0);
-        double spread = Math.max(max - min, Math.max(max * 0.002, 1000));
-        double padding = spread * 0.25;
-        yAxis.setAutoRanging(false);
-        yAxis.setLowerBound(Math.max(0, min - padding));
-        yAxis.setUpperBound(max + padding);
-        yAxis.setTickUnit(Math.max(100, spread / 5));
-    }
-
-    private StackedBarChart<String, Number> mortgagePaymentChart(List<MortgageStatement> statements) {
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Mes");
-        yAxis.setLabel("Importe");
-        StackedBarChart<String, Number> chart = new StackedBarChart<>(xAxis, yAxis);
-        chart.setTitle("Payment breakdown by month");
-        XYChart.Series<String, Number> principal = new XYChart.Series<>();
-        principal.setName("Principal");
-        XYChart.Series<String, Number> interest = new XYChart.Series<>();
-        interest.setName("Interest");
-        XYChart.Series<String, Number> escrow = new XYChart.Series<>();
-        escrow.setName("Escrow");
-        for (MortgageStatement statement : statements) {
-            if (statement.getStatementDate() == null) {
-                continue;
-            }
-            String label = monthName(statement.getStatementDate().getMonthValue()) + " " + statement.getStatementDate().getYear();
-            principal.getData().add(new XYChart.Data<>(label, statement.getPastPaidPrincipalSinceLastStatement()));
-            interest.getData().add(new XYChart.Data<>(label, statement.getPastPaidInterestSinceLastStatement()));
-            escrow.getData().add(new XYChart.Data<>(label, statement.getPastPaidEscrowSinceLastStatement()));
-        }
-        chart.getData().addAll(principal, interest, escrow);
-        chart.setMinHeight(340);
-        return chart;
+    private MortgageAnalysisPageView mortgageAnalysisPageView() {
+        return new MortgageAnalysisPageView(
+            mortgageApplication,
+            new MortgageAnalysisPageView.Config(
+                this::mortgageReviewedOrAll,
+                this::mortgageAnalysisTotalsNodes,
+                this::mortgageInitialDebt,
+                this::monthName
+            )
+        );
     }
 
     private void showHouseExpenses() {
