@@ -64,6 +64,7 @@ import com.silveira.accounting.ui.card.CardTableFactory;
 import com.silveira.accounting.ui.card.CardTotalsView;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryWorkflow;
+import com.silveira.accounting.ui.mortgage.MortgageTableFactory;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseHubView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseModule;
@@ -3352,209 +3353,24 @@ public class AppView {
     }
 
     private TableView<MortgageStatement> mortgageStatementTable() {
-        TableView<MortgageStatement> table = new TableView<>();
-        table.setEditable(true);
-        TableColumn<MortgageStatement, Integer> year = new TableColumn<>("Año");
-        year.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getStatementDate() == null ? 0 : data.getValue().getStatementDate().getYear()).asObject());
-        TableColumn<MortgageStatement, Integer> month = new TableColumn<>("Mes");
-        month.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().getStatementDate() == null ? 0 : data.getValue().getStatementDate().getMonthValue()).asObject());
-        TableColumn<MortgageStatement, String> statementDate = mortgageDateColumn("Statement Date\n(Fecha del estado)", MortgageStatement::getStatementDate, MortgageStatement::setStatementDate);
-        TableColumn<MortgageStatement, String> dueDate = mortgageDateColumn("Payment Due Date\n(Fecha límite de pago)", MortgageStatement::getPaymentDueDate, MortgageStatement::setPaymentDueDate);
-        TableColumn<MortgageStatement, Double> totalDue = mortgageMoneyColumn("Total Due\n(Deuda a pagar\neste mes)", s -> s.getTotalDue() > 0 ? s.getTotalDue() : s.getPaymentAmountDue(), MortgageStatement::setTotalDue);
-        TableColumn<MortgageStatement, Boolean> reviewed = mortgageStatementReviewedColumn();
-        TableColumn<MortgageStatement, Double> principal = mortgageMoneyColumn("Principal\n(Pago principal\nmensual)", MortgageStatement::getPrincipalDue, MortgageStatement::setPrincipalDue);
-        TableColumn<MortgageStatement, Double> interest = mortgageMoneyColumn("Interest\n(Intereses)", MortgageStatement::getInterestDue, MortgageStatement::setInterestDue);
-        TableColumn<MortgageStatement, Double> escrow = mortgageMoneyColumn("Escrow\n(Reserva impuestos/seguros)", MortgageStatement::getEscrowDue, MortgageStatement::setEscrowDue);
-        TableColumn<MortgageStatement, Double> fees = mortgageMoneyColumn("Fees\n(Cargos)", MortgageStatement::getFees, MortgageStatement::setFees);
-        TableColumn<MortgageStatement, Double> debt = mortgageMoneyColumn("Outstanding Principal\n(Deuda principal\npendiente)", MortgageStatement::getOutstandingPrincipalBalance, MortgageStatement::setOutstandingPrincipalBalance);
-        TableColumn<MortgageStatement, Double> original = mortgageMoneyColumn("Original Principal\n(Principal original)", MortgageStatement::getOriginalPrincipalBalance, MortgageStatement::setOriginalPrincipalBalance);
-        TableColumn<MortgageStatement, Double> rate = mortgageMoneyColumn("Interest Rate\n(Tasa de interés)", MortgageStatement::getInterestRate, MortgageStatement::setInterestRate);
-        TableColumn<MortgageStatement, String> maturity = mortgageDateColumn("Maturity Date\n(Fecha finalizacion)", MortgageStatement::getMaturityDate, MortgageStatement::setMaturityDate);
-        TableColumn<MortgageStatement, String> servicer = new TableColumn<>("Servicer\n(Entidad)");
-        servicer.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getServicerName()));
-        servicer.setCellFactory(TextFieldTableCell.forTableColumn());
-        servicer.setOnEditCommit(event -> event.getRowValue().setServicerName(event.getNewValue()));
-        TableColumn<MortgageStatement, String> status = new TableColumn<>("Revisión");
-        status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
-        TableColumn<MortgageStatement, String> notes = new TableColumn<>("Notas");
-        notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
-        notes.setCellFactory(TextFieldTableCell.forTableColumn());
-        notes.setOnEditCommit(event -> event.getRowValue().setReviewNotes(event.getNewValue()));
-        notes.setPrefWidth(240);
-        TableColumn<MortgageStatement, Void> delete = new TableColumn<>("Eliminar");
-        delete.setCellFactory(column -> new TableCell<>() {
-            private final Button button = new Button("Eliminar");
-            {
-                button.setOnAction(event -> {
-                    MortgageStatement statement = getTableView().getItems().get(getIndex());
-                    if (statement.getId() > 0) {
-                        mortgageApplication.statements().delete(statement.getId());
-                    }
-                    getTableView().getItems().remove(statement);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : button);
-            }
-        });
-        table.getColumns().setAll(year, month, statementDate, dueDate, totalDue, reviewed, principal, interest, escrow, fees, debt, original, rate, maturity, servicer, status, notes, delete);
-        return table;
-    }
-
-    private TableColumn<MortgageStatement, Boolean> mortgageStatementReviewedColumn() {
-        TableColumn<MortgageStatement, Boolean> reviewed = new TableColumn<>("Revisado");
-        reviewed.setCellValueFactory(data -> new SimpleBooleanProperty(!data.getValue().isPendingReview()).asObject());
-        reviewed.setCellFactory(column -> new TableCell<>() {
-            private final CheckBox checkBox = new CheckBox();
-            {
-                checkBox.setOnAction(event -> {
-                    MortgageStatement statement = getTableView().getItems().get(getIndex());
-                    boolean isReviewed = checkBox.isSelected();
-                    mortgageStatementSummaryWorkflow().updateStatementReview(statement, isReviewed);
-                    getTableView().refresh();
-                });
-            }
-
-            @Override
-            protected void updateItem(Boolean item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    checkBox.setSelected(Boolean.TRUE.equals(item));
-                    setGraphic(checkBox);
-                }
-            }
-        });
-        return reviewed;
-    }
-
-    private TableColumn<MortgageStatement, Double> mortgageMoneyColumn(String title, java.util.function.ToDoubleFunction<MortgageStatement> getter, java.util.function.BiConsumer<MortgageStatement, Double> setter) {
-        TableColumn<MortgageStatement, Double> column = new TableColumn<>(title);
-        column.setCellValueFactory(data -> new SimpleDoubleProperty(getter.applyAsDouble(data.getValue())).asObject());
-        column.setCellFactory(TextFieldTableCell.forTableColumn(twoDecimalConverter()));
-        column.setOnEditCommit(event -> setter.accept(event.getRowValue(), event.getNewValue()));
-        column.setPrefWidth(130);
-        return column;
-    }
-
-    private TableColumn<MortgageStatement, String> mortgageDateColumn(String title, java.util.function.Function<MortgageStatement, LocalDate> getter, java.util.function.BiConsumer<MortgageStatement, LocalDate> setter) {
-        TableColumn<MortgageStatement, String> column = new TableColumn<>(title);
-        column.setCellValueFactory(data -> new SimpleStringProperty(getter.apply(data.getValue()) == null ? "" : getter.apply(data.getValue()).toString()));
-        column.setCellFactory(TextFieldTableCell.forTableColumn());
-        column.setOnEditCommit(event -> setter.accept(event.getRowValue(), parseDateOrNull(event.getNewValue())));
-        column.setPrefWidth(120);
-        return column;
+        return mortgageTableFactory().statementTable();
     }
 
     private TableView<MortgageTransaction> mortgageTransactionTable() {
-        TableView<MortgageTransaction> table = new TableView<>();
-        table.setEditable(true);
-        TableColumn<MortgageTransaction, String> date = new TableColumn<>("Fecha");
-        date.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTransactionDate() == null ? "" : data.getValue().getTransactionDate().toString()));
-        date.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        date.setOnEditCommit(event -> {
-            event.getRowValue().setTransactionDate(parseDateOrNull(event.getNewValue()));
-            updateMortgageTransactionIfSaved(event.getRowValue());
-        });
-        TableColumn<MortgageTransaction, String> description = new TableColumn<>("Descripción");
-        description.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
-        description.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        description.setOnEditCommit(event -> {
-            event.getRowValue().setDescription(event.getNewValue());
-            updateMortgageTransactionIfSaved(event.getRowValue());
-        });
-        description.setPrefWidth(320);
-        TableColumn<MortgageTransaction, Double> total = mortgageTxMoneyColumn("Total\n(Total)", MortgageTransaction::getTotal, MortgageTransaction::setTotal);
-        TableColumn<MortgageTransaction, Boolean> reviewed = mortgageTransactionReviewedColumn();
-        TableColumn<MortgageTransaction, Double> principal = mortgageTxMoneyColumn("Principal\n(Pago principal\nmensual)", MortgageTransaction::getPrincipal, MortgageTransaction::setPrincipal);
-        TableColumn<MortgageTransaction, Double> interest = mortgageTxMoneyColumn("Interest\n(Intereses)", MortgageTransaction::getInterest, MortgageTransaction::setInterest);
-        TableColumn<MortgageTransaction, Double> escrow = mortgageTxMoneyColumn("Escrow\n(Reserva)", MortgageTransaction::getEscrow, MortgageTransaction::setEscrow);
-        TableColumn<MortgageTransaction, Double> fees = mortgageTxMoneyColumn("Fees\n(Cargos)", MortgageTransaction::getFees, MortgageTransaction::setFees);
-        TableColumn<MortgageTransaction, Double> unapplied = mortgageTxMoneyColumn("Unapplied\n(No aplicado)", MortgageTransaction::getUnapplied, MortgageTransaction::setUnapplied);
-        TableColumn<MortgageTransaction, Double> other = mortgageTxMoneyColumn("Other\n(Otros)", MortgageTransaction::getOther, MortgageTransaction::setOther);
-        TableColumn<MortgageTransaction, String> status = new TableColumn<>("Revisión");
-        status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
-        TableColumn<MortgageTransaction, String> notes = new TableColumn<>("Notas");
-        notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
-        notes.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
-        notes.setOnEditCommit(event -> {
-            event.getRowValue().setReviewNotes(event.getNewValue());
-            updateMortgageTransactionIfSaved(event.getRowValue());
-        });
-        notes.setPrefWidth(240);
-        TableColumn<MortgageTransaction, Void> actions = new TableColumn<>("Acciones");
-        actions.setPrefWidth(160);
-        actions.setCellFactory(column -> new TableCell<>() {
-            private final Button edit = new Button("Editar");
-            private final Button delete = new Button("Eliminar");
-            private final HBox buttons = new HBox(6, edit, delete);
-            {
-                edit.setOnAction(event -> {
-                    MortgageTransaction movement = getTableView().getItems().get(getIndex());
-                    showMortgageTransactionDialog(movement, () -> getTableView().refresh());
-                });
-                delete.getStyleClass().add("danger-button");
-                delete.setOnAction(event -> {
-                    MortgageTransaction movement = getTableView().getItems().get(getIndex());
-                    if (movement.getId() > 0) {
-                        mortgageApplication.transactions().delete(movement.getId());
-                    }
-                    getTableView().getItems().remove(movement);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : buttons);
-            }
-        });
-        table.getColumns().setAll(date, description, total, reviewed, principal, interest, escrow, fees, unapplied, other, status, notes, actions);
-        return table;
+        return mortgageTableFactory().transactionTable();
     }
 
-    private TableColumn<MortgageTransaction, Boolean> mortgageTransactionReviewedColumn() {
-        TableColumn<MortgageTransaction, Boolean> reviewed = new TableColumn<>("Revisado");
-        reviewed.setCellValueFactory(data -> new SimpleBooleanProperty(!data.getValue().isPendingReview()).asObject());
-        reviewed.setCellFactory(column -> new TableCell<>() {
-            private final CheckBox checkBox = new CheckBox();
-            {
-                checkBox.setOnAction(event -> {
-                    MortgageTransaction row = getTableView().getItems().get(getIndex());
-                    boolean isReviewed = checkBox.isSelected();
-                    mortgageStatementSummaryWorkflow().updateTransactionReview(row, isReviewed);
-                    getTableView().refresh();
-                });
-            }
-
-            @Override
-            protected void updateItem(Boolean item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    checkBox.setSelected(Boolean.TRUE.equals(item));
-                    setGraphic(checkBox);
-                }
-            }
-        });
-        return reviewed;
-    }
-
-    private TableColumn<MortgageTransaction, Double> mortgageTxMoneyColumn(String title, java.util.function.ToDoubleFunction<MortgageTransaction> getter, java.util.function.BiConsumer<MortgageTransaction, Double> setter) {
-        TableColumn<MortgageTransaction, Double> column = new TableColumn<>(title);
-        column.setCellValueFactory(data -> new SimpleDoubleProperty(getter.applyAsDouble(data.getValue())).asObject());
-        column.setCellFactory(commitOnFocusLostCellFactory(twoDecimalConverter()));
-        column.setOnEditCommit(event -> {
-            setter.accept(event.getRowValue(), event.getNewValue());
-            updateMortgageTransactionIfSaved(event.getRowValue());
-        });
-        column.setPrefWidth(110);
-        return column;
+    private MortgageTableFactory mortgageTableFactory() {
+        return new MortgageTableFactory(
+            mortgageApplication,
+            new MortgageTableFactory.Config(
+                (statement, reviewed) -> mortgageStatementSummaryWorkflow().updateStatementReview(statement, reviewed),
+                (transaction, reviewed) -> mortgageStatementSummaryWorkflow().updateTransactionReview(transaction, reviewed),
+                this::updateMortgageTransactionIfSaved,
+                this::showMortgageTransactionDialog,
+                () -> alert(Alert.AlertType.ERROR, "Valor no valido", "Revisa el valor introducido antes de guardar.")
+            )
+        );
     }
 
     private TableView<HouseExpense> houseExpenseTable(Runnable rowsChanged, Map<Long, String> originalRows) {
