@@ -67,8 +67,7 @@ public class HouseExpensePageView {
         refresh.run();
         Button add = new Button("Add expense");
         add.getStyleClass().add("primary");
-        add.setPrefWidth(150);
-        add.setMinWidth(150);
+        sizeActionButton(add);
         add.setOnAction(event -> {
             HouseExpense expense = new HouseExpense(0, "", LocalDate.now(), "Gasto manual", "", 0, "", "");
             table.getItems().add(expense);
@@ -76,22 +75,33 @@ public class HouseExpensePageView {
             refreshTotal[0].run();
         });
         Button save = new Button("Save changes");
-        save.setPrefWidth(150);
-        save.setMinWidth(150);
+        sizeActionButton(save);
         save.setOnAction(event -> saveHouseExpenseChanges(table, originalRows));
-        return new Content(new HBox(10, add, save, totalCard("Total expenses", totalValue)), table);
+        Region spacer = new Region();
+        spacer.setPrefWidth(12);
+        return new Content(new HBox(12, add, save, spacer, totalCard("Total expenses", totalValue)), table);
+    }
+
+    private void sizeActionButton(Button button) {
+        button.setMinWidth(188);
+        button.setPrefWidth(188);
+        button.setMaxWidth(188);
+        button.setMinHeight(42);
+        button.setPrefHeight(42);
     }
 
     private double totalHouseExpenses(TableView<HouseExpense> table) {
         return table.getItems().stream().mapToDouble(HouseExpense::getAmount).sum();
     }
 
-    private VBox totalCard(String title, Label totalValue) {
+    private HBox totalCard(String title, Label totalValue) {
         Label label = new Label(title);
         label.getStyleClass().add("mini-total-title");
         totalValue.getStyleClass().add("mini-total-value");
-        VBox box = new VBox(4, label, totalValue);
+        totalValue.setStyle("-fx-text-fill: #126ba3;");
+        HBox box = new HBox(16, label, totalValue);
         box.getStyleClass().addAll("mini-total", "expense-total");
+        box.setAlignment(Pos.CENTER_LEFT);
         return box;
     }
 
