@@ -100,7 +100,7 @@ public class HouseExpensePageView {
         totalValue.getStyleClass().add("mini-total-value");
         totalValue.setStyle("-fx-text-fill: #126ba3;");
         HBox box = new HBox(16, label, totalValue);
-        box.getStyleClass().addAll("mini-total", "expense-total");
+        box.getStyleClass().addAll("mini-total", "neutral-total");
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
     }
