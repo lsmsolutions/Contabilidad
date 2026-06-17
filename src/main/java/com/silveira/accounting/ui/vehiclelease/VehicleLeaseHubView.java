@@ -17,8 +17,8 @@ public class VehicleLeaseHubView {
 
     public VBox build(
         List<VehicleLeaseAccount> accounts,
-        Runnable importAction,
         Runnable addAccount,
+        Consumer<VehicleLeaseAccount> importAction,
         Consumer<VehicleLeaseAccount> editAccount,
         Consumer<VehicleLeaseAccount> deleteAccount,
         Consumer<String> openAccount
@@ -28,10 +28,7 @@ public class VehicleLeaseHubView {
         Button add = new Button("Add vehicle");
         add.getStyleClass().add("primary");
         add.setOnAction(event -> addAccount.run());
-        Button importPdf = new Button("Import PDF");
-        importPdf.getStyleClass().add("primary");
-        importPdf.setOnAction(event -> importAction.run());
-        HBox actions = new HBox(10, add, importPdf);
+        HBox actions = new HBox(10, add);
 
         FlowPane cards = new FlowPane(12, 12);
         cards.getStyleClass().add("monthly-card-row");
@@ -44,6 +41,11 @@ public class VehicleLeaseHubView {
             addLine(details, 1, "Account", ending(account.getAccountNumber()));
             addLine(details, 2, "VIN", text(account.getVin()));
             addLine(details, 3, "Maturity", account.getMaturityDate() == null ? "" : account.getMaturityDate().format(DATE));
+            Button importPdf = new Button("Import PDF");
+            importPdf.setOnAction(event -> {
+                event.consume();
+                importAction.accept(account);
+            });
             Button edit = new Button("Edit");
             edit.setOnAction(event -> {
                 event.consume();
@@ -55,7 +57,7 @@ public class VehicleLeaseHubView {
                 event.consume();
                 deleteAccount.accept(account);
             });
-            HBox cardActions = new HBox(8, edit, delete);
+            HBox cardActions = new HBox(8, importPdf, edit, delete);
             VBox card = new VBox(0, title, details, cardActions);
             card.getStyleClass().add("monthly-card");
             card.setOnMouseClicked(event -> openAccount.accept(account.getAlias()));

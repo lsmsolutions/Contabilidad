@@ -1094,8 +1094,8 @@ public class AppView {
     private void showVehicleLeases() {
         setPage(new VehicleLeaseHubView().build(
             vehicleLeaseModule.controller().accounts(),
-            () -> importVehicleLeasePdf(null),
             this::addVehicleLeaseAccount,
+            account -> importVehicleLeasePdf(account.getAlias()),
             this::editVehicleLeaseAccount,
             this::deleteVehicleLeaseAccount,
             this::showVehicleLeaseDetail
@@ -1192,7 +1192,9 @@ public class AppView {
             return;
         }
         try {
-            VehicleLeaseStatement imported = vehicleLeaseModule.controller().importPdf(file.toPath());
+            VehicleLeaseStatement imported = currentAlias == null
+                ? vehicleLeaseModule.controller().importPdf(file.toPath())
+                : vehicleLeaseModule.controller().importPdf(file.toPath(), currentAlias);
             rebuildSidebar();
             showVehicleLeaseDetail(imported.getAccountAlias());
             alert(Alert.AlertType.INFORMATION, "Vehicle lease imported", "The statement was imported and is ready for review.");

@@ -18,6 +18,10 @@ public class VehicleLeaseController {
         return application.importPdf(pdf);
     }
 
+    public VehicleLeaseStatement importPdf(Path pdf, String accountAlias) {
+        return application.importPdf(pdf, accountAlias);
+    }
+
     public List<VehicleLeaseAccount> accounts() {
         return application.accounts();
     }

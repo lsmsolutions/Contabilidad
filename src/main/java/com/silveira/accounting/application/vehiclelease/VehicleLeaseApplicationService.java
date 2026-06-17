@@ -50,6 +50,15 @@ public class VehicleLeaseApplicationService {
         return data.statement();
     }
 
+    public VehicleLeaseStatement importPdf(Path pdf, String accountAlias) {
+        VehicleLeaseImportData data = volvoParser.parse(pdf);
+        VehicleLeaseStatement statement = data.statement();
+        statement.setAccountAlias(accountAlias);
+        long id = statements.save(statement);
+        statement.setId(id);
+        return statement;
+    }
+
     public List<VehicleLeaseAccount> accounts() {
         return accounts.findAll();
     }
