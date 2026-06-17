@@ -58,16 +58,6 @@ public class VehicleLeaseDetailView {
         contractInfo.add(new Label("VIN"), 0, 2);
         contractInfo.add(new Label(text(account.getVin())), 1, 2, 3, 1);
 
-        VehicleLeaseStatement latest = statements.isEmpty() ? null : statements.get(0);
-        FlowPane totals = new FlowPane(12, 12);
-        totals.getStyleClass().add("totals-panel");
-        totals.getChildren().addAll(
-            total("Monthly Payment", latest == null ? "$0.00" : Money.format(latest.getTotalAmountDue()), "neutral-total"),
-            total("Payments Made", latest == null ? "0" : String.valueOf(latest.getPaymentsMade()), "income-total"),
-            total("Payments Remaining", latest == null ? "0" : String.valueOf(latest.getPaymentsRemaining()), "pending-total"),
-            total("Maturity Date", account.getMaturityDate() == null ? "" : account.getMaturityDate().format(DATE), "expense-total")
-        );
-
         FlowPane monthlyCards = new FlowPane(12, 12);
         monthlyCards.getStyleClass().add("monthly-card-row");
         VBox statementCards = new VBox(16);
@@ -102,21 +92,11 @@ public class VehicleLeaseDetailView {
             );
         }
 
-        VBox page = new VBox(18, heading, actions, contractInfo, totals, monthlyCards, statementCards);
+        VBox page = new VBox(18, heading, actions, contractInfo, monthlyCards, statementCards);
         page.setPadding(new Insets(28));
         page.getStyleClass().add("page");
         VBox.setVgrow(statementCards, Priority.ALWAYS);
         return page;
-    }
-
-    private VBox total(String name, String value, String style) {
-        Label label = new Label(name);
-        label.getStyleClass().add("total-label");
-        Label amount = new Label(value);
-        amount.getStyleClass().add("total-value");
-        VBox box = new VBox(6, label, amount);
-        box.getStyleClass().addAll("total-card", style);
-        return box;
     }
 
     private VBox monthlyCard(VehicleLeaseStatement statement) {
