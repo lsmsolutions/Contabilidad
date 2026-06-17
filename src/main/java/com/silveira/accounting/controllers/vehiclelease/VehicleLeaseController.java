@@ -26,6 +26,18 @@ public class VehicleLeaseController {
         return application.account(alias);
     }
 
+    public void saveAccount(VehicleLeaseAccount account) {
+        application.saveAccount(account);
+    }
+
+    public void updateAccount(String originalAlias, VehicleLeaseAccount account) {
+        application.updateAccount(originalAlias, account);
+    }
+
+    public void deleteAccount(String alias) {
+        application.deleteAccount(alias);
+    }
+
     public List<VehicleLeaseStatement> statements(String alias) {
         return application.statements(alias);
     }

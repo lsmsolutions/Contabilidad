@@ -15,13 +15,23 @@ import javafx.scene.layout.VBox;
 public class VehicleLeaseHubView {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
-    public VBox build(List<VehicleLeaseAccount> accounts, Runnable importAction, Consumer<String> openAccount) {
+    public VBox build(
+        List<VehicleLeaseAccount> accounts,
+        Runnable importAction,
+        Runnable addAccount,
+        Consumer<VehicleLeaseAccount> editAccount,
+        Consumer<VehicleLeaseAccount> deleteAccount,
+        Consumer<String> openAccount
+    ) {
         Label heading = new Label("Vehicle Leases");
         heading.getStyleClass().add("heading");
+        Button add = new Button("Add vehicle");
+        add.getStyleClass().add("primary");
+        add.setOnAction(event -> addAccount.run());
         Button importPdf = new Button("Import PDF");
         importPdf.getStyleClass().add("primary");
         importPdf.setOnAction(event -> importAction.run());
-        HBox actions = new HBox(10, importPdf);
+        HBox actions = new HBox(10, add, importPdf);
 
         FlowPane cards = new FlowPane(12, 12);
         cards.getStyleClass().add("monthly-card-row");
@@ -34,7 +44,19 @@ public class VehicleLeaseHubView {
             addLine(details, 1, "Account", ending(account.getAccountNumber()));
             addLine(details, 2, "VIN", text(account.getVin()));
             addLine(details, 3, "Maturity", account.getMaturityDate() == null ? "" : account.getMaturityDate().format(DATE));
-            VBox card = new VBox(0, title, details);
+            Button edit = new Button("Edit");
+            edit.setOnAction(event -> {
+                event.consume();
+                editAccount.accept(account);
+            });
+            Button delete = new Button("Delete");
+            delete.getStyleClass().add("danger-button");
+            delete.setOnAction(event -> {
+                event.consume();
+                deleteAccount.accept(account);
+            });
+            HBox cardActions = new HBox(8, edit, delete);
+            VBox card = new VBox(0, title, details, cardActions);
             card.getStyleClass().add("monthly-card");
             card.setOnMouseClicked(event -> openAccount.accept(account.getAlias()));
             cards.getChildren().add(card);

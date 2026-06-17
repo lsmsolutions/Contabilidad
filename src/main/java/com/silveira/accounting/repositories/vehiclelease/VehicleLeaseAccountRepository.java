@@ -52,6 +52,66 @@ public class VehicleLeaseAccountRepository {
         }
     }
 
+    public void update(String originalAlias, VehicleLeaseAccount account) {
+        try (Connection connection = databaseManager.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement accountStatement = connection.prepareStatement("""
+                    UPDATE vehicle_lease_accounts SET
+                        alias=?, provider_name=?, vehicle_year=?, make=?, model=?, trim_name=?,
+                        account_number=?, vin=?, maturity_date=?, notes=?
+                    WHERE alias=?
+                    """);
+                 PreparedStatement statementAlias = connection.prepareStatement("UPDATE vehicle_lease_statements SET account_alias=? WHERE account_alias=?")) {
+                accountStatement.setString(1, account.getAlias());
+                accountStatement.setString(2, account.getProviderName());
+                accountStatement.setInt(3, account.getVehicleYear());
+                accountStatement.setString(4, account.getMake());
+                accountStatement.setString(5, account.getModel());
+                accountStatement.setString(6, account.getTrim());
+                accountStatement.setString(7, account.getAccountNumber());
+                accountStatement.setString(8, account.getVin());
+                setDate(accountStatement, 9, account.getMaturityDate());
+                accountStatement.setString(10, account.getNotes());
+                accountStatement.setString(11, originalAlias);
+                accountStatement.executeUpdate();
+                statementAlias.setString(1, account.getAlias());
+                statementAlias.setString(2, originalAlias);
+                statementAlias.executeUpdate();
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar el contrato de vehiculo", exception);
+        }
+    }
+
+    public void delete(String alias) {
+        try (Connection connection = databaseManager.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement reviews = connection.prepareStatement("""
+                    DELETE FROM vehicle_lease_statement_field_reviews
+                    WHERE statement_id IN (SELECT id FROM vehicle_lease_statements WHERE account_alias=?)
+                    """);
+                 PreparedStatement statements = connection.prepareStatement("DELETE FROM vehicle_lease_statements WHERE account_alias=?");
+                 PreparedStatement account = connection.prepareStatement("DELETE FROM vehicle_lease_accounts WHERE alias=?")) {
+                reviews.setString(1, alias);
+                reviews.executeUpdate();
+                statements.setString(1, alias);
+                statements.executeUpdate();
+                account.setString(1, alias);
+                account.executeUpdate();
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo eliminar el contrato de vehiculo", exception);
+        }
+    }
+
     public List<VehicleLeaseAccount> findAll() {
         String sql = "SELECT * FROM vehicle_lease_accounts ORDER BY alias";
         try (Connection connection = databaseManager.getConnection();

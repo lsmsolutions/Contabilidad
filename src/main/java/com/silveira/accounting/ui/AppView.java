@@ -69,6 +69,7 @@ import com.silveira.accounting.ui.mortgage.MortgageAnalysisPageView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageTableFactory;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
+import com.silveira.accounting.ui.vehiclelease.VehicleLeaseAccountEditDialogView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseHubView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseModule;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseStatementEditDialogView;
@@ -1094,8 +1095,46 @@ public class AppView {
         setPage(new VehicleLeaseHubView().build(
             vehicleLeaseModule.controller().accounts(),
             () -> importVehicleLeasePdf(null),
+            this::addVehicleLeaseAccount,
+            this::editVehicleLeaseAccount,
+            this::deleteVehicleLeaseAccount,
             this::showVehicleLeaseDetail
         ));
+    }
+
+    private void addVehicleLeaseAccount() {
+        VehicleLeaseAccount account = new VehicleLeaseAccount();
+        new VehicleLeaseAccountEditDialogView().show(account).ifPresent(updated -> {
+            if (updated.getAlias().isBlank()) {
+                alert(Alert.AlertType.WARNING, "Alias requerido", "Introduce un alias para el vehiculo.");
+                return;
+            }
+            vehicleLeaseModule.controller().saveAccount(updated);
+            rebuildSidebar();
+            showVehicleLeases();
+        });
+    }
+
+    private void editVehicleLeaseAccount(VehicleLeaseAccount account) {
+        String originalAlias = account.getAlias();
+        new VehicleLeaseAccountEditDialogView().show(account).ifPresent(updated -> {
+            if (updated.getAlias().isBlank()) {
+                alert(Alert.AlertType.WARNING, "Alias requerido", "Introduce un alias para el vehiculo.");
+                return;
+            }
+            vehicleLeaseModule.controller().updateAccount(originalAlias, updated);
+            rebuildSidebar();
+            showVehicleLeases();
+        });
+    }
+
+    private void deleteVehicleLeaseAccount(VehicleLeaseAccount account) {
+        if (!confirm("Eliminar vehiculo", "Se eliminaran el vehiculo y sus statements.\n\nEsta accion no se puede deshacer.", "Eliminar")) {
+            return;
+        }
+        vehicleLeaseModule.controller().deleteAccount(account.getAlias());
+        rebuildSidebar();
+        showVehicleLeases();
     }
 
     private void showVehicleLeaseDetail(String alias) {

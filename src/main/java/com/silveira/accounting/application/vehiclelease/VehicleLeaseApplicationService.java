@@ -58,6 +58,18 @@ public class VehicleLeaseApplicationService {
         return accounts.findByAlias(alias);
     }
 
+    public void saveAccount(VehicleLeaseAccount account) {
+        accounts.save(account);
+    }
+
+    public void updateAccount(String originalAlias, VehicleLeaseAccount account) {
+        accounts.update(originalAlias, account);
+    }
+
+    public void deleteAccount(String alias) {
+        accounts.delete(alias);
+    }
+
     public List<VehicleLeaseStatement> statements(String alias) {
         return statements.findByAccount(alias);
     }
