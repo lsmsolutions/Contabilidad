@@ -27,6 +27,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -54,22 +55,44 @@ public class HouseExpensePageView {
 
     public Content build() {
         Map<Long, String> originalRows = new HashMap<>();
-        TableView<HouseExpense> table = houseExpenseTable(null, originalRows);
+        Label totalValue = new Label();
+        Runnable[] refreshTotal = new Runnable[1];
+        TableView<HouseExpense> table = houseExpenseTable(() -> refreshTotal[0].run(), originalRows);
+        refreshTotal[0] = () -> totalValue.setText(Money.format(totalHouseExpenses(table)));
         Runnable refresh = () -> {
             table.setItems(FXCollections.observableArrayList(mortgage.houseExpenses().findByLoan(null, null, null)));
             captureHouseExpenseRows(table, originalRows);
+            refreshTotal[0].run();
         };
         refresh.run();
-        Button add = new Button("Anadir gasto");
+        Button add = new Button("Add expense");
         add.getStyleClass().add("primary");
+        add.setPrefWidth(150);
+        add.setMinWidth(150);
         add.setOnAction(event -> {
             HouseExpense expense = new HouseExpense(0, "", LocalDate.now(), "Gasto manual", "", 0, "", "");
             table.getItems().add(expense);
             table.getSelectionModel().select(expense);
+            refreshTotal[0].run();
         });
-        Button save = new Button("Guardar cambios");
+        Button save = new Button("Save changes");
+        save.setPrefWidth(150);
+        save.setMinWidth(150);
         save.setOnAction(event -> saveHouseExpenseChanges(table, originalRows));
-        return new Content(new HBox(10, add, save), table);
+        return new Content(new HBox(10, add, save, totalCard("Total expenses", totalValue)), table);
+    }
+
+    private double totalHouseExpenses(TableView<HouseExpense> table) {
+        return table.getItems().stream().mapToDouble(HouseExpense::getAmount).sum();
+    }
+
+    private VBox totalCard(String title, Label totalValue) {
+        Label label = new Label(title);
+        label.getStyleClass().add("mini-total-title");
+        totalValue.getStyleClass().add("mini-total-value");
+        VBox box = new VBox(4, label, totalValue);
+        box.getStyleClass().addAll("mini-total", "expense-total");
+        return box;
     }
 
     private TableView<HouseExpense> houseExpenseTable(Runnable rowsChanged, Map<Long, String> originalRows) {
