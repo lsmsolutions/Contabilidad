@@ -113,6 +113,7 @@ public class HouseExpensePageView {
         table.setEditable(true);
         TableColumn<HouseExpense, String> date = new TableColumn<>("Fecha");
         date.setCellValueFactory(data -> new SimpleStringProperty(formatShortDate(data.getValue().getExpenseDate())));
+        date.setComparator((left, right) -> compareDates(parseDateOrNull(left), parseDateOrNull(right)));
         date.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         date.setOnEditCommit(event -> {
             event.getRowValue().setExpenseDate(parseDateOrNull(event.getNewValue()));
@@ -474,6 +475,19 @@ public class HouseExpensePageView {
 
     private String formatShortDate(LocalDate date) {
         return date == null ? "" : date.format(SHORT_DATE_FORMAT);
+    }
+
+    private int compareDates(LocalDate left, LocalDate right) {
+        if (left == null && right == null) {
+            return 0;
+        }
+        if (left == null) {
+            return -1;
+        }
+        if (right == null) {
+            return 1;
+        }
+        return left.compareTo(right);
     }
 
     private StringConverter<Double> twoDecimalConverter() {
