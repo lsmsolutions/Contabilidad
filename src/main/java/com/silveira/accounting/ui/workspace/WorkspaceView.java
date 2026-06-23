@@ -29,7 +29,7 @@ public class WorkspaceView {
         logo.setAlignment(Pos.CENTER);
 
         HBox linkGroups = new HBox(76);
-        linkGroups.setAlignment(Pos.CENTER);
+        linkGroups.setAlignment(Pos.TOP_CENTER);
         for (LinkGroup group : groups) {
             linkGroups.getChildren().add(group(group));
         }
