@@ -73,6 +73,7 @@ import com.silveira.accounting.ui.vehiclelease.VehicleLeaseAccountEditDialogView
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseHubView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseModule;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseStatementEditDialogView;
+import com.silveira.accounting.ui.workspace.WorkspaceView;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
 import javafx.application.Platform;
@@ -270,6 +271,7 @@ public class AppView {
     private final BorderPane root = new BorderPane();
     private final StackPane content = new StackPane();
     private Node sidebar;
+    private boolean sidebarVisible = true;
     private Integer selectedYearValue;
     private Integer selectedMonthValue;
     private String selectedBankAccountAlias;
@@ -320,12 +322,13 @@ public class AppView {
     private void build() {
         rebuildSidebar();
         root.setCenter(content);
-        showDashboard();
+        setSidebarVisible(false);
+        showWorkspace();
     }
 
     private void rebuildSidebar() {
         sidebar = sidebar();
-        root.setLeft(sidebar);
+        root.setLeft(sidebarVisible ? sidebar : null);
     }
 
     private Node sidebar() {
@@ -360,6 +363,7 @@ public class AppView {
 
         VBox menu = new VBox(8);
         menu.getChildren().addAll(
+            nav("Inicio", this::showWorkspace),
             nav("Dashboard", this::showDashboard),
             collapsibleNav("Banco", this::showBank, bankSubmenu, () -> bankMenuExpanded, value -> bankMenuExpanded = value),
             collapsibleNav("Tarjetas", this::showCards, cardSubmenu, () -> cardMenuExpanded, value -> cardMenuExpanded = value),
@@ -516,6 +520,36 @@ public class AppView {
 
     private Integer selectedMonth() {
         return selectedMonthValue;
+    }
+
+    private void showWorkspace() {
+        setPage(new WorkspaceView().build(
+            this::toggleSidebar,
+            List.of(
+                new WorkspaceView.LinkGroup("Financial", List.of(
+                    new WorkspaceView.WorkspaceLink("Banco", this::showBank),
+                    new WorkspaceView.WorkspaceLink("Tarjetas", this::showCards),
+                    new WorkspaceView.WorkspaceLink("Hipotecas", this::showMortgages),
+                    new WorkspaceView.WorkspaceLink("Vehicle Leases", this::showVehicleLeases)
+                )),
+                new WorkspaceView.LinkGroup("Operations", List.of(
+                    new WorkspaceView.WorkspaceLink("Movimientos internos", this::showInternalMovements),
+                    new WorkspaceView.WorkspaceLink("Dashboard", this::showDashboard)
+                )),
+                new WorkspaceView.LinkGroup("Insurance & Commissions", List.of(
+                    new WorkspaceView.WorkspaceLink("New York Life", this::showNylHub)
+                ))
+            )
+        ));
+    }
+
+    private void toggleSidebar() {
+        setSidebarVisible(!sidebarVisible);
+    }
+
+    private void setSidebarVisible(boolean visible) {
+        sidebarVisible = visible;
+        root.setLeft(visible ? sidebar : null);
     }
 
     private void showDashboard() {

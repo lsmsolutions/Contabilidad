@@ -150,6 +150,57 @@
     -fx-border-color: #2d8a6d;
 }
 
+.workspace-page {
+    -fx-background-color: #061a2e;
+    -fx-min-height: 760;
+}
+
+.workspace-page .workspace-menu-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 28px;
+    -fx-font-weight: 700;
+    -fx-padding: 4 10;
+    -fx-background-radius: 6;
+}
+
+.workspace-page .workspace-menu-button:hover {
+    -fx-background-color: #0f3454;
+    -fx-text-fill: #8ee0ff;
+}
+
+.workspace-logo-wrap {
+    -fx-padding: 22 0 4 0;
+}
+
+.workspace-logo-fallback {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 34px;
+    -fx-font-weight: 700;
+}
+
+.workspace-family-title {
+    -fx-text-fill: #8fb9cf;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-letter-spacing: 0;
+}
+
+.workspace-page .workspace-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 23px;
+    -fx-font-weight: 600;
+    -fx-padding: 6 4;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.workspace-page .workspace-link:hover {
+    -fx-text-fill: #8ee0ff;
+    -fx-border-color: transparent transparent #8ee0ff transparent;
+}
+
 .metric-card {
     -fx-background-color: #ffffff;
     -fx-border-color: #dbe2dc;
