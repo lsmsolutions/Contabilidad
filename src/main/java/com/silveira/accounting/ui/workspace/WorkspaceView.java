@@ -30,6 +30,7 @@ public class WorkspaceView {
 
         HBox linkGroups = new HBox(76);
         linkGroups.setAlignment(Pos.TOP_CENTER);
+        linkGroups.setFillHeight(false);
         for (LinkGroup group : groups) {
             linkGroups.getChildren().add(group(group));
         }
@@ -55,7 +56,7 @@ public class WorkspaceView {
         }
 
         VBox box = new VBox(12, title, links);
-        box.setAlignment(Pos.CENTER);
+        box.setAlignment(Pos.TOP_CENTER);
         box.getStyleClass().add("workspace-family");
         return box;
     }
