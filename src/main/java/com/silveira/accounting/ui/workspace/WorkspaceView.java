@@ -8,7 +8,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -16,7 +15,7 @@ import javafx.scene.layout.VBox;
 
 public class WorkspaceView {
     public VBox build(Runnable toggleMenu, List<LinkGroup> groups) {
-        Button menu = new Button("☰");
+        Button menu = new Button("\u2630");
         menu.getStyleClass().add("workspace-menu-button");
         menu.setOnAction(event -> toggleMenu.run());
 
@@ -29,24 +28,24 @@ public class WorkspaceView {
         logo.getStyleClass().add("workspace-logo-wrap");
         logo.setAlignment(Pos.CENTER);
 
-        VBox linkGroups = new VBox(28);
+        HBox linkGroups = new HBox(76);
         linkGroups.setAlignment(Pos.CENTER);
         for (LinkGroup group : groups) {
             linkGroups.getChildren().add(group(group));
         }
 
-        VBox page = new VBox(42, top, logo, linkGroups);
+        VBox page = new VBox(34, top, logo, linkGroups);
         page.getStyleClass().addAll("workspace-page", "dark-hub-page");
         page.setPadding(new Insets(28, 54, 54, 54));
         page.setAlignment(Pos.TOP_CENTER);
         return page;
     }
 
-    private FlowPane group(LinkGroup group) {
+    private VBox group(LinkGroup group) {
         Label title = new Label(group.title());
         title.getStyleClass().add("workspace-family-title");
 
-        FlowPane links = new FlowPane(34, 16);
+        VBox links = new VBox(10);
         links.setAlignment(Pos.CENTER);
         for (WorkspaceLink link : group.links()) {
             Button button = new Button(link.label());
@@ -55,11 +54,10 @@ public class WorkspaceView {
             links.getChildren().add(button);
         }
 
-        VBox box = new VBox(10, title, links);
+        VBox box = new VBox(12, title, links);
         box.setAlignment(Pos.CENTER);
-        FlowPane wrapper = new FlowPane(box);
-        wrapper.setAlignment(Pos.CENTER);
-        return wrapper;
+        box.getStyleClass().add("workspace-family");
+        return box;
     }
 
     private javafx.scene.Node logoNode() {
@@ -70,7 +68,7 @@ public class WorkspaceView {
                 return fallback;
             }
             ImageView logo = new ImageView(new Image(stream));
-            logo.setFitWidth(420);
+            logo.setFitWidth(620);
             logo.setPreserveRatio(true);
             return logo;
         } catch (Exception exception) {

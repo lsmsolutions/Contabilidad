@@ -151,7 +151,7 @@
 }
 
 .workspace-page {
-    -fx-background-color: #061a2e;
+    -fx-background-color: #070d1c;
     -fx-min-height: 760;
 }
 
@@ -160,8 +160,10 @@
     -fx-text-fill: #ffffff;
     -fx-font-size: 28px;
     -fx-font-weight: 700;
-    -fx-padding: 4 10;
-    -fx-background-radius: 6;
+    -fx-padding: 7 14;
+    -fx-background-radius: 8;
+    -fx-border-color: #1d5f8a;
+    -fx-border-radius: 8;
 }
 
 .workspace-page .workspace-menu-button:hover {
@@ -170,7 +172,8 @@
 }
 
 .workspace-logo-wrap {
-    -fx-padding: 22 0 4 0;
+    -fx-padding: 52 0 44 0;
+    -fx-min-height: 320;
 }
 
 .workspace-logo-fallback {
@@ -186,10 +189,15 @@
     -fx-letter-spacing: 0;
 }
 
+.workspace-family {
+    -fx-min-width: 260;
+    -fx-max-width: 280;
+}
+
 .workspace-page .workspace-link {
     -fx-background-color: transparent;
     -fx-text-fill: #ffffff;
-    -fx-font-size: 23px;
+    -fx-font-size: 21px;
     -fx-font-weight: 600;
     -fx-padding: 6 4;
     -fx-border-color: transparent;
