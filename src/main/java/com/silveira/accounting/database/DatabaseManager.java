@@ -386,6 +386,76 @@ public class DatabaseManager {
                     )
                     """);
                 statement.execute("""
+                    CREATE TABLE IF NOT EXISTS investment_accounts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        alias TEXT NOT NULL UNIQUE,
+                        provider_name TEXT NOT NULL,
+                        account_type TEXT,
+                        account_number TEXT,
+                        notes TEXT,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS investment_statements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        account_alias TEXT NOT NULL,
+                        period_start TEXT NOT NULL,
+                        period_end TEXT NOT NULL,
+                        beginning_value REAL NOT NULL DEFAULT 0,
+                        ending_value REAL NOT NULL DEFAULT 0,
+                        deposits REAL NOT NULL DEFAULT 0,
+                        withdrawals REAL NOT NULL DEFAULT 0,
+                        dividends_interest REAL NOT NULL DEFAULT 0,
+                        market_change REAL NOT NULL DEFAULT 0,
+                        expenses REAL NOT NULL DEFAULT 0,
+                        unrealized_gain_loss REAL NOT NULL DEFAULT 0,
+                        source_pdf_path TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(account_alias, period_end)
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS investment_allocations (
+                        statement_id INTEGER NOT NULL,
+                        category TEXT NOT NULL,
+                        market_value REAL NOT NULL DEFAULT 0,
+                        percentage REAL NOT NULL DEFAULT 0,
+                        PRIMARY KEY(statement_id, category),
+                        FOREIGN KEY(statement_id) REFERENCES investment_statements(id)
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS investment_positions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        statement_id INTEGER NOT NULL,
+                        symbol TEXT,
+                        description TEXT,
+                        asset_type TEXT,
+                        quantity REAL NOT NULL DEFAULT 0,
+                        price REAL NOT NULL DEFAULT 0,
+                        market_value REAL NOT NULL DEFAULT 0,
+                        cost_basis REAL NOT NULL DEFAULT 0,
+                        unrealized_gain_loss REAL NOT NULL DEFAULT 0,
+                        FOREIGN KEY(statement_id) REFERENCES investment_statements(id)
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS investment_transactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        statement_id INTEGER NOT NULL,
+                        transaction_date TEXT,
+                        action TEXT,
+                        symbol TEXT,
+                        description TEXT,
+                        quantity REAL NOT NULL DEFAULT 0,
+                        price REAL NOT NULL DEFAULT 0,
+                        amount REAL NOT NULL DEFAULT 0,
+                        realized_gain_loss REAL NOT NULL DEFAULT 0,
+                        FOREIGN KEY(statement_id) REFERENCES investment_statements(id)
+                    )
+                    """);
+                statement.execute("""
                     CREATE TABLE IF NOT EXISTS internal_movements (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         source_type TEXT NOT NULL,

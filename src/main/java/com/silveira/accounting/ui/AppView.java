@@ -17,6 +17,8 @@ import com.silveira.accounting.models.CreditCardTransaction;
 import com.silveira.accounting.models.DashboardSummary;
 import com.silveira.accounting.models.HouseExpense;
 import com.silveira.accounting.models.InternalMovementRecord;
+import com.silveira.accounting.models.investment.InvestmentAccount;
+import com.silveira.accounting.models.investment.InvestmentStatement;
 import com.silveira.accounting.models.MonthlySourceTotals;
 import com.silveira.accounting.models.MortgageAnalysis;
 import com.silveira.accounting.models.MortgageStatement;
@@ -68,6 +70,10 @@ import com.silveira.accounting.ui.mortgage.MortgageHubWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageAnalysisPageView;
 import com.silveira.accounting.ui.mortgage.MortgageStatementSummaryWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageTableFactory;
+import com.silveira.accounting.ui.investment.InvestmentAccountEditDialogView;
+import com.silveira.accounting.ui.investment.InvestmentDetailView;
+import com.silveira.accounting.ui.investment.InvestmentHubView;
+import com.silveira.accounting.ui.investment.InvestmentModule;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseDetailView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseAccountEditDialogView;
 import com.silveira.accounting.ui.vehiclelease.VehicleLeaseHubView;
@@ -246,6 +252,7 @@ public class AppView {
     );
 
     private final BankModule bankModule;
+    private final InvestmentModule investmentModule;
     private final VehicleLeaseModule vehicleLeaseModule;
     private final CardAccountApplicationService creditCardAccountRepository;
     private final CardStatementApplicationService creditCardStatementRepository;
@@ -280,11 +287,13 @@ public class AppView {
     private boolean bankMenuExpanded;
     private boolean cardMenuExpanded;
     private boolean mortgageMenuExpanded;
+    private boolean investmentMenuExpanded;
     private boolean vehicleLeaseMenuExpanded;
     private boolean nylMenuExpanded;
 
     public AppView(DatabaseManager databaseManager) {
         bankModule = new BankModule(databaseManager, ocrService);
+        investmentModule = new InvestmentModule(databaseManager);
         vehicleLeaseModule = new VehicleLeaseModule(databaseManager);
         CardApplicationService cards = new CardApplicationService(
             new CreditCardAccountRepository(databaseManager),
@@ -355,6 +364,11 @@ public class AppView {
         for (VehicleLeaseAccount account : vehicleLeaseModule.controller().accounts()) {
             vehicleLeaseSubmenu.getChildren().add(subnav(account.getAlias(), () -> showVehicleLeaseDetail(account.getAlias())));
         }
+        VBox investmentSubmenu = new VBox(4);
+        investmentSubmenu.getStyleClass().add("submenu");
+        for (InvestmentAccount account : investmentModule.controller().accounts()) {
+            investmentSubmenu.getChildren().add(subnav(account.getAlias(), () -> showInvestmentDetail(account.getAlias(), null)));
+        }
         VBox nylSubmenu = new VBox(4);
         nylSubmenu.getStyleClass().add("submenu");
         nylSubmenu.getChildren().add(subnav("Resumen NYL", this::showNyl));
@@ -368,6 +382,7 @@ public class AppView {
             collapsibleNav("Banco", this::showBank, bankSubmenu, () -> bankMenuExpanded, value -> bankMenuExpanded = value),
             collapsibleNav("Tarjetas", this::showCards, cardSubmenu, () -> cardMenuExpanded, value -> cardMenuExpanded = value),
             collapsibleNav("Hipotecas", this::showMortgages, mortgageSubmenu, () -> mortgageMenuExpanded, value -> mortgageMenuExpanded = value),
+            collapsibleNav("Inversiones", this::showInvestments, investmentSubmenu, () -> investmentMenuExpanded, value -> investmentMenuExpanded = value),
             collapsibleNav("Vehicle Leases", this::showVehicleLeases, vehicleLeaseSubmenu, () -> vehicleLeaseMenuExpanded, value -> vehicleLeaseMenuExpanded = value),
             nav("Movimientos internos", this::showInternalMovements),
             collapsibleNav("New York Life", this::showNylHub, nylSubmenu, () -> nylMenuExpanded, value -> nylMenuExpanded = value)
@@ -530,6 +545,7 @@ public class AppView {
                     new WorkspaceView.WorkspaceLink("Banco", this::showBank),
                     new WorkspaceView.WorkspaceLink("Tarjetas", this::showCards),
                     new WorkspaceView.WorkspaceLink("Hipotecas", this::showMortgages),
+                    new WorkspaceView.WorkspaceLink("Inversiones", this::showInvestments),
                     new WorkspaceView.WorkspaceLink("Vehicle Leases", this::showVehicleLeases)
                 )),
                 new WorkspaceView.LinkGroup("Operations", List.of(
@@ -1123,6 +1139,112 @@ public class AppView {
         scroll.setPannable(true);
         scroll.setMaxWidth(Double.MAX_VALUE);
         return scroll;
+    }
+
+    private void showInvestments() {
+        setPage(new InvestmentHubView().build(
+            investmentModule.controller().accounts(),
+            this::addInvestmentAccount,
+            account -> importInvestmentPdf(account.getAlias()),
+            this::editInvestmentAccount,
+            this::deleteInvestmentAccount,
+            alias -> showInvestmentDetail(alias, null)
+        ));
+    }
+
+    private void addInvestmentAccount() {
+        InvestmentAccount account = new InvestmentAccount();
+        account.setProviderName("Charles Schwab");
+        account.setAccountType("Brokerage");
+        new InvestmentAccountEditDialogView().show(account).ifPresent(updated -> {
+            if (updated.getAlias().isBlank()) {
+                alert(Alert.AlertType.WARNING, "Alias requerido", "Introduce un alias para la inversion.");
+                return;
+            }
+            investmentModule.controller().saveAccount(updated);
+            rebuildSidebar();
+            showInvestments();
+        });
+    }
+
+    private void editInvestmentAccount(InvestmentAccount account) {
+        String originalAlias = account.getAlias();
+        new InvestmentAccountEditDialogView().show(account).ifPresent(updated -> {
+            if (updated.getAlias().isBlank()) {
+                alert(Alert.AlertType.WARNING, "Alias requerido", "Introduce un alias para la inversion.");
+                return;
+            }
+            investmentModule.controller().updateAccount(originalAlias, updated);
+            rebuildSidebar();
+            showInvestments();
+        });
+    }
+
+    private void deleteInvestmentAccount(InvestmentAccount account) {
+        if (!confirm(
+            "Eliminar inversion",
+            "Se eliminaran la cuenta, sus periodos, posiciones y movimientos.\n\nEsta accion no se puede deshacer.",
+            "Eliminar"
+        )) {
+            return;
+        }
+        investmentModule.controller().deleteAccount(account.getAlias());
+        rebuildSidebar();
+        showInvestments();
+    }
+
+    private void showInvestmentDetail(String alias, Long selectedStatementId) {
+        Optional<InvestmentAccount> account = investmentModule.controller().account(alias);
+        if (account.isEmpty()) {
+            showInvestments();
+            return;
+        }
+        List<InvestmentStatement> statements = investmentModule.controller().statements(alias);
+        InvestmentStatement selected = statements.stream()
+            .filter(value -> selectedStatementId == null || value.getId() == selectedStatementId)
+            .findFirst()
+            .orElse(statements.isEmpty() ? null : statements.get(0));
+        long statementId = selected == null ? 0 : selected.getId();
+        setPage(new InvestmentDetailView().build(
+            account.get(),
+            statements,
+            selected,
+            selected == null ? List.of() : investmentModule.controller().allocations(statementId),
+            selected == null ? List.of() : investmentModule.controller().positions(statementId),
+            selected == null ? List.of() : investmentModule.controller().transactions(statementId),
+            this::showInvestments,
+            () -> importInvestmentPdf(alias),
+            id -> showInvestmentDetail(alias, id),
+            statement -> {
+                if (confirm(
+                    "Eliminar periodo de inversion",
+                    "Se eliminara el periodo " + statement.getPeriodEnd() + " y todo su detalle.",
+                    "Eliminar periodo"
+                )) {
+                    investmentModule.controller().deleteStatement(statement.getId());
+                    showInvestmentDetail(alias, null);
+                }
+            }
+        ));
+    }
+
+    private void importInvestmentPdf(String alias) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Import investment statement");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
+        File file = chooser.showOpenDialog(root.getScene() == null ? null : root.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        try {
+            InvestmentStatement imported = investmentModule.controller().importPdf(file.toPath(), alias);
+            rebuildSidebar();
+            showInvestmentDetail(imported.getAccountAlias(), imported.getId());
+            alert(Alert.AlertType.INFORMATION, "Investment imported", "The statement, positions and transactions were imported.");
+        } catch (RuntimeException exception) {
+            alert(Alert.AlertType.ERROR, "No se pudo importar la inversion", rootCauseMessage(exception));
+            showInvestmentDetail(alias, null);
+        }
     }
 
     private void showVehicleLeases() {
