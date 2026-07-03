@@ -1,18 +1,17 @@
 package com.silveira.accounting.ui.bank;
 
 import com.silveira.accounting.models.bank.BankAccount;
+import java.util.List;
+import java.util.function.Consumer;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import java.util.List;
-import java.util.function.Consumer;
-
 public class BankAccountsHubView {
     public Hub build(List<BankAccount> accounts, Runnable onAdd, Runnable onEdit, Runnable onDelete, Consumer<String> onOpenAccount) {
-        Button add = new Button("+ Añadir cuenta");
+        Button add = new Button("+ A\u00f1adir cuenta");
         add.getStyleClass().add("primary");
         add.setOnAction(event -> onAdd.run());
 
@@ -24,9 +23,10 @@ public class BankAccountsHubView {
 
         sameSize(add, edit, delete);
         HBox actions = new HBox(10, add, edit, delete);
+        actions.getStyleClass().add("bank-hub-actions");
 
         if (accounts.isEmpty()) {
-            Label empty = new Label("No hay cuentas creadas. Importa un PDF o añade una cuenta manualmente.");
+            Label empty = new Label("No hay cuentas creadas. Importa un PDF o a\u00f1ade una cuenta manualmente.");
             empty.getStyleClass().add("section-subtitle");
             return new Hub(empty, actions);
         }
@@ -65,6 +65,9 @@ public class BankAccountsHubView {
         }
         for (Button button : buttons) {
             button.setMinWidth(width);
+            button.setPrefWidth(width);
+            button.setMinHeight(36);
+            button.setPrefHeight(36);
         }
     }
 

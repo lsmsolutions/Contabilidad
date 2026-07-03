@@ -1,5 +1,6 @@
 package com.silveira.accounting;
 
+import com.silveira.accounting.composition.ApplicationComposition;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.ui.AppView;
 import javafx.application.Application;
@@ -15,7 +16,7 @@ public class MainApp extends Application {
         DatabaseManager databaseManager = new DatabaseManager();
         databaseManager.initialize();
 
-        AppView appView = new AppView(databaseManager);
+        AppView appView = new ApplicationComposition(databaseManager).appView();
         Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
         double width = Math.min(1180, bounds.getWidth() * 0.86);
         double height = Math.min(760, bounds.getHeight() * 0.84);

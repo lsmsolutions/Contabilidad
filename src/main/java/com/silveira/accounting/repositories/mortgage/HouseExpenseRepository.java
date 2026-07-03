@@ -94,6 +94,25 @@ public class HouseExpenseRepository {
         }
     }
 
+    public void deleteByLoan(String loanAlias) {
+        try (Connection connection = databaseManager.getConnection(); PreparedStatement ps = connection.prepareStatement("DELETE FROM house_expenses WHERE loan_alias=?")) {
+            ps.setString(1, loanAlias);
+            ps.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudieron eliminar gastos de casa asociados", exception);
+        }
+    }
+
+    public void renameLoan(String oldAlias, String newAlias) {
+        try (Connection connection = databaseManager.getConnection(); PreparedStatement ps = connection.prepareStatement("UPDATE house_expenses SET loan_alias=? WHERE loan_alias=?")) {
+            ps.setString(1, newAlias);
+            ps.setString(2, oldAlias);
+            ps.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudieron reasignar gastos de casa", exception);
+        }
+    }
+
     private void bind(PreparedStatement ps, HouseExpense expense) throws SQLException {
         ps.setString(1, expense.getLoanAlias());
         ps.setString(2, date(expense.getExpenseDate()));

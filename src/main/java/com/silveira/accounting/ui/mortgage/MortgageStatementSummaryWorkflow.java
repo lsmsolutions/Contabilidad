@@ -18,14 +18,14 @@ public class MortgageStatementSummaryWorkflow {
         this.config = config;
     }
 
-    public void refresh(TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals) {
+    public void refresh(TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals, Runnable saveAction) {
         summaries.getChildren().clear();
         for (MortgageStatement statement : table.getItems()) {
-            summaries.getChildren().add(horizontalStatementScroll(editableSummary(statement, table, summaries, refreshTotals)));
+            summaries.getChildren().add(horizontalStatementScroll(editableSummary(statement, table, summaries, refreshTotals, saveAction)));
         }
     }
 
-    private VBox editableSummary(MortgageStatement statement, TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals) {
+    private VBox editableSummary(MortgageStatement statement, TableView<MortgageStatement> table, VBox summaries, Runnable refreshTotals, Runnable saveAction) {
         VBox summary = new MortgageStatementSummaryView().build(
             statement,
             transactionsForStatement(statement),
@@ -45,7 +45,7 @@ public class MortgageStatementSummaryWorkflow {
                 updateAllStatementFieldReviews(statement, reviewed);
                 table.refresh();
                 refreshTotals.run();
-                refresh(table, summaries, refreshTotals);
+                refresh(table, summaries, refreshTotals, saveAction);
             },
             (transaction, reviewed) -> {
                 updateTransactionReview(transaction, reviewed);
@@ -58,7 +58,7 @@ public class MortgageStatementSummaryWorkflow {
             () -> config.editStatement().edit(statement, () -> {
                 table.refresh();
                 refreshTotals.run();
-                refresh(table, summaries, refreshTotals);
+                refresh(table, summaries, refreshTotals, saveAction);
             }),
             () -> {
                 if (!config.confirm().confirm(
@@ -72,7 +72,8 @@ public class MortgageStatementSummaryWorkflow {
                     mortgage.statements().delete(statement.getId());
                 }
                 config.showMortgageDetail().show(statement.getLoanAlias());
-            }
+            },
+            saveAction
         );
         summary.setOnMouseClicked(event -> table.getSelectionModel().select(statement));
         return summary;

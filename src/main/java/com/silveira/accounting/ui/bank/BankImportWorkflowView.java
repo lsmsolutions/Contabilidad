@@ -17,6 +17,8 @@ import java.util.function.Supplier;
 import javafx.concurrent.Task;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableView;
 import javafx.collections.FXCollections;
 
@@ -40,6 +42,9 @@ public class BankImportWorkflowView {
         try {
             parsed = imports.parsePdf(file.toPath());
         } catch (RuntimeException exception) {
+            if (handleImportFailure(file.toPath(), refresh, exception)) {
+                return;
+            }
             boolean runOcr = config.confirm().confirm(
                 "No se pudo leer el PDF",
                 exception.getMessage() + "\n\nEl archivo parece ser un PDF escaneado. La app puede intentar OCR para prellenar movimientos, pero todo quedará pendiente de revisión.",
@@ -142,17 +147,98 @@ public class BankImportWorkflowView {
         thread.start();
     }
 
+    private void processAi(Path pdf, Runnable refresh) {
+        config.processing().accept("Procesando IA Banco", "La IA intentara leer el extracto. Todo quedara pendiente de revision.");
+        Task<List<BankTransaction>> task = new Task<>() {
+            @Override
+            protected List<BankTransaction> call() {
+                return imports.parsePdfWithAi(pdf);
+            }
+        };
+        task.setOnSucceeded(event -> showImportReview(task.getValue(), refresh));
+        task.setOnFailed(event -> {
+            config.alert().accept(Alert.AlertType.ERROR, "IA Banco no disponible", config.rootCauseMessage().apply(task.getException()));
+            config.showBank().run();
+        });
+        Thread thread = new Thread(task, "silveira-bank-ai");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private boolean handleImportFailure(Path pdf, Runnable refresh, RuntimeException exception) {
+        ButtonType ocr = new ButtonType("Intentar OCR", ButtonBar.ButtonData.OTHER);
+        ButtonType ai = new ButtonType("Intentar con IA", ButtonBar.ButtonData.OK_DONE);
+        ButtonType close = new ButtonType("Aceptar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alert = new Alert(
+            Alert.AlertType.ERROR,
+            config.rootCauseMessage().apply(exception)
+                + "\n\nPuedes intentar OCR si es escaneado, o IA si el formato no se reconoce. En ambos casos todo quedara pendiente de revision.",
+            ocr,
+            ai,
+            close
+        );
+        alert.setTitle("No se pudo leer el PDF");
+        alert.setHeaderText("No se pudo leer el PDF");
+        alert.showAndWait().ifPresent(selected -> {
+            if (selected == ocr) {
+                processOcr(pdf, refresh);
+            } else if (selected == ai) {
+                processAi(pdf, refresh);
+            }
+        });
+        return true;
+    }
+
     private void showImportReview(List<BankTransaction> parsed, Runnable refresh) {
         if (parsed.isEmpty()) {
             config.alert().accept(Alert.AlertType.WARNING, "No se detectaron movimientos", "No se pudieron detectar transacciones. Puedes usar entrada manual o revisar el PDF original.");
             return;
         }
         config.rebuildSidebar().run();
-        BankImportReviewPageView.Page page = new BankImportReviewPageView(bank).build(parsed, config.selectedAccountAlias().get());
+        String selectedAccountAlias = resolveAccountAliasForImport(parsed);
+        BankImportReviewPageView.Page page = new BankImportReviewPageView(bank).build(parsed, selectedAccountAlias);
         page.saveProgress().setOnAction(event -> saveRows(List.copyOf(page.table().getItems()), page.table(), refresh, true));
         config.reviewPresenter().show("Revisión Banco", page.table(), () -> {
             saveRows(List.copyOf(page.table().getItems()), page.table(), refresh, false);
         }, page.warningNode());
+    }
+
+    private String resolveAccountAliasForImport(List<BankTransaction> parsed) {
+        String selectedAccountAlias = config.selectedAccountAlias().get();
+        if (selectedAccountAlias == null || selectedAccountAlias.isBlank()) {
+            return selectedAccountAlias;
+        }
+
+        List<String> detectedAliases = parsed.stream()
+            .map(BankTransaction::getAccountAlias)
+            .filter(alias -> alias != null && !alias.isBlank())
+            .distinct()
+            .filter(alias -> !alias.equals(selectedAccountAlias))
+            .toList();
+
+        if (detectedAliases.isEmpty()) {
+            return selectedAccountAlias;
+        }
+
+        ButtonType useDetected = new ButtonType(
+            detectedAliases.size() == 1 ? "Usar cuenta detectada" : "Usar cuentas detectadas",
+            ButtonBar.ButtonData.OK_DONE
+        );
+        ButtonType keepSelected = new ButtonType("Mantener " + selectedAccountAlias, ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alert = new Alert(
+            Alert.AlertType.CONFIRMATION,
+            "Estas importando dentro de:\n" + selectedAccountAlias
+                + "\n\nPero el PDF indica:\n" + String.join("\n", detectedAliases)
+                + "\n\nSi usas la cuenta detectada, la app creara la cuenta si no existe y guardara los movimientos ahi.",
+            useDetected,
+            keepSelected
+        );
+        alert.setTitle("Cuenta detectada en el PDF");
+        alert.setHeaderText("El PDF parece pertenecer a otra cuenta");
+        return alert.showAndWait()
+            .filter(selected -> selected == useDetected)
+            .map(selected -> (String) null)
+            .orElse(selectedAccountAlias);
     }
 
     private void saveRows(List<BankTransaction> rows, TableView<BankTransaction> table, Runnable refresh, boolean keepProgress) {

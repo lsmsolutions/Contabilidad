@@ -404,11 +404,16 @@ public class DatabaseManager {
                         period_end TEXT NOT NULL,
                         beginning_value REAL NOT NULL DEFAULT 0,
                         ending_value REAL NOT NULL DEFAULT 0,
+                        transfer_of_securities REAL NOT NULL DEFAULT 0,
+                        dividends_reinvested REAL NOT NULL DEFAULT 0,
+                        cash_activity REAL NOT NULL DEFAULT 0,
+                        change_in_market_value REAL NOT NULL DEFAULT 0,
                         deposits REAL NOT NULL DEFAULT 0,
                         withdrawals REAL NOT NULL DEFAULT 0,
                         dividends_interest REAL NOT NULL DEFAULT 0,
                         market_change REAL NOT NULL DEFAULT 0,
                         expenses REAL NOT NULL DEFAULT 0,
+                        cost_basis_total REAL NOT NULL DEFAULT 0,
                         unrealized_gain_loss REAL NOT NULL DEFAULT 0,
                         source_pdf_path TEXT NOT NULL,
                         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -445,6 +450,7 @@ public class DatabaseManager {
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         statement_id INTEGER NOT NULL,
                         transaction_date TEXT,
+                        category TEXT,
                         action TEXT,
                         symbol TEXT,
                         description TEXT,
@@ -538,6 +544,32 @@ public class DatabaseManager {
         addColumnIfMissing(statement, "mortgage_transactions", "review_required", "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(statement, "mortgage_transactions", "pending_review", "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(statement, "mortgage_transactions", "review_notes", "TEXT");
+        addColumnIfMissing(statement, "investment_statements", "cost_basis_total", "REAL NOT NULL DEFAULT 0");
+        addColumnIfMissing(statement, "investment_statements", "transfer_of_securities", "REAL NOT NULL DEFAULT 0");
+        addColumnIfMissing(statement, "investment_statements", "dividends_reinvested", "REAL NOT NULL DEFAULT 0");
+        addColumnIfMissing(statement, "investment_statements", "cash_activity", "REAL NOT NULL DEFAULT 0");
+        addColumnIfMissing(statement, "investment_statements", "change_in_market_value", "REAL NOT NULL DEFAULT 0");
+        statement.execute("""
+            UPDATE investment_statements
+            SET
+                transfer_of_securities = deposits + withdrawals,
+                cash_activity = ending_value - beginning_value - deposits - withdrawals - dividends_interest - market_change,
+                change_in_market_value = market_change
+            WHERE transfer_of_securities = 0
+              AND dividends_reinvested = 0
+              AND cash_activity = 0
+              AND change_in_market_value = 0
+            """);
+        addColumnIfMissing(statement, "investment_transactions", "category", "TEXT");
+        statement.execute("""
+            UPDATE investment_statements
+            SET cost_basis_total = COALESCE((
+                SELECT SUM(cost_basis)
+                FROM investment_positions
+                WHERE investment_positions.statement_id = investment_statements.id
+            ), 0)
+            WHERE cost_basis_total = 0
+            """);
         statement.execute("""
             CREATE TABLE IF NOT EXISTS mortgage_statement_field_reviews (
                 statement_id INTEGER NOT NULL,

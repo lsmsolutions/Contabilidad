@@ -1,6 +1,6 @@
 package com.silveira.accounting.ui.mortgage;
 
-import com.silveira.accounting.application.mortgage.MortgageApplicationService;
+import com.silveira.accounting.application.mortgage.service.HouseExpenseApplicationService;
 import com.silveira.accounting.models.HouseExpense;
 import com.silveira.accounting.utils.Money;
 import java.awt.Desktop;
@@ -45,22 +45,26 @@ import javafx.util.StringConverter;
 public class HouseExpensePageView {
     private static final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final MortgageApplicationService mortgage;
+    private final HouseExpenseApplicationService houseExpenses;
     private final Config config;
 
-    public HouseExpensePageView(MortgageApplicationService mortgage, Config config) {
-        this.mortgage = mortgage;
+    public HouseExpensePageView(HouseExpenseApplicationService houseExpenses, Config config) {
+        this.houseExpenses = houseExpenses;
         this.config = config;
     }
 
     public Content build() {
+        return build(null);
+    }
+
+    public Content build(String loanAlias) {
         Map<Long, String> originalRows = new HashMap<>();
         Label totalValue = new Label();
         Runnable[] refreshTotal = new Runnable[1];
         TableView<HouseExpense> table = houseExpenseTable(() -> refreshTotal[0].run(), originalRows);
         refreshTotal[0] = () -> totalValue.setText(Money.format(totalHouseExpenses(table)));
         Runnable refresh = () -> {
-            table.setItems(FXCollections.observableArrayList(mortgage.houseExpenses().findByLoan(null, null, null)));
+            table.setItems(FXCollections.observableArrayList(houseExpenses.findByLoan(loanAlias, null, null)));
             captureHouseExpenseRows(table, originalRows);
             refreshTotal[0].run();
         };
@@ -69,7 +73,7 @@ public class HouseExpensePageView {
         add.getStyleClass().add("primary");
         sizeActionButton(add);
         add.setOnAction(event -> {
-            HouseExpense expense = new HouseExpense(0, "", LocalDate.now(), "Gasto manual", "", 0, "", "");
+            HouseExpense expense = new HouseExpense(0, loanAlias == null ? "" : loanAlias, LocalDate.now(), "Gasto manual", "", 0, "", "");
             table.getItems().add(expense);
             table.getSelectionModel().select(expense);
             refreshTotal[0].run();
@@ -212,7 +216,7 @@ public class HouseExpensePageView {
                     HouseExpense expense = getTableView().getItems().get(getIndex());
                     if (expense.getId() > 0) {
                         deleteHouseExpenseDocumentFile(expense);
-                        mortgage.houseExpenses().delete(expense.getId());
+                        houseExpenses.delete(expense.getId());
                         originalRows.remove(expense.getId());
                     }
                     getTableView().getItems().remove(expense);
@@ -325,10 +329,10 @@ public class HouseExpensePageView {
 
     private void saveHouseExpense(HouseExpense expense) {
         if (expense.getId() == 0) {
-            long id = mortgage.houseExpenses().save(expense);
+            long id = houseExpenses.save(expense);
             expense.setId(id);
         } else {
-            mortgage.houseExpenses().update(expense);
+            houseExpenses.update(expense);
         }
     }
 
@@ -359,7 +363,7 @@ public class HouseExpensePageView {
             deleteHouseExpenseDocumentFile(expense);
             expense.setDocumentPath(target.toString());
             expense.setDocumentName(originalName);
-            mortgage.houseExpenses().update(expense);
+            houseExpenses.update(expense);
             originalRows.put(expense.getId(), houseExpenseSnapshot(expense));
             refreshRowsChanged(rowsChanged);
         } catch (IOException | RuntimeException exception) {
@@ -392,7 +396,7 @@ public class HouseExpensePageView {
         expense.setDocumentPath(null);
         expense.setDocumentName(null);
         if (expense.getId() > 0) {
-            mortgage.houseExpenses().update(expense);
+            houseExpenses.update(expense);
             originalRows.put(expense.getId(), houseExpenseSnapshot(expense));
         }
         refreshRowsChanged(rowsChanged);

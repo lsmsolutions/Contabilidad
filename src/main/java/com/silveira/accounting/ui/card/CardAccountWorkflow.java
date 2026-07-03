@@ -26,9 +26,9 @@ public class CardAccountWorkflow {
             config.openAccount()
         );
         if (hub.empty()) {
-            config.page().show("Tarjetas", hub.content(), hub.actions());
+            config.page().show("Tarjetas", hub.actions(), hub.content());
         } else {
-            config.darkHub().show("Tarjetas", hub.content(), hub.actions());
+            config.darkHub().show("Tarjetas", hub.actions(), hub.content());
         }
     }
 

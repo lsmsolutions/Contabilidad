@@ -150,6 +150,47 @@
     -fx-border-color: #2d8a6d;
 }
 
+.dark-hub-page .bank-hub-actions,
+.dark-hub-page .card-hub-actions {
+    -fx-spacing: 10;
+    -fx-padding: 2 0 4 0;
+    -fx-alignment: center-left;
+}
+
+.dark-hub-page .bank-hub-actions .button,
+.dark-hub-page .card-hub-actions .button {
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-padding: 8 16 8 16;
+    -fx-alignment: center;
+}
+
+.dark-hub-page .mortgage-hub-actions {
+    -fx-spacing: 10;
+    -fx-padding: 2 0 4 0;
+    -fx-alignment: center-left;
+}
+
+.dark-hub-page .mortgage-hub-actions .button {
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-padding: 8 16 8 16;
+    -fx-alignment: center;
+}
+
+.dark-hub-page .mortgage-card-actions {
+    -fx-padding: 8 12 12 12;
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.dark-hub-page .mortgage-card-actions .button {
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-padding: 6 12 6 12;
+    -fx-alignment: center;
+}
+
 .workspace-page {
     -fx-background-color: #070d1c;
     -fx-min-height: 760;
@@ -972,6 +1013,24 @@
     -fx-min-height: 520;
 }
 
+.bank-period-tab-content {
+    -fx-padding: 16 0 0 0;
+}
+
+.bank-period-actions {
+    -fx-padding: 0 0 8 0;
+    -fx-alignment: center-left;
+}
+
+.bank-period-actions .button {
+    -fx-min-width: 140;
+    -fx-pref-width: 140;
+    -fx-min-height: 36;
+    -fx-pref-height: 36;
+    -fx-padding: 8 12;
+    -fx-alignment: center;
+}
+
 .bank-breakdown {
     -fx-padding: 18;
     -fx-background-color: #ffffff;
@@ -1178,6 +1237,67 @@
     -fx-font-weight: 800;
 }
 
+.investment-card-value-neutral {
+    -fx-text-fill: #102f28;
+    -fx-font-weight: 700;
+}
+
+.investment-card-value-basis {
+    -fx-text-fill: #52677a;
+    -fx-font-weight: 700;
+}
+
+.investment-card-value-positive {
+    -fx-text-fill: #237545;
+    -fx-font-weight: 800;
+}
+
+.investment-card-value-negative {
+    -fx-text-fill: #b3261e;
+    -fx-font-weight: 800;
+}
+
+.investment-help-icon {
+    -fx-font-size: 10px;
+    -fx-text-fill: #52677a;
+    -fx-font-weight: 800;
+    -fx-cursor: hand;
+}
+
+.investment-subtotal-row {
+    -fx-background-color: #eef6ff;
+}
+
+.investment-subtotal-row .text {
+    -fx-fill: #1f5f99;
+    -fx-font-weight: 800;
+}
+
+.investment-total-row {
+    -fx-background-color: #cfe4fb;
+}
+
+.investment-total-row .table-cell {
+    -fx-border-color: #9fc1e8 transparent #9fc1e8 transparent;
+    -fx-border-width: 1 0 1 0;
+}
+
+.investment-total-row .text {
+    -fx-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-font-size: 14px;
+}
+
+.investment-cash-value {
+    -fx-text-fill: #1f5f99;
+    -fx-font-weight: 800;
+}
+
+.investment-cash-ending-value {
+    -fx-text-fill: #102f28;
+    -fx-font-weight: 800;
+}
+
 .monthly-card-divider {
     -fx-padding: 2 0 2 0;
     -fx-opacity: 0.45;
@@ -1304,6 +1424,29 @@
 
 .statement-card-list {
     -fx-spacing: 10;
+}
+
+.mortgage-tab-content {
+    -fx-padding: 14 0 0 0;
+}
+
+.mortgage-tab-actions {
+    -fx-padding: 0 0 10 0;
+}
+
+.mortgage-tab-actions .button,
+.mortgage-statement-actions .button {
+    -fx-min-width: 138;
+    -fx-pref-width: 138;
+    -fx-min-height: 34;
+    -fx-pref-height: 34;
+    -fx-padding: 7 12;
+}
+
+.mortgage-statement-actions {
+    -fx-alignment: center-left;
+    -fx-spacing: 12;
+    -fx-padding: 0 0 8 0;
 }
 
 .statement-title-row {
@@ -2153,4 +2296,52 @@
     -fx-pref-width: 68;
     -fx-alignment: center;
     -fx-text-alignment: center;
+}
+
+.investment-period-actions {
+    -fx-spacing: 12;
+    -fx-padding: 0 0 14 0;
+    -fx-alignment: center-left;
+}
+
+.investment-tab-content {
+    -fx-padding: 12 0 0 0;
+    -fx-spacing: 10;
+}
+
+.investment-tab-actions {
+    -fx-spacing: 10;
+    -fx-padding: 14 0 10 0;
+    -fx-alignment: center-left;
+}
+
+.investment-action-button {
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-max-height: 34px;
+    -fx-min-width: 170px;
+    -fx-pref-width: 170px;
+    -fx-padding: 6 14 6 14;
+    -fx-alignment: center;
+}
+
+.investment-period-title-row {
+    -fx-background-color: #155f86;
+}
+
+.investment-period-title-row .monthly-card-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+}
+
+.investment-selected-period-card {
+    -fx-border-color: #1d5b46;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(29, 91, 70, 0.24), 8, 0.15, 0, 2);
+}
+
+.investment-allocation-total-cell {
+    -fx-background-color: #eeeeee;
+    -fx-font-weight: 800;
+    -fx-padding: 8 12 8 12;
 }

@@ -10,6 +10,7 @@ public class InvestmentPosition {
     private double marketValue;
     private double costBasis;
     private double unrealizedGainLoss;
+    private boolean total;
 
     public long getStatementId() { return statementId; }
     public void setStatementId(long statementId) { this.statementId = statementId; }
@@ -29,4 +30,6 @@ public class InvestmentPosition {
     public void setCostBasis(double costBasis) { this.costBasis = costBasis; }
     public double getUnrealizedGainLoss() { return unrealizedGainLoss; }
     public void setUnrealizedGainLoss(double unrealizedGainLoss) { this.unrealizedGainLoss = unrealizedGainLoss; }
+    public boolean isTotal() { return total; }
+    public void setTotal(boolean total) { this.total = total; }
 }

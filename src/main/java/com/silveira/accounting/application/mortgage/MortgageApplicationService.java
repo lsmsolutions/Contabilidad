@@ -51,4 +51,14 @@ public class MortgageApplicationService {
     public HouseExpenseApplicationService houseExpenses() {
         return houseExpenses;
     }
+
+    public void renameLoan(String oldAlias, String newAlias) {
+        statements.renameLoan(oldAlias, newAlias);
+        houseExpenses.renameLoan(oldAlias, newAlias);
+    }
+
+    public void deleteLoan(String alias) {
+        houseExpenses.deleteByLoan(alias);
+        statements.deleteLoan(alias);
+    }
 }

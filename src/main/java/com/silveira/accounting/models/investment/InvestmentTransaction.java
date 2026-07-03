@@ -5,6 +5,7 @@ import java.time.LocalDate;
 public class InvestmentTransaction {
     private long statementId;
     private LocalDate transactionDate;
+    private String category;
     private String action;
     private String symbol;
     private String description;
@@ -12,11 +13,14 @@ public class InvestmentTransaction {
     private double price;
     private double amount;
     private double realizedGainLoss;
+    private boolean subtotal;
 
     public long getStatementId() { return statementId; }
     public void setStatementId(long statementId) { this.statementId = statementId; }
     public LocalDate getTransactionDate() { return transactionDate; }
     public void setTransactionDate(LocalDate transactionDate) { this.transactionDate = transactionDate; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }
     public String getSymbol() { return symbol; }
@@ -31,4 +35,6 @@ public class InvestmentTransaction {
     public void setAmount(double amount) { this.amount = amount; }
     public double getRealizedGainLoss() { return realizedGainLoss; }
     public void setRealizedGainLoss(double realizedGainLoss) { this.realizedGainLoss = realizedGainLoss; }
+    public boolean isSubtotal() { return subtotal; }
+    public void setSubtotal(boolean subtotal) { this.subtotal = subtotal; }
 }

@@ -1,5 +1,6 @@
 package com.silveira.accounting.repositories;
 
+import com.silveira.accounting.application.internalmovement.InternalMovementGateway;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.models.InternalMovementRecord;
 
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class InternalMovementRepository {
+public class InternalMovementRepository implements InternalMovementGateway {
     private final DatabaseManager databaseManager;
 
     public InternalMovementRepository(DatabaseManager databaseManager) {

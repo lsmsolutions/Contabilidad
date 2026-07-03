@@ -6,7 +6,6 @@ import com.silveira.accounting.models.CreditCardTransaction;
 import com.silveira.accounting.models.MortgageStatement;
 import com.silveira.accounting.models.MortgageTransaction;
 import com.silveira.accounting.models.NylRecord;
-import com.silveira.accounting.models.ReconciliationItem;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
@@ -21,25 +20,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class ExcelExportService {
-    public void export(Path target, List<BankTransaction> bank, List<NylRecord> nyl, List<ReconciliationItem> reconciliations) {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font font = workbook.createFont();
-            font.setBold(true);
-            headerStyle.setFont(font);
-
-            bankSheet(workbook, headerStyle, bank);
-            nylSheet(workbook, headerStyle, nyl);
-            reconciliationSheet(workbook, headerStyle, reconciliations);
-
-            try (OutputStream out = Files.newOutputStream(target)) {
-                workbook.write(out);
-            }
-        } catch (IOException exception) {
-            throw new IllegalStateException("No se pudo exportar Excel", exception);
-        }
-    }
-
     public void exportBankMonthly(Path target, List<BankTransaction> bank) {
         try (Workbook workbook = new XSSFWorkbook()) {
             CellStyle headerStyle = headerStyle(workbook);
@@ -79,26 +59,6 @@ public class ExcelExportService {
             write(workbook, target);
         } catch (IOException exception) {
             throw new IllegalStateException("No se pudo exportar Hipoteca mensual", exception);
-        }
-    }
-
-    public void exportReconciliationMonthly(Path target, List<BankTransaction> bank, List<CreditCardStatement> cardStatements,
-                                            List<CreditCardTransaction> cardTransactions, List<MortgageStatement> mortgageStatements,
-                                            List<MortgageTransaction> mortgageTransactions, List<NylRecord> nyl,
-                                            List<ReconciliationItem> reconciliations) {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            CellStyle headerStyle = headerStyle(workbook);
-            reconciliationSummarySheet(workbook, headerStyle, bank, cardStatements, cardTransactions, mortgageStatements, mortgageTransactions, nyl, reconciliations);
-            bankSheet(workbook, headerStyle, bank);
-            creditCardStatementSheet(workbook, headerStyle, cardStatements);
-            creditCardTransactionSheet(workbook, headerStyle, cardTransactions);
-            mortgageStatementSheet(workbook, headerStyle, mortgageStatements);
-            mortgageTransactionSheet(workbook, headerStyle, mortgageTransactions);
-            nylSheet(workbook, headerStyle, nyl);
-            reconciliationSheet(workbook, headerStyle, reconciliations);
-            write(workbook, target);
-        } catch (IOException exception) {
-            throw new IllegalStateException("No se pudo exportar conciliación mensual", exception);
         }
     }
 
@@ -240,56 +200,6 @@ public class ExcelExportService {
             row.createCell(8).setCellValue(item.getReviewNotes());
         }
         autosize(sheet, 9);
-    }
-
-    private void reconciliationSheet(Workbook workbook, CellStyle headerStyle, List<ReconciliationItem> items) {
-        Sheet sheet = workbook.createSheet("Conciliación");
-        header(sheet, headerStyle, "Año", "Mes", "Banco", "NYL", "Banco importe", "NYL importe", "Diferencia", "Estado");
-        int rowIndex = 1;
-        for (ReconciliationItem item : items) {
-            Row row = sheet.createRow(rowIndex++);
-            row.createCell(0).setCellValue(item.year());
-            row.createCell(1).setCellValue(item.month());
-            row.createCell(2).setCellValue(item.bankDescription());
-            row.createCell(3).setCellValue(item.nylConcept());
-            row.createCell(4).setCellValue(item.bankAmount());
-            row.createCell(5).setCellValue(item.nylAmount());
-            row.createCell(6).setCellValue(item.difference());
-            row.createCell(7).setCellValue(item.status());
-        }
-        autosize(sheet, 8);
-    }
-
-    private void reconciliationSummarySheet(Workbook workbook, CellStyle headerStyle, List<BankTransaction> bank,
-                                            List<CreditCardStatement> cardStatements, List<CreditCardTransaction> cardTransactions,
-                                            List<MortgageStatement> mortgageStatements, List<MortgageTransaction> mortgageTransactions,
-                                            List<NylRecord> nyl, List<ReconciliationItem> reconciliations) {
-        Sheet sheet = workbook.createSheet("Resumen mensual");
-        header(sheet, headerStyle, "Area", "Métrica", "Valor");
-        int rowIndex = 1;
-        rowIndex = summaryRow(sheet, rowIndex, "Banco", "Depósitos revisados", bank.stream().filter(b -> !b.isPendingReview() && b.getAmount() > 0).mapToDouble(BankTransaction::getAmount).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "Banco", "Salidas revisadas", Math.abs(bank.stream().filter(b -> !b.isPendingReview() && b.getAmount() < 0).mapToDouble(BankTransaction::getAmount).sum()));
-        rowIndex = summaryRow(sheet, rowIndex, "Banco", "Pendientes", bank.stream().filter(BankTransaction::isPendingReview).count());
-        rowIndex = summaryRow(sheet, rowIndex, "Tarjetas", "Deuda revisada", cardStatements.stream().filter(s -> !s.isPendingReview()).mapToDouble(CreditCardStatement::getNewBalance).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "Tarjetas", "Intereses revisados", cardTransactions.stream().filter(t -> !t.isPendingReview() && "interes".equalsIgnoreCase(t.getType())).mapToDouble(CreditCardTransaction::getAmount).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "Tarjetas", "Pendientes", cardTransactions.stream().filter(CreditCardTransaction::isPendingReview).count() + cardStatements.stream().filter(CreditCardStatement::isPendingReview).count());
-        rowIndex = summaryRow(sheet, rowIndex, "Hipotecas", "Deuda a pagar revisada", mortgageStatements.stream().filter(s -> !s.isPendingReview()).mapToDouble(s -> s.getTotalDue() > 0 ? s.getTotalDue() : s.getPaymentAmountDue()).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "Hipotecas", "Principal revisado", mortgageStatements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getPrincipalDue).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "Hipotecas", "Intereses revisados", mortgageStatements.stream().filter(s -> !s.isPendingReview()).mapToDouble(MortgageStatement::getInterestDue).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "Hipotecas", "Pendientes", mortgageTransactions.stream().filter(MortgageTransaction::isPendingReview).count() + mortgageStatements.stream().filter(MortgageStatement::isPendingReview).count());
-        rowIndex = summaryRow(sheet, rowIndex, "NYL", "Comisiones revisadas", nyl.stream().filter(n -> !n.isPendingReview() && n.getAmount() > 0).mapToDouble(NylRecord::getAmount).sum());
-        rowIndex = summaryRow(sheet, rowIndex, "NYL", "Deducciones revisadas", Math.abs(nyl.stream().filter(n -> !n.isPendingReview() && n.getAmount() < 0).mapToDouble(NylRecord::getAmount).sum()));
-        rowIndex = summaryRow(sheet, rowIndex, "NYL", "Pendientes", nyl.stream().filter(NylRecord::isPendingReview).count());
-        summaryRow(sheet, rowIndex, "Conciliación", "Diferencias / posibles coincidencias", reconciliations.stream().filter(item -> !"Conciliado".equals(item.status())).count());
-        autosize(sheet, 3);
-    }
-
-    private int summaryRow(Sheet sheet, int rowIndex, String area, String metric, double value) {
-        Row row = sheet.createRow(rowIndex++);
-        row.createCell(0).setCellValue(area);
-        row.createCell(1).setCellValue(metric);
-        row.createCell(2).setCellValue(value);
-        return rowIndex;
     }
 
     private void header(Sheet sheet, CellStyle style, String... labels) {

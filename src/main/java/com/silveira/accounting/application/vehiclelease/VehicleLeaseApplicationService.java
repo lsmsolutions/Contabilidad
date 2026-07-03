@@ -1,9 +1,9 @@
 package com.silveira.accounting.application.vehiclelease;
 
+import com.silveira.accounting.application.importing.DocumentImportService;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseAccount;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
 import com.silveira.accounting.parsers.vehiclelease.VehicleLeaseImportData;
-import com.silveira.accounting.parsers.vehiclelease.VolvoVehicleLeaseParser;
 import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseAccountRepository;
 import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseFieldReviewRepository;
 import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseStatementRepository;
@@ -28,32 +28,53 @@ public class VehicleLeaseApplicationService {
     private final VehicleLeaseAccountRepository accounts;
     private final VehicleLeaseStatementRepository statements;
     private final VehicleLeaseFieldReviewRepository reviews;
-    private final VolvoVehicleLeaseParser volvoParser;
+    private final DocumentImportService<VehicleLeaseImportData> imports;
 
     public VehicleLeaseApplicationService(
         VehicleLeaseAccountRepository accounts,
         VehicleLeaseStatementRepository statements,
         VehicleLeaseFieldReviewRepository reviews,
-        VolvoVehicleLeaseParser volvoParser
+        DocumentImportService<VehicleLeaseImportData> imports
     ) {
         this.accounts = accounts;
         this.statements = statements;
         this.reviews = reviews;
-        this.volvoParser = volvoParser;
+        this.imports = imports;
     }
 
     public VehicleLeaseStatement importPdf(Path pdf) {
-        VehicleLeaseImportData data = volvoParser.parse(pdf);
-        accounts.save(data.account());
-        long id = statements.save(data.statement());
-        data.statement().setId(id);
-        return data.statement();
+        VehicleLeaseImportData data = imports.importPdf(pdf);
+        return saveImport(data, null, true);
     }
 
     public VehicleLeaseStatement importPdf(Path pdf, String accountAlias) {
-        VehicleLeaseImportData data = volvoParser.parse(pdf);
+        VehicleLeaseImportData data = imports.importPdf(pdf);
+        return saveImport(data, accountAlias, false);
+    }
+
+    public VehicleLeaseStatement importPdfWithAi(Path pdf) {
+        VehicleLeaseImportData data = imports.importPdfWithAi(pdf);
+        return saveImport(data, null, true);
+    }
+
+    public VehicleLeaseStatement importPdfWithAi(Path pdf, String accountAlias) {
+        VehicleLeaseImportData data = imports.importPdfWithAi(pdf);
+        return saveImport(data, accountAlias, false);
+    }
+
+    private VehicleLeaseStatement saveImport(VehicleLeaseImportData data, String accountAlias, boolean saveAccount) {
+        if (saveAccount) {
+            accounts.save(data.account());
+        }
         VehicleLeaseStatement statement = data.statement();
-        statement.setAccountAlias(accountAlias);
+        if (accountAlias != null) {
+            statement.setAccountAlias(accountAlias);
+        }
+        statement.setReviewRequired(true);
+        statement.setPendingReview(true);
+        if (statement.getReviewNotes() == null || statement.getReviewNotes().isBlank()) {
+            statement.setReviewNotes("Revisar contra el PDF original");
+        }
         long id = statements.save(statement);
         statement.setId(id);
         return statement;
@@ -95,6 +116,10 @@ public class VehicleLeaseApplicationService {
 
     public boolean isFieldReviewed(VehicleLeaseStatement statement, String field) {
         return statement.getId() > 0 && reviews.isReviewed(statement.getId(), field);
+    }
+
+    public boolean isStatementReviewed(VehicleLeaseStatement statement) {
+        return statement.getId() > 0 && REVIEW_FIELDS.stream().allMatch(field -> reviews.isReviewed(statement.getId(), field));
     }
 
     public void setFieldReviewed(VehicleLeaseStatement statement, String field, boolean reviewed) {

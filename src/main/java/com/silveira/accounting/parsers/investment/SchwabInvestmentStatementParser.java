@@ -1,5 +1,6 @@
 package com.silveira.accounting.parsers.investment;
 
+import com.silveira.accounting.application.importing.DocumentImportGateway;
 import com.silveira.accounting.models.investment.InvestmentAccount;
 import com.silveira.accounting.models.investment.InvestmentAllocation;
 import com.silveira.accounting.models.investment.InvestmentPosition;
@@ -17,7 +18,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SchwabInvestmentStatementParser {
+public class SchwabInvestmentStatementParser implements DocumentImportGateway<InvestmentImportData> {
     private static final Pattern PERIOD = Pattern.compile(
         "(January|February|March|April|May|June|July|August|September|October|November|December)"
             + "\\s+(\\d{1,2})-(\\d{1,2}),\\s+(\\d{4})",
@@ -34,6 +35,11 @@ public class SchwabInvestmentStatementParser {
     private final PdfTextExtractor extractor = new PdfTextExtractor();
 
     public InvestmentImportData parse(Path pdf) {
+        return importPdf(pdf);
+    }
+
+    @Override
+    public InvestmentImportData importPdf(Path pdf) {
         String text = extractor.extract(pdf).replace('\uFFFD', ' ');
         if (!text.toLowerCase(Locale.ROOT).contains("schwab one")
             || !text.toLowerCase(Locale.ROOT).contains("positions - summary")) {
@@ -52,27 +58,67 @@ public class SchwabInvestmentStatementParser {
         account.setAccountType("Brokerage");
         account.setAccountNumber(ending);
 
+        List<InvestmentPosition> positions = positions(text);
+        List<Double> positionSummary = positionSummaryValues(text);
+
         InvestmentStatement statement = new InvestmentStatement();
         statement.setAccountAlias(account.getAlias());
         statement.setPeriodStart(period.start());
         statement.setPeriodEnd(period.end());
-        statement.setBeginningValue(money(text, "Beginning Account Value\\s+\\$?([\\d,]+\\.\\d{2})"));
-        statement.setEndingValue(money(text, "Ending Account Value\\s+\\$?([\\d,]+\\.\\d{2})"));
+        statement.setBeginningValue(summaryValue(positionSummary, 0, money(text, "Beginning Account Value\\s+\\$?([\\d,]+\\.\\d{2})")));
+        statement.setTransferOfSecurities(summaryValue(positionSummary, 1, summaryMoney(text, "Transfer of Securities(In/Out)")));
+        statement.setDividendsReinvested(summaryValue(positionSummary, 2, summaryMoney(text, "Dividends Reinvested")));
+        statement.setCashActivity(summaryValue(positionSummary, 3, summaryMoney(text, "Cash Activity")));
+        statement.setChangeInMarketValue(summaryValue(positionSummary, 4, summaryMoney(text, "Change in Market Value")));
+        statement.setEndingValue(summaryValue(positionSummary, 5, money(text, "Ending Account Value\\s+\\$?([\\d,]+\\.\\d{2})")));
         statement.setDeposits(summaryMoney(text, "Deposits"));
         statement.setWithdrawals(summaryMoney(text, "Withdrawals"));
         statement.setDividendsInterest(summaryMoney(text, "Dividends and Interest"));
         statement.setMarketChange(summaryMoney(text, "Market Appreciation/(Depreciation)"));
         statement.setExpenses(summaryMoney(text, "Expenses"));
-        statement.setUnrealizedGainLoss(money(text, "Unrealized\\s+\\$?([\\d,()]+\\.\\d{2})"));
+        statement.setCostBasisTotal(summaryValue(positionSummary, 6, costBasisTotal(text, positions)));
+        statement.setUnrealizedGainLoss(summaryValue(positionSummary, 7, money(text, "Unrealized\\s+\\$?([\\d,()]+\\.\\d{2})")));
         statement.setSourcePdfPath(pdf.toAbsolutePath().toString());
 
         return new InvestmentImportData(
             account,
             statement,
             allocations(text),
-            positions(text),
+            positions,
             transactions(text, period.end().getYear())
         );
+    }
+
+    private List<Double> positionSummaryValues(String text) {
+        String section = between(text, "Positions - Summary", "Cash and Cash Investments");
+        for (String rawLine : section.split("\\R")) {
+            List<Double> values = moneyValues(rawLine);
+            if (values.size() >= 8) {
+                return values.subList(0, 8);
+            }
+        }
+        return List.of();
+    }
+
+    private double summaryValue(List<Double> values, int index, double fallback) {
+        return values.size() > index ? values.get(index) : fallback;
+    }
+
+    private List<Double> moneyValues(String line) {
+        List<Double> values = new ArrayList<>();
+        Matcher matcher = Pattern.compile("\\(?\\$?[\\d,]+\\.\\d{2}\\)?").matcher(line);
+        while (matcher.find()) {
+            values.add(Money.parse(matcher.group()));
+        }
+        return values;
+    }
+
+    private double costBasisTotal(String text, List<InvestmentPosition> positions) {
+        double parsed = money(text, "\\bCost Basis\\s+\\$?([\\d,]+\\.\\d{2})");
+        if (parsed != 0) {
+            return parsed;
+        }
+        return positions.stream().mapToDouble(InvestmentPosition::getCostBasis).sum();
     }
 
     private List<InvestmentAllocation> allocations(String text) {
@@ -179,6 +225,7 @@ public class SchwabInvestmentStatementParser {
         InvestmentTransaction value = new InvestmentTransaction();
         value.setTransactionDate(date);
         value.setAction(action);
+        value.setCategory(categoryForAction(action));
         String first = rest.split("\\s+", 2)[0];
         boolean securityAction = action.equals("Sale") || action.equals("Purchase") || action.equals("Reinvest");
         value.setSymbol(securityAction && first.matches("[A-Z][A-Z0-9.]{0,9}") ? first : "");
@@ -199,8 +246,28 @@ public class SchwabInvestmentStatementParser {
         return value;
     }
 
+    private String categoryForAction(String action) {
+        return switch (action) {
+            case "Purchase" -> "Purchases";
+            case "Dividend", "Interest", "Reinvest" -> "Dividends/Interest";
+            case "Sale" -> "Sales/Redemptions";
+            case "Deposit" -> "Deposits";
+            case "Withdrawal" -> "Withdrawals";
+            default -> action == null || action.isBlank() ? "Other Activity" : action;
+        };
+    }
+
     private double summaryMoney(String text, String label) {
-        return money(text, "\\b" + Pattern.quote(label) + "\\s+(\\(?[\\d,]+\\.\\d{2}\\)?)");
+        return money(text, "\\b" + flexibleLabel(label) + "\\s+(\\(?[\\d,]+\\.\\d{2}\\)?)");
+    }
+
+    private String flexibleLabel(String label) {
+        String[] parts = label.trim().split("\\s+");
+        List<String> quoted = new ArrayList<>();
+        for (String part : parts) {
+            quoted.add(Pattern.quote(part));
+        }
+        return String.join("\\s+", quoted);
     }
 
     private double transactionMoney(String value) {

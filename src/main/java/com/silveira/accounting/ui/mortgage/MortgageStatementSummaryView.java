@@ -39,7 +39,8 @@ public class MortgageStatementSummaryView {
         BiConsumer<MortgageTransaction, Boolean> transactionReviewedChanged,
         TransactionAmountChanged transactionAmountChanged,
         Runnable editAction,
-        Runnable deleteAction
+        Runnable deleteAction,
+        Runnable saveAction
     ) {
         VBox card = new VBox(14);
         card.getStyleClass().add("mortgage-statement-summary");
@@ -62,11 +63,14 @@ public class MortgageStatementSummaryView {
         Button delete = new Button("Eliminar periodo");
         delete.getStyleClass().add("danger-button");
         delete.setOnAction(event -> deleteAction.run());
-        HBox footer = new HBox(12, status(statement), edit, delete);
-        footer.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(footer.getChildren().get(0), Priority.ALWAYS);
+        Button save = new Button("Guardar");
+        save.getStyleClass().add("primary");
+        save.setOnAction(event -> saveAction.run());
+        HBox actions = new HBox(12, status(statement), edit, delete, save);
+        actions.getStyleClass().add("mortgage-statement-actions");
+        actions.setAlignment(Pos.CENTER_LEFT);
 
-        card.getChildren().addAll(top, summary, activity, footer);
+        card.getChildren().addAll(actions, top, summary, activity);
         return card;
     }
 

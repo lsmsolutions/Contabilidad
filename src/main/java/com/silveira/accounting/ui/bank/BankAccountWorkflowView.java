@@ -28,7 +28,7 @@ public class BankAccountWorkflowView {
             this::deleteFromHub,
             config.showAccount()
         );
-        config.darkHub().show("Banco", hub.content(), hub.actions());
+        config.darkHub().show("Banco", hub.actions(), hub.content());
     }
 
     public void showAddAccount() {

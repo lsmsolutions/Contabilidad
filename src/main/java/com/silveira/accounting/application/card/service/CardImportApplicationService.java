@@ -23,6 +23,10 @@ public class CardImportApplicationService {
         return importPdf.execute(pdf);
     }
 
+    public CreditCardStatementParser.ParsedCreditCardStatement importPdfWithAi(Path pdf) {
+        return importPdf.executeWithAi(pdf);
+    }
+
     public long saveImported(String accountAlias, CreditCardStatementParser.ParsedCreditCardStatement parsed) {
         return saveImported.execute(accountAlias, parsed);
     }

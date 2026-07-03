@@ -21,14 +21,20 @@ public class InvestmentStatementRepository {
     public long save(InvestmentStatement value) {
         String sql = """
             INSERT INTO investment_statements(
-                account_alias, period_start, period_end, beginning_value, ending_value, deposits, withdrawals,
-                dividends_interest, market_change, expenses, unrealized_gain_loss, source_pdf_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                account_alias, period_start, period_end, beginning_value, ending_value,
+                transfer_of_securities, dividends_reinvested, cash_activity, change_in_market_value,
+                deposits, withdrawals,
+                dividends_interest, market_change, expenses, cost_basis_total, unrealized_gain_loss, source_pdf_path
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(account_alias, period_end) DO UPDATE SET
                 period_start=excluded.period_start, beginning_value=excluded.beginning_value,
-                ending_value=excluded.ending_value, deposits=excluded.deposits, withdrawals=excluded.withdrawals,
+                ending_value=excluded.ending_value, transfer_of_securities=excluded.transfer_of_securities,
+                dividends_reinvested=excluded.dividends_reinvested, cash_activity=excluded.cash_activity,
+                change_in_market_value=excluded.change_in_market_value,
+                deposits=excluded.deposits, withdrawals=excluded.withdrawals,
                 dividends_interest=excluded.dividends_interest, market_change=excluded.market_change,
-                expenses=excluded.expenses, unrealized_gain_loss=excluded.unrealized_gain_loss,
+                expenses=excluded.expenses, cost_basis_total=excluded.cost_basis_total,
+                unrealized_gain_loss=excluded.unrealized_gain_loss,
                 source_pdf_path=excluded.source_pdf_path
             """;
         try (Connection connection = databaseManager.getConnection();
@@ -43,6 +49,25 @@ public class InvestmentStatementRepository {
             return findId(connection, value.getAccountAlias(), value.getPeriodEnd());
         } catch (SQLException exception) {
             throw new IllegalStateException("No se pudo guardar el estado de inversion", exception);
+        }
+    }
+
+    public void update(InvestmentStatement value) {
+        String sql = """
+            UPDATE investment_statements SET
+                account_alias=?, period_start=?, period_end=?, beginning_value=?, ending_value=?,
+                transfer_of_securities=?, dividends_reinvested=?, cash_activity=?, change_in_market_value=?,
+                deposits=?, withdrawals=?, dividends_interest=?, market_change=?, expenses=?,
+                cost_basis_total=?, unrealized_gain_loss=?, source_pdf_path=?
+            WHERE id=?
+            """;
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            bind(statement, value);
+            statement.setLong(18, value.getId());
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar el estado de inversion", exception);
         }
     }
 
@@ -84,6 +109,19 @@ public class InvestmentStatementRepository {
         }
     }
 
+    public void updatePositionTotals(long id, double costBasisTotal, double unrealizedGainLoss) {
+        String sql = "UPDATE investment_statements SET cost_basis_total=?, unrealized_gain_loss=? WHERE id=?";
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setDouble(1, costBasisTotal);
+            statement.setDouble(2, unrealizedGainLoss);
+            statement.setLong(3, id);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudieron actualizar los totales de posiciones", exception);
+        }
+    }
+
     private void execute(PreparedStatement statement, long id) throws SQLException {
         statement.setLong(1, id);
         statement.executeUpdate();
@@ -95,13 +133,18 @@ public class InvestmentStatementRepository {
         statement.setString(3, value.getPeriodEnd().toString());
         statement.setDouble(4, value.getBeginningValue());
         statement.setDouble(5, value.getEndingValue());
-        statement.setDouble(6, value.getDeposits());
-        statement.setDouble(7, value.getWithdrawals());
-        statement.setDouble(8, value.getDividendsInterest());
-        statement.setDouble(9, value.getMarketChange());
-        statement.setDouble(10, value.getExpenses());
-        statement.setDouble(11, value.getUnrealizedGainLoss());
-        statement.setString(12, value.getSourcePdfPath());
+        statement.setDouble(6, value.getTransferOfSecurities());
+        statement.setDouble(7, value.getDividendsReinvested());
+        statement.setDouble(8, value.getCashActivity());
+        statement.setDouble(9, value.getChangeInMarketValue());
+        statement.setDouble(10, value.getDeposits());
+        statement.setDouble(11, value.getWithdrawals());
+        statement.setDouble(12, value.getDividendsInterest());
+        statement.setDouble(13, value.getMarketChange());
+        statement.setDouble(14, value.getExpenses());
+        statement.setDouble(15, value.getCostBasisTotal());
+        statement.setDouble(16, value.getUnrealizedGainLoss());
+        statement.setString(17, value.getSourcePdfPath());
     }
 
     private long findId(Connection connection, String alias, LocalDate periodEnd) throws SQLException {
@@ -126,11 +169,16 @@ public class InvestmentStatementRepository {
         value.setPeriodEnd(LocalDate.parse(result.getString("period_end")));
         value.setBeginningValue(result.getDouble("beginning_value"));
         value.setEndingValue(result.getDouble("ending_value"));
+        value.setTransferOfSecurities(result.getDouble("transfer_of_securities"));
+        value.setDividendsReinvested(result.getDouble("dividends_reinvested"));
+        value.setCashActivity(result.getDouble("cash_activity"));
+        value.setChangeInMarketValue(result.getDouble("change_in_market_value"));
         value.setDeposits(result.getDouble("deposits"));
         value.setWithdrawals(result.getDouble("withdrawals"));
         value.setDividendsInterest(result.getDouble("dividends_interest"));
         value.setMarketChange(result.getDouble("market_change"));
         value.setExpenses(result.getDouble("expenses"));
+        value.setCostBasisTotal(result.getDouble("cost_basis_total"));
         value.setUnrealizedGainLoss(result.getDouble("unrealized_gain_loss"));
         value.setSourcePdfPath(result.getString("source_pdf_path"));
         return value;

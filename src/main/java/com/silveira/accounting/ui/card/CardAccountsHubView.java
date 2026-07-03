@@ -17,7 +17,7 @@ public class CardAccountsHubView {
         Runnable onDelete,
         Consumer<String> onOpenAccount
     ) {
-        Button add = new Button("+ Anadir tarjeta");
+        Button add = new Button("+ A\u00f1adir tarjeta");
         add.getStyleClass().add("primary");
         add.setOnAction(event -> onAdd.run());
 
@@ -30,9 +30,10 @@ public class CardAccountsHubView {
 
         sameSize(add, edit, delete);
         HBox actions = new HBox(10, add, edit, delete);
+        actions.getStyleClass().add("card-hub-actions");
 
         if (accounts.isEmpty()) {
-            Label empty = new Label("No hay tarjetas creadas. Importa un PDF o anade una tarjeta manualmente.");
+            Label empty = new Label("No hay tarjetas creadas. Importa un PDF o a\u00f1ade una tarjeta manualmente.");
             empty.getStyleClass().add("section-subtitle");
             return new Hub(empty, actions, true);
         }
@@ -68,6 +69,8 @@ public class CardAccountsHubView {
         for (Button button : buttons) {
             button.setMinWidth(165);
             button.setPrefWidth(165);
+            button.setMinHeight(36);
+            button.setPrefHeight(36);
         }
     }
 

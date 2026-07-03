@@ -26,4 +26,12 @@ public class HouseExpenseApplicationService {
     public void delete(long id) {
         repository.delete(id);
     }
+
+    public void deleteByLoan(String loanAlias) {
+        repository.deleteByLoan(loanAlias);
+    }
+
+    public void renameLoan(String oldAlias, String newAlias) {
+        repository.renameLoan(oldAlias, newAlias);
+    }
 }

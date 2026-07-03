@@ -25,6 +25,14 @@ public class MortgageStatementApplicationService {
         repository.saveLoan(alias, servicerName, loanNumber, propertyAddress, notes);
     }
 
+    public void renameLoan(String oldAlias, String newAlias) {
+        repository.renameLoan(oldAlias, newAlias);
+    }
+
+    public void deleteLoan(String alias) {
+        repository.deleteLoan(alias);
+    }
+
     public List<MortgageStatement> findByLoan(String alias, Integer year, Integer month) {
         return repository.findByLoan(alias, year, month);
     }

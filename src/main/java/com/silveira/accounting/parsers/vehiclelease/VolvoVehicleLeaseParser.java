@@ -1,5 +1,6 @@
 package com.silveira.accounting.parsers.vehiclelease;
 
+import com.silveira.accounting.application.importing.DocumentImportGateway;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseAccount;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
 import com.silveira.accounting.parsers.PdfTextExtractor;
@@ -10,13 +11,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class VolvoVehicleLeaseParser {
+public class VolvoVehicleLeaseParser implements DocumentImportGateway<VehicleLeaseImportData> {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("M/d/yyyy");
     private final PdfTextExtractor extractor = new PdfTextExtractor();
 
     public VehicleLeaseImportData parse(Path pdf) {
+        return importPdf(pdf);
+    }
+
+    @Override
+    public VehicleLeaseImportData importPdf(Path pdf) {
         String text = extractor.extract(pdf);
-        if (!text.toLowerCase().contains("volvo car financial services")) {
+        if (!isVolvoLeaseStatement(text)) {
             throw new IllegalArgumentException("El PDF no corresponde a Volvo Car Financial Services.");
         }
 
@@ -57,6 +63,19 @@ public class VolvoVehicleLeaseParser {
         statement.setPendingReview(true);
         statement.setReviewNotes("Revisar contra el PDF original");
         return new VehicleLeaseImportData(account, statement);
+    }
+
+    private boolean isVolvoLeaseStatement(String text) {
+        String normalized = text.toLowerCase();
+        if (normalized.contains("volvo car financial services")) {
+            return true;
+        }
+        return normalized.contains("volvo")
+            && normalized.contains("acct#:")
+            && normalized.contains("vin:")
+            && normalized.contains("lease payment(s)")
+            && normalized.contains("total amount due")
+            && normalized.contains("statement date:");
     }
 
     private String defaultAlias(VehicleLeaseAccount account) {

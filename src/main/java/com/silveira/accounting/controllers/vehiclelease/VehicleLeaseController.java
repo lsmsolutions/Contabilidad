@@ -22,6 +22,14 @@ public class VehicleLeaseController {
         return application.importPdf(pdf, accountAlias);
     }
 
+    public VehicleLeaseStatement importPdfWithAi(Path pdf) {
+        return application.importPdfWithAi(pdf);
+    }
+
+    public VehicleLeaseStatement importPdfWithAi(Path pdf, String accountAlias) {
+        return application.importPdfWithAi(pdf, accountAlias);
+    }
+
     public List<VehicleLeaseAccount> accounts() {
         return application.accounts();
     }
@@ -56,6 +64,10 @@ public class VehicleLeaseController {
 
     public boolean isFieldReviewed(VehicleLeaseStatement statement, String field) {
         return application.isFieldReviewed(statement, field);
+    }
+
+    public boolean isStatementReviewed(VehicleLeaseStatement statement) {
+        return application.isStatementReviewed(statement);
     }
 
     public void setFieldReviewed(VehicleLeaseStatement statement, String field, boolean reviewed) {

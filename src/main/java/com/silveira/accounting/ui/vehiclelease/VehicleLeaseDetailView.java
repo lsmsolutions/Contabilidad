@@ -5,8 +5,10 @@ import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
 import com.silveira.accounting.utils.Money;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -29,9 +31,11 @@ public class VehicleLeaseDetailView {
         Runnable backAction,
         Runnable importAction,
         ReviewLookup reviewLookup,
+        Predicate<VehicleLeaseStatement> statementReviewed,
         FieldReviewAction fieldReviewAction,
         BiConsumer<VehicleLeaseStatement, Boolean> allReviewAction,
         Consumer<VehicleLeaseStatement> editAction,
+        Consumer<VehicleLeaseStatement> saveAction,
         Consumer<VehicleLeaseStatement> deleteAction
     ) {
         Label heading = new Label(vehicleName(account));
@@ -63,16 +67,21 @@ public class VehicleLeaseDetailView {
         VBox statementCards = new VBox(16);
         statementCards.getStyleClass().add("statement-card-list");
         VehicleLeaseStatementView statementView = new VehicleLeaseStatementView();
+        Map<Long, Label> reviewChips = new HashMap<>();
         for (VehicleLeaseStatement statement : statements) {
-            VBox card = monthlyCard(statement);
+            MonthlyCard monthlyCard = monthlyCard(statement, statementReviewed.test(statement));
+            VBox card = monthlyCard.node();
+            reviewChips.put(statement.getId(), monthlyCard.reviewChip());
             card.setOnMouseClicked(event -> showStatement(
                 statementCards,
                 statementView,
                 statement,
+                reviewChips.get(statement.getId()),
                 reviewLookup,
                 fieldReviewAction,
                 allReviewAction,
                 editAction,
+                saveAction,
                 deleteAction
             ));
             monthlyCards.getChildren().add(card);
@@ -84,10 +93,12 @@ public class VehicleLeaseDetailView {
                 statementCards,
                 statementView,
                 statements.get(0),
+                reviewChips.get(statements.get(0).getId()),
                 reviewLookup,
                 fieldReviewAction,
                 allReviewAction,
                 editAction,
+                saveAction,
                 deleteAction
             );
         }
@@ -99,39 +110,61 @@ public class VehicleLeaseDetailView {
         return page;
     }
 
-    private VBox monthlyCard(VehicleLeaseStatement statement) {
+    private MonthlyCard monthlyCard(VehicleLeaseStatement statement, boolean reviewed) {
         Label heading = new Label(statement.getStatementDate() == null ? "Statement" : statement.getStatementDate().format(MONTH));
         heading.getStyleClass().add("monthly-card-title");
+        HBox title = new HBox(8, heading);
+        title.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        HBox.setHgrow(heading, Priority.ALWAYS);
+        Label check = new Label("\u2713");
+        check.getStyleClass().add("statement-reviewed-chip");
+        setReviewChipVisible(check, reviewed);
+        title.getChildren().add(check);
         GridPane details = new GridPane();
         details.getStyleClass().add("monthly-card-grid");
-        addLine(details, 0, "Due Date", date(statement.getDueDate()));
-        addLine(details, 1, "Total Due", Money.format(statement.getTotalAmountDue()));
-        addLine(details, 2, "Payments Made", String.valueOf(statement.getPaymentsMade()));
-        addLine(details, 3, "Remaining", String.valueOf(statement.getPaymentsRemaining()));
-        VBox card = new VBox(0, heading, details);
+        addLine(details, 0, "Statement Date", date(statement.getStatementDate()));
+        addLine(details, 1, "Due Date", date(statement.getDueDate()));
+        addLine(details, 2, "Total Due", Money.format(statement.getTotalAmountDue()));
+        addLine(details, 3, "Payments Made", String.valueOf(statement.getPaymentsMade()));
+        addLine(details, 4, "Remaining", String.valueOf(statement.getPaymentsRemaining()));
+        VBox card = new VBox(0, title, details);
         card.getStyleClass().add("monthly-card");
-        return card;
+        return new MonthlyCard(card, check);
     }
 
     private void showStatement(
         VBox statementCards,
         VehicleLeaseStatementView statementView,
         VehicleLeaseStatement statement,
+        Label reviewChip,
         ReviewLookup reviewLookup,
         FieldReviewAction fieldReviewAction,
         BiConsumer<VehicleLeaseStatement, Boolean> allReviewAction,
         Consumer<VehicleLeaseStatement> editAction,
+        Consumer<VehicleLeaseStatement> saveAction,
         Consumer<VehicleLeaseStatement> deleteAction
     ) {
         Predicate<String> reviewed = field -> reviewLookup.isReviewed(statement, field);
         statementCards.getChildren().setAll(statementView.build(
             statement,
             reviewed,
-            (field, value) -> fieldReviewAction.setReviewed(statement, field, value),
-            value -> allReviewAction.accept(statement, value),
+            (field, value) -> {
+                fieldReviewAction.setReviewed(statement, field, value);
+                setReviewChipVisible(reviewChip, !statement.isPendingReview());
+            },
+            value -> {
+                allReviewAction.accept(statement, value);
+                setReviewChipVisible(reviewChip, !statement.isPendingReview());
+            },
             () -> editAction.accept(statement),
+            () -> saveAction.accept(statement),
             () -> deleteAction.accept(statement)
         ));
+    }
+
+    private void setReviewChipVisible(Label reviewChip, boolean reviewed) {
+        reviewChip.setVisible(reviewed);
+        reviewChip.setManaged(reviewed);
     }
 
     private void addLine(GridPane grid, int row, String labelText, String valueText) {
@@ -164,5 +197,8 @@ public class VehicleLeaseDetailView {
     @FunctionalInterface
     public interface FieldReviewAction {
         void setReviewed(VehicleLeaseStatement statement, String field, boolean reviewed);
+    }
+
+    private record MonthlyCard(VBox node, Label reviewChip) {
     }
 }

@@ -3,6 +3,8 @@ package com.silveira.accounting.ui.vehiclelease;
 import com.silveira.accounting.application.vehiclelease.VehicleLeaseApplicationService;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
 import com.silveira.accounting.utils.Money;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.BiConsumer;
@@ -26,6 +28,7 @@ public class VehicleLeaseStatementView {
         BiConsumer<String, Boolean> fieldReviewChanged,
         Consumer<Boolean> allReviewChanged,
         Runnable editAction,
+        Runnable saveAction,
         Runnable deleteAction
     ) {
         VBox card = new VBox(14);
@@ -37,7 +40,6 @@ public class VehicleLeaseStatementView {
         );
         CheckBox reviewed = new CheckBox("Todo revisado");
         reviewed.setSelected(VehicleLeaseApplicationService.REVIEW_FIELDS.stream().allMatch(fieldReviewed));
-        reviewed.setOnAction(event -> allReviewChanged.accept(reviewed.isSelected()));
         HBox header = new HBox(12, identity, reviewed);
         header.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(identity, Priority.ALWAYS);
@@ -50,21 +52,22 @@ public class VehicleLeaseStatementView {
         highlights.getStyleClass().add("statement-field-row");
 
         GridPane contract = section("Contract Details");
+        List<ReviewCheck> fieldChecks = new ArrayList<>();
         addTextRow(contract, 1, "Payments Made", String.valueOf(statement.getPaymentsMade()));
         addTextRow(contract, 2, "Payments Remaining", String.valueOf(statement.getPaymentsRemaining()));
         addTextRow(contract, 3, "Last Payment Date", date(statement.getLastPaymentDate()));
-        addMoneyRow(contract, 4, "last_payment_amount", "Last Payment Amount", statement.getLastPaymentAmount(), fieldReviewed, fieldReviewChanged);
+        fieldChecks.add(addMoneyRow(contract, 4, "last_payment_amount", "Last Payment Amount", statement.getLastPaymentAmount(), fieldReviewed));
 
         GridPane charges = section("Itemization of Total Amount Due");
-        addMoneyRow(charges, 1, "lease_payment", "Lease Payment(s)", statement.getLeasePayment(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 2, "sales_use_tax", "Sales Use / Tax", statement.getSalesUseTax(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 3, "property_tax", "Property Tax", statement.getPropertyTax(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 4, "parking_tickets", "Parking Ticket(s)", statement.getParkingTickets(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 5, "returned_check_fees", "Returned Check Fee(s)", statement.getReturnedCheckFees(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 6, "miscellaneous_charges", "Miscellaneous Charge(s)", statement.getMiscellaneousCharges(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 7, "past_due_amount", "Past Due Amount", statement.getPastDueAmount(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 8, "late_charges", "Late Charge(s)", statement.getLateCharges(), fieldReviewed, fieldReviewChanged);
-        addMoneyRow(charges, 9, "total_amount_due", "Total Amount Due", statement.getTotalAmountDue(), fieldReviewed, fieldReviewChanged);
+        fieldChecks.add(addMoneyRow(charges, 1, "lease_payment", "Lease Payment(s)", statement.getLeasePayment(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 2, "sales_use_tax", "Sales Use / Tax", statement.getSalesUseTax(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 3, "property_tax", "Property Tax", statement.getPropertyTax(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 4, "parking_tickets", "Parking Ticket(s)", statement.getParkingTickets(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 5, "returned_check_fees", "Returned Check Fee(s)", statement.getReturnedCheckFees(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 6, "miscellaneous_charges", "Miscellaneous Charge(s)", statement.getMiscellaneousCharges(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 7, "past_due_amount", "Past Due Amount", statement.getPastDueAmount(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 8, "late_charges", "Late Charge(s)", statement.getLateCharges(), fieldReviewed));
+        fieldChecks.add(addMoneyRow(charges, 9, "total_amount_due", "Total Amount Due", statement.getTotalAmountDue(), fieldReviewed));
 
         HBox body = new HBox(14, contract, charges);
         HBox.setHgrow(contract, Priority.ALWAYS);
@@ -74,10 +77,26 @@ public class VehicleLeaseStatementView {
         Button delete = new Button("Eliminar periodo");
         delete.getStyleClass().add("danger-button");
         delete.setOnAction(event -> deleteAction.run());
+        Button save = new Button("Guardar");
+        save.getStyleClass().add("primary");
+        save.setOnAction(event -> saveAction.run());
         Label status = new Label(statement.isPendingReview() ? "Pdte revision" : "OK | Revisado");
         status.getStyleClass().add(statement.isPendingReview() ? "status-pending" : "status-ok");
-        HBox footer = new HBox(12, status, edit, delete);
+        HBox footer = new HBox(12, status, edit, delete, save);
         footer.setAlignment(Pos.CENTER_LEFT);
+        Runnable refreshStatus = () -> refreshReviewStatus(statement, reviewed, status, fieldChecks.stream().allMatch(item -> item.check().isSelected()));
+        for (ReviewCheck item : fieldChecks) {
+            item.check().setOnAction(event -> {
+                fieldReviewChanged.accept(item.field(), item.check().isSelected());
+                refreshStatus.run();
+            });
+        }
+        reviewed.setOnAction(event -> {
+            boolean selected = reviewed.isSelected();
+            allReviewChanged.accept(selected);
+            fieldChecks.forEach(item -> item.check().setSelected(selected));
+            refreshReviewStatus(statement, reviewed, status, selected);
+        });
         card.getChildren().addAll(header, highlights, body, footer);
         return card;
     }
@@ -101,14 +120,13 @@ public class VehicleLeaseStatementView {
         grid.add(amount, 1, row);
     }
 
-    private void addMoneyRow(
+    private ReviewCheck addMoneyRow(
         GridPane grid,
         int row,
         String field,
         String name,
         double value,
-        Predicate<String> reviewed,
-        BiConsumer<String, Boolean> changed
+        Predicate<String> reviewed
     ) {
         grid.add(new Label(name), 0, row);
         Label amount = new Label(Money.format(value));
@@ -116,8 +134,18 @@ public class VehicleLeaseStatementView {
         grid.add(amount, 1, row);
         CheckBox check = new CheckBox();
         check.setSelected(reviewed.test(field));
-        check.setOnAction(event -> changed.accept(field, check.isSelected()));
         grid.add(check, 2, row);
+        return new ReviewCheck(field, check);
+    }
+
+    private void refreshReviewStatus(VehicleLeaseStatement statement, CheckBox reviewed, Label status, boolean allReviewed) {
+        reviewed.setSelected(allReviewed);
+        statement.setPendingReview(!allReviewed);
+        statement.setReviewRequired(!allReviewed);
+        statement.setReviewNotes(allReviewed ? "Revisado" : "Revisar contra el PDF original");
+        status.setText(allReviewed ? "OK | Revisado" : "Pdte revision");
+        status.getStyleClass().removeAll("status-pending", "status-ok");
+        status.getStyleClass().add(allReviewed ? "status-ok" : "status-pending");
     }
 
     private VBox highlight(String name, String value) {
@@ -144,5 +172,8 @@ public class VehicleLeaseStatementView {
 
     private String date(LocalDate value) {
         return value == null ? "" : value.format(DATE);
+    }
+
+    private record ReviewCheck(String field, CheckBox check) {
     }
 }

@@ -14,4 +14,8 @@ public class ImportCardPdfUseCase {
     public CreditCardStatementParser.ParsedCreditCardStatement execute(Path pdf) {
         return importService.importPdf(pdf);
     }
+
+    public CreditCardStatementParser.ParsedCreditCardStatement executeWithAi(Path pdf) {
+        return importService.importPdfWithAi(pdf);
+    }
 }

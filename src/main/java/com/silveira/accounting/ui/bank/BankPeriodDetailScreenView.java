@@ -85,9 +85,15 @@ public class BankPeriodDetailScreenView {
         delete.getStyleClass().add("danger-button");
         delete.setOnAction(event -> config.deletePeriod().accept(period));
 
+        sizePeriodButton(add);
+        sizePeriodButton(save);
+        sizePeriodButton(edit);
+        sizePeriodButton(download);
+        sizePeriodButton(delete);
         HBox movementActions = new HBox(10, add, save, edit, download, delete);
-        movementActions.getStyleClass().add("action-row");
+        movementActions.getStyleClass().addAll("action-row", "bank-period-actions");
         VBox movements = new VBox(10, movementActions, table);
+        movements.getStyleClass().add("bank-period-tab-content");
 
         breakdown.refresh(table.getItems());
         Tab movementsTab = tab("Movements", movements);
@@ -106,6 +112,13 @@ public class BankPeriodDetailScreenView {
         page.setPadding(new Insets(28));
         page.getStyleClass().add("page");
         return page;
+    }
+
+    private void sizePeriodButton(Button button) {
+        button.setMinWidth(140);
+        button.setPrefWidth(140);
+        button.setMinHeight(36);
+        button.setPrefHeight(36);
     }
 
     private Node periodSummary(BankPeriodSummary period) {

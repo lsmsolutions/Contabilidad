@@ -124,7 +124,7 @@ public class CardStatementApplicationService {
             .max(LocalDate::compareTo)
             .orElse(null);
         if (start != null && end != null) {
-            DateTimeFormatter format = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter format = DateTimeFormatter.ofPattern("MM/dd/yyyy");
             return start.format(format) + " - " + end.format(format);
         }
         return monthName(fallback.month()) + " " + fallback.year();

@@ -23,22 +23,23 @@ public class InvestmentTransactionRepository {
             try (PreparedStatement delete = connection.prepareStatement("DELETE FROM investment_transactions WHERE statement_id=?");
                  PreparedStatement insert = connection.prepareStatement("""
                      INSERT INTO investment_transactions(
-                         statement_id, transaction_date, action, symbol, description,
+                         statement_id, transaction_date, category, action, symbol, description,
                          quantity, price, amount, realized_gain_loss
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      """)) {
                 delete.setLong(1, statementId);
                 delete.executeUpdate();
                 for (InvestmentTransaction value : values) {
                     insert.setLong(1, statementId);
                     insert.setString(2, value.getTransactionDate() == null ? null : value.getTransactionDate().toString());
-                    insert.setString(3, value.getAction());
-                    insert.setString(4, value.getSymbol());
-                    insert.setString(5, value.getDescription());
-                    insert.setDouble(6, value.getQuantity());
-                    insert.setDouble(7, value.getPrice());
-                    insert.setDouble(8, value.getAmount());
-                    insert.setDouble(9, value.getRealizedGainLoss());
+                    insert.setString(3, value.getCategory());
+                    insert.setString(4, value.getAction());
+                    insert.setString(5, value.getSymbol());
+                    insert.setString(6, value.getDescription());
+                    insert.setDouble(7, value.getQuantity());
+                    insert.setDouble(8, value.getPrice());
+                    insert.setDouble(9, value.getAmount());
+                    insert.setDouble(10, value.getRealizedGainLoss());
                     insert.addBatch();
                 }
                 insert.executeBatch();
@@ -64,6 +65,7 @@ public class InvestmentTransactionRepository {
                     value.setStatementId(statementId);
                     String date = result.getString("transaction_date");
                     value.setTransactionDate(date == null || date.isBlank() ? null : LocalDate.parse(date));
+                    value.setCategory(result.getString("category"));
                     value.setAction(result.getString("action"));
                     value.setSymbol(result.getString("symbol"));
                     value.setDescription(result.getString("description"));

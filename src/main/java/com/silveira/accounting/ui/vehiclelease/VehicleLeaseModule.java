@@ -1,8 +1,10 @@
 package com.silveira.accounting.ui.vehiclelease;
 
+import com.silveira.accounting.application.importing.DocumentImportService;
 import com.silveira.accounting.application.vehiclelease.VehicleLeaseApplicationService;
 import com.silveira.accounting.controllers.vehiclelease.VehicleLeaseController;
 import com.silveira.accounting.database.DatabaseManager;
+import com.silveira.accounting.parsers.vehiclelease.OpenAiVehicleLeaseAiImportGateway;
 import com.silveira.accounting.parsers.vehiclelease.VolvoVehicleLeaseParser;
 import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseAccountRepository;
 import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseFieldReviewRepository;
@@ -16,7 +18,10 @@ public class VehicleLeaseModule {
             new VehicleLeaseAccountRepository(databaseManager),
             new VehicleLeaseStatementRepository(databaseManager),
             new VehicleLeaseFieldReviewRepository(databaseManager),
-            new VolvoVehicleLeaseParser()
+            new DocumentImportService<>(
+                new VolvoVehicleLeaseParser(),
+                new OpenAiVehicleLeaseAiImportGateway()
+            )
         ));
     }
 
