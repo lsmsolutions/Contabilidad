@@ -45,7 +45,7 @@ public class CardImportAnalysisWorkflow {
 
     public record Config(
         Supplier<File> choosePdf,
-        BiConsumer<String, String> showProcessing,
+        CardImportWorkflow.ProcessingPresenter showProcessing,
         Consumer<Boolean> importingChanged,
         BiConsumer<String, String> showError,
         Consumer<String> showAccount,

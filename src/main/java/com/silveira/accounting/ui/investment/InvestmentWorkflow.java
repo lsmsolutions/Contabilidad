@@ -5,6 +5,7 @@ import com.silveira.accounting.models.investment.InvestmentAccount;
 import com.silveira.accounting.models.investment.InvestmentPosition;
 import com.silveira.accounting.models.investment.InvestmentStatement;
 import com.silveira.accounting.models.investment.InvestmentTransaction;
+import com.silveira.accounting.ui.common.PdfImportModeDialog;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
@@ -181,6 +182,14 @@ public class InvestmentWorkflow {
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
         File file = chooser.showOpenDialog(config.owner().get());
         if (file == null) {
+            return;
+        }
+        PdfImportModeDialog.Mode mode = new PdfImportModeDialog().show(config.owner().get()).orElse(null);
+        if (mode == null) {
+            return;
+        }
+        if (mode == PdfImportModeDialog.Mode.AI) {
+            importInvestmentPdfWithAi(alias, file);
             return;
         }
         try {

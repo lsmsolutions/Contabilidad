@@ -50,6 +50,7 @@ public class MortgageStatementParser {
         statement.setOtherFeesAndCharges(amountInSection(amountDueSearch, "Other Fees & Charges", "Other Fees and Charges"));
         statement.setTotalDue(amountInSection(amountDueSearch, "Total Due", "Total Amount Due"));
         applyPastPaymentSummary(text, statement);
+        applyInterleavedSummaryLayout(text, statement);
         if (statement.getPaymentAmountDue() == 0) {
             statement.setPaymentAmountDue(statement.getTotalDue());
         }
@@ -62,6 +63,53 @@ public class MortgageStatementParser {
         statement.setPendingReview(true);
         statement.setReviewNotes("Revisar contra el PDF original");
         return new ParsedMortgageStatement(statement, transactions(text, statement));
+    }
+
+    private void applyInterleavedSummaryLayout(String text, MortgageStatement statement) {
+        if (!text.contains("Explanation of Amount Due Account Information Past Payment Summary")) {
+            return;
+        }
+        statement.setPaymentAmountDue(amountBeforeLine(text, "Payment Amount Due", statement.getPaymentAmountDue()));
+        statement.setLateFeeDate(dateInSentence(text, "If payment is received after"));
+        statement.setLateFeeAmount(amountBeforeLine(text, "late fee may be charged.", statement.getLateFeeAmount()));
+
+        String summarySection = sectionBetween(text, "Explanation of Amount Due Account Information Past Payment Summary", "Transaction Activity", 1800);
+        statement.setPrincipalDue(amountBeforeLine(summarySection, "Principal", statement.getPrincipalDue()));
+        statement.setInterestDue(amountBeforeLine(summarySection, "Interest", statement.getInterestDue()));
+        statement.setEscrowDue(amountBeforeLine(summarySection, "Escrow", statement.getEscrowDue()));
+        statement.setRegularMonthlyPayment(amountBeforeLine(summarySection, "Regular Monthly Payment", statement.getRegularMonthlyPayment()));
+        statement.setTotalDue(amountAfterAny(text, "Total Due", "Total Amount Due"));
+        statement.setPastDueAmount(amountAfterAny(text, "0 Payments @"));
+        statement.setFees(amountBeforeLine(summarySection, "Late Fees", statement.getFees()));
+        statement.setOtherFeesAndCharges(amountBeforeLine(summarySection, "Other Fees & Charges**", statement.getOtherFeesAndCharges()));
+
+        statement.setOriginalPrincipalBalance(amountAfterAny(text, "Original Principal Balance"));
+        statement.setOutstandingPrincipalBalance(amountAfterAny(text, "Outstanding Principal Balance"));
+        statement.setMaturityDate(firstDateAfterAny(text, "Maturity Date"));
+        statement.setInterestRate(percentAfterAny(text, "Interest Rate", "Current Interest Rate"));
+        statement.setEscrowBalance(amountAfterAny(text, "Escrow Balance"));
+        statement.setUnappliedFunds(amountAfterAny(text, "Unapplied Funds"));
+
+        double[] principal = twoAmountsBeforeLine(summarySection, "Principal");
+        double[] interest = twoAmountsBeforeLine(summarySection, "Interest");
+        double[] escrow = twoAmountsBeforeLine(summarySection, "Escrow");
+        double[] total = twoAmountsBeforeLine(summarySection, "Total");
+        if (principal[0] != 0 || principal[1] != 0) {
+            statement.setPastPaidPrincipalSinceLastStatement(principal[0]);
+            statement.setPastPaidPrincipalYearToDate(principal[1]);
+        }
+        if (interest[0] != 0 || interest[1] != 0) {
+            statement.setPastPaidInterestSinceLastStatement(interest[0]);
+            statement.setPastPaidInterestYearToDate(interest[1]);
+        }
+        if (escrow[0] != 0 || escrow[1] != 0) {
+            statement.setPastPaidEscrowSinceLastStatement(escrow[0]);
+            statement.setPastPaidEscrowYearToDate(escrow[1]);
+        }
+        if (total[0] != 0 || total[1] != 0) {
+            statement.setPastPaidTotalSinceLastStatement(total[0]);
+            statement.setPastPaidTotalYearToDate(total[1]);
+        }
     }
 
     private void applyPastPaymentSummary(String text, MortgageStatement statement) {
@@ -114,7 +162,7 @@ public class MortgageStatementParser {
         double total = statement.getTotalDue() > 0 ? statement.getTotalDue() : statement.getPaymentAmountDue();
         double fees = statement.getFees() + statement.getOtherFeesAndCharges() + statement.getPastDueAmount();
         double calculatedPrincipal = total - statement.getInterestDue() - statement.getEscrowDue() - fees;
-        if (total > 0 && statement.getInterestDue() > 0 && statement.getEscrowDue() > 0 && calculatedPrincipal >= 0) {
+        if (statement.getPrincipalDue() == 0 && total > 0 && statement.getInterestDue() > 0 && statement.getEscrowDue() > 0 && calculatedPrincipal >= 0) {
             statement.setPrincipalDue(calculatedPrincipal);
         }
         if (statement.getCurrentPaymentDue() == 0) {
@@ -179,6 +227,50 @@ public class MortgageStatementParser {
         return index < amounts.size() ? amounts.get(index) : 0;
     }
 
+    private double amountBeforeLine(String text, String label, double fallback) {
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
+        String previous = "";
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            if (line.equalsIgnoreCase(label)) {
+                List<Double> values = amounts(previous);
+                if (!values.isEmpty()) {
+                    return Math.abs(values.get(values.size() - 1));
+                }
+                return fallback;
+            }
+            if (!line.isBlank()) {
+                previous = line;
+            }
+        }
+        return fallback;
+    }
+
+    private double[] twoAmountsBeforeLine(String text, String label) {
+        if (text == null || text.isBlank()) {
+            return new double[] { 0, 0 };
+        }
+        String previous = "";
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            if (line.equalsIgnoreCase(label)) {
+                List<Double> values = amounts(previous);
+                if (values.size() >= 2) {
+                    return new double[] {
+                        Math.abs(values.get(values.size() - 2)),
+                        Math.abs(values.get(values.size() - 1))
+                    };
+                }
+            }
+            if (!line.isBlank()) {
+                previous = line;
+            }
+        }
+        return new double[] { 0, 0 };
+    }
+
     private double amountAfterAny(String text, String... labels) {
         for (String label : labels) {
             double value = amountNear(text, label, 0);
@@ -197,6 +289,11 @@ public class MortgageStatementParser {
     private double amountNear(String text, String label, double fallback) {
         Matcher matcher = Pattern.compile(Pattern.quote(label) + "[\\s\\S]{0,160}?(" + MONEY.pattern() + ")", Pattern.CASE_INSENSITIVE).matcher(text);
         return matcher.find() ? Math.abs(amount(matcher.group(1))) : fallback;
+    }
+
+    private LocalDate dateInSentence(String text, String label) {
+        Matcher matcher = Pattern.compile(Pattern.quote(label) + "[\\s\\S]{0,80}?(\\d{1,2}/\\d{1,2}/20\\d{2})", Pattern.CASE_INSENSITIVE).matcher(text);
+        return matcher.find() ? parseDate(matcher.group(1)) : null;
     }
 
     private LocalDate firstDateAfterAny(String text, String... labels) {

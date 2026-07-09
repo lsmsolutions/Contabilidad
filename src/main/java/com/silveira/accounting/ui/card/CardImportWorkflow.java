@@ -2,8 +2,8 @@ package com.silveira.accounting.ui.card;
 
 import com.silveira.accounting.application.card.service.CardImportApplicationService;
 import com.silveira.accounting.parsers.CreditCardStatementParser;
+import com.silveira.accounting.ui.common.PdfImportModeDialog;
 import java.io.File;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -26,17 +26,26 @@ public class CardImportWorkflow {
         if (file == null) {
             return;
         }
+        PdfImportModeDialog.Mode mode = new PdfImportModeDialog().show(null).orElse(null);
+        if (mode == null) {
+            return;
+        }
+        if (mode == PdfImportModeDialog.Mode.AI) {
+            importPdfWithAi(alias, file);
+            return;
+        }
         config.importingChanged().accept(true);
-        config.showProcessing().accept(
-            "Importando tarjeta",
-            "Leyendo el PDF de la tarjeta. Si es escaneado, se usara OCR y puede tardar unos minutos."
-        );
         Task<CreditCardStatementParser.ParsedCreditCardStatement> task = new Task<>() {
             @Override
             protected CreditCardStatementParser.ParsedCreditCardStatement call() {
                 return imports.importPdf(file.toPath());
             }
         };
+        config.showProcessing().show(
+            "Importando tarjeta",
+            "Leyendo el PDF de la tarjeta. Si es escaneado, se usara OCR y puede tardar unos minutos.",
+            () -> cancelImport(alias, task)
+        );
         task.setOnSucceeded(event -> {
             config.importingChanged().accept(false);
             imports.saveImported(alias, task.getValue());
@@ -46,6 +55,10 @@ public class CardImportWorkflow {
             config.importingChanged().accept(false);
             handleImportFailure(alias, file, task.getException());
         });
+        task.setOnCancelled(event -> {
+            config.importingChanged().accept(false);
+            config.showAccount().accept(alias);
+        });
         Thread thread = new Thread(task, "silveira-card-import");
         thread.setDaemon(true);
         thread.start();
@@ -53,16 +66,17 @@ public class CardImportWorkflow {
 
     private void importPdfWithAi(String alias, File file) {
         config.importingChanged().accept(true);
-        config.showProcessing().accept(
-            "Leyendo tarjeta con IA",
-            "La IA intentara leer el PDF. El resultado quedara pendiente de revision."
-        );
         Task<CreditCardStatementParser.ParsedCreditCardStatement> task = new Task<>() {
             @Override
             protected CreditCardStatementParser.ParsedCreditCardStatement call() {
                 return imports.importPdfWithAi(file.toPath());
             }
         };
+        config.showProcessing().show(
+            "Leyendo tarjeta con IA",
+            "La IA intentara leer el PDF. El resultado quedara pendiente de revision.",
+            () -> cancelImport(alias, task)
+        );
         task.setOnSucceeded(event -> {
             config.importingChanged().accept(false);
             imports.saveImported(alias, task.getValue());
@@ -73,9 +87,19 @@ public class CardImportWorkflow {
             config.showError().accept(config.rootCauseMessage().apply(task.getException()));
             config.showAccount().accept(alias);
         });
+        task.setOnCancelled(event -> {
+            config.importingChanged().accept(false);
+            config.showAccount().accept(alias);
+        });
         Thread thread = new Thread(task, "silveira-card-ai-import");
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void cancelImport(String alias, Task<?> task) {
+        task.cancel(true);
+        config.importingChanged().accept(false);
+        config.showAccount().accept(alias);
     }
 
     private void handleImportFailure(String alias, File file, Throwable exception) {
@@ -101,11 +125,16 @@ public class CardImportWorkflow {
 
     public record Config(
         Supplier<File> choosePdf,
-        BiConsumer<String, String> showProcessing,
+        ProcessingPresenter showProcessing,
         Consumer<Boolean> importingChanged,
         Consumer<String> showError,
         Consumer<String> showAccount,
         Function<Throwable, String> rootCauseMessage
     ) {
+    }
+
+    @FunctionalInterface
+    public interface ProcessingPresenter {
+        void show(String title, String message, Runnable cancelAction);
     }
 }

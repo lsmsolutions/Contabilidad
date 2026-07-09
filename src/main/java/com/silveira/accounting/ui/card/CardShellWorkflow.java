@@ -6,6 +6,7 @@ import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.models.CreditCardTransaction;
 import com.silveira.accounting.models.MonthlySourceTotals;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -85,8 +86,14 @@ public class CardShellWorkflow {
             config.periodTotals().apply(statementTable.getItems())
         );
         Runnable refresh = () -> {
-            statementTable.setItems(FXCollections.observableArrayList(statements.findByAccount(alias, year, month)));
-            movementTable.setItems(FXCollections.observableArrayList(transactions.findByAccount(alias, year, month)));
+            List<CreditCardStatement> periodStatements = statements.findByAccount(alias, year, month);
+            boolean capitalOne = periodStatements.stream().anyMatch(this::isCapitalOneStatement);
+            statementTable.setItems(FXCollections.observableArrayList(periodStatements));
+            CardTransactionTableView.setCapitalOneBlockTotals(movementTable, capitalOne);
+            List<CreditCardTransaction> periodMovements = transactions.findByAccount(alias, year, month);
+            movementTable.setItems(capitalOne
+                ? CardTransactionTableView.withCapitalOneBlockTotals(periodMovements)
+                : CardTransactionTableView.withTotalRow(periodMovements));
             refreshTotals.run();
             config.statementCards().refresh(statementTable, statementCards, refreshTotals);
         };
@@ -121,6 +128,20 @@ public class CardShellWorkflow {
         HBox totals = new HBox(12);
         totals.getStyleClass().add("totals-panel");
         return totals;
+    }
+
+    private boolean isCapitalOneStatement(CreditCardStatement statement) {
+        String bank = text(statement.getBankName()).toLowerCase(Locale.ROOT);
+        String alias = text(statement.getAccountAlias()).toLowerCase(Locale.ROOT);
+        String card = text(statement.getCardName()).toLowerCase(Locale.ROOT);
+        return bank.contains("capital one")
+            || alias.contains("capitalone")
+            || card.contains("capital one")
+            || card.contains("quicksilver");
+    }
+
+    private String text(String value) {
+        return value == null ? "" : value;
     }
 
     public record Config(

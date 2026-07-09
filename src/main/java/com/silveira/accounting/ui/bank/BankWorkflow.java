@@ -30,6 +30,10 @@ public class BankWorkflow {
         bankShellWorkflow().showAccount(accountAlias);
     }
 
+    public void showBankLedger() {
+        bankShellWorkflow().showLedger();
+    }
+
     private BankShellWorkflow bankShellWorkflow() {
         return new BankShellWorkflow(
             bankModule.application(),

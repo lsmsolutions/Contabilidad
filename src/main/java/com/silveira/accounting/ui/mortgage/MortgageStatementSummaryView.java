@@ -46,8 +46,10 @@ public class MortgageStatementSummaryView {
         card.getStyleClass().add("mortgage-statement-summary");
         card.setMaxWidth(Double.MAX_VALUE);
 
-        HBox top = new HBox(14, borrowerBlock(statement), dueBox(statement, statementReviewedChanged));
-        top.getStyleClass().add("mortgage-top-summary");
+        VBox borrower = borrowerBlock(statement);
+        HBox due = new HBox(dueBox(statement, statementReviewedChanged));
+        due.getStyleClass().add("mortgage-top-summary");
+        due.setAlignment(Pos.CENTER_LEFT);
 
         HBox summary = new HBox(14,
             amountDue(statement, fieldReviewed, fieldReviewedChanged, statementAmountChanged),
@@ -70,7 +72,7 @@ public class MortgageStatementSummaryView {
         actions.getStyleClass().add("mortgage-statement-actions");
         actions.setAlignment(Pos.CENTER_LEFT);
 
-        card.getChildren().addAll(actions, top, summary, activity);
+        card.getChildren().addAll(actions, borrower, due, summary, activity);
         return card;
     }
 
@@ -95,12 +97,6 @@ public class MortgageStatementSummaryView {
             blueLine("Payment Amount Due", Money.format(dueAmount(statement))),
             blueLine("Payment Due Date", formatDate(statement.getPaymentDueDate()))
         );
-        if (statement.getLateFeeDate() != null || statement.getLateFeeAmount() > 0) {
-            Label late = new Label("If payment is received after " + formatDate(statement.getLateFeeDate()) + ", a " + Money.format(statement.getLateFeeAmount()) + " late fee may be charged.");
-            late.getStyleClass().add("mortgage-blue-label");
-            late.setWrapText(true);
-            box.getChildren().add(late);
-        }
         CheckBox reviewed = new CheckBox("Revisado");
         reviewed.setSelected(!statement.isPendingReview());
         reviewed.setOnAction(event -> reviewedChanged.accept(reviewed.isSelected()));
@@ -165,9 +161,9 @@ public class MortgageStatementSummaryView {
         Label title = new Label("Transaction Activity Since Your Last Statement");
         title.getStyleClass().add("mortgage-section-header");
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(5);
-        grid.setMaxWidth(Double.MAX_VALUE);
+        grid.setHgap(4);
+        grid.setVgap(4);
+        grid.setMaxWidth(1080);
         grid.getStyleClass().add("mortgage-activity-header");
         String[] headers = {"Date", "Description", "Total", "Principal", "Interest", "Escrow", "Fees", "Unapplied", "Corp. Adv.", "Other", "Revisado"};
         double[] widths = {8, 18, 9, 9, 9, 9, 7, 9, 8, 7, 7};
@@ -310,6 +306,7 @@ public class MortgageStatementSummaryView {
     private void activityCell(GridPane grid, int column, int row, String text, String widthClass) {
         Label label = new Label(text);
         label.getStyleClass().add("mortgage-activity-cell");
+        label.getStyleClass().add(widthClass);
         label.setMaxWidth(Double.MAX_VALUE);
         label.setWrapText(true);
         grid.add(label, column, row);

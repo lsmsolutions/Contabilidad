@@ -19,10 +19,13 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 public class BankPeriodDetailScreenView {
+    private static final double MOVEMENT_ROW_HEIGHT = 38;
+    private static final double MOVEMENT_TABLE_HEADER_HEIGHT = 44;
+    private static final double MOVEMENT_TABLE_EXTRA_HEIGHT = 20;
+
     private final BankApplicationService bank;
     private final BankImportController imports;
 
@@ -45,11 +48,11 @@ public class BankPeriodDetailScreenView {
                 rowsChanged[0].run();
             }
         });
+        table.setFixedCellSize(MOVEMENT_ROW_HEIGHT);
         table.setItems(FXCollections.observableArrayList(period.transactions()));
-        table.setMinHeight(420);
-        table.setPrefHeight(520);
-        VBox.setVgrow(table, Priority.ALWAYS);
+        updateMovementTableHeight(table);
         rowsChanged[0] = () -> {
+            updateMovementTableHeight(table);
             SourceTotals currentTotals = bank.transactions().totalsFromRows(table.getItems());
             totalCards.getChildren().setAll(new BankTotalsView().build(currentTotals, statement.openingBalance()));
             breakdown.refresh(table.getItems());
@@ -66,6 +69,7 @@ public class BankPeriodDetailScreenView {
             table.getSelectionModel().select(transaction);
             table.scrollTo(transaction);
             table.edit(index, table.getColumns().get(0));
+            updateMovementTableHeight(table);
         });
 
         Button save = new Button("Guardar");
@@ -112,6 +116,16 @@ public class BankPeriodDetailScreenView {
         page.setPadding(new Insets(28));
         page.getStyleClass().add("page");
         return page;
+    }
+
+    private void updateMovementTableHeight(TableView<BankTransaction> table) {
+        double visibleRows = Math.max(1, table.getItems().size());
+        double tableHeight = MOVEMENT_TABLE_HEADER_HEIGHT
+            + visibleRows * MOVEMENT_ROW_HEIGHT
+            + MOVEMENT_TABLE_EXTRA_HEIGHT;
+        table.setMinHeight(tableHeight);
+        table.setPrefHeight(tableHeight);
+        table.setMaxHeight(tableHeight);
     }
 
     private void sizePeriodButton(Button button) {

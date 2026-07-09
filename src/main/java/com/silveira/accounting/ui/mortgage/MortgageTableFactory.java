@@ -23,6 +23,9 @@ import javafx.util.StringConverter;
 
 public class MortgageTableFactory {
     private static final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final double TRANSACTION_ROW_HEIGHT = 32;
+    private static final double TRANSACTION_HEADER_HEIGHT = 58;
+    private static final double TRANSACTION_TABLE_CHROME_HEIGHT = 24;
 
     private final MortgageApplicationService mortgage;
     private final Config config;
@@ -88,6 +91,8 @@ public class MortgageTableFactory {
     public TableView<MortgageTransaction> transactionTable() {
         TableView<MortgageTransaction> table = new TableView<>();
         table.setEditable(true);
+        table.setFixedCellSize(TRANSACTION_ROW_HEIGHT);
+        applyTransactionTableHeight(table);
         TableColumn<MortgageTransaction, String> date = new TableColumn<>("Fecha");
         date.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTransactionDate() == null ? "" : data.getValue().getTransactionDate().toString()));
         date.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
@@ -150,6 +155,29 @@ public class MortgageTableFactory {
         });
         table.getColumns().setAll(date, description, total, reviewed, principal, interest, escrow, fees, unapplied, other, status, notes, actions);
         return table;
+    }
+
+    private void applyTransactionTableHeight(TableView<MortgageTransaction> table) {
+        javafx.collections.ListChangeListener<MortgageTransaction> rowsChanged = change -> updateTransactionTableHeight(table);
+        table.itemsProperty().addListener((observable, oldItems, newItems) -> {
+            if (oldItems != null) {
+                oldItems.removeListener(rowsChanged);
+            }
+            if (newItems != null) {
+                newItems.addListener(rowsChanged);
+            }
+            updateTransactionTableHeight(table);
+        });
+        table.getItems().addListener(rowsChanged);
+        updateTransactionTableHeight(table);
+    }
+
+    private void updateTransactionTableHeight(TableView<MortgageTransaction> table) {
+        int rows = table.getItems() == null ? 0 : table.getItems().size();
+        double height = TRANSACTION_HEADER_HEIGHT + TRANSACTION_TABLE_CHROME_HEIGHT + Math.max(1, rows) * TRANSACTION_ROW_HEIGHT;
+        table.setPrefHeight(height);
+        table.setMinHeight(height);
+        table.setMaxHeight(height);
     }
 
     private TableColumn<MortgageStatement, Boolean> mortgageStatementReviewedColumn() {

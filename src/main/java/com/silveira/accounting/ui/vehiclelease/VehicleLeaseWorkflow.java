@@ -3,6 +3,7 @@ package com.silveira.accounting.ui.vehiclelease;
 import com.silveira.accounting.controllers.vehiclelease.VehicleLeaseController;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseAccount;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
+import com.silveira.accounting.ui.common.PdfImportModeDialog;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,16 @@ public class VehicleLeaseWorkflow {
             this::deleteVehicleLeaseAccount,
             this::showVehicleLeaseDetail
         ));
+    }
+
+    public void showVehicleLedger() {
+        new VehicleLeaseLedgerWorkflow(
+            controller,
+            new VehicleLeaseLedgerWorkflow.Config(
+                config.setPage(),
+                this::showVehicleLeases
+            )
+        ).showLedger();
     }
 
     public void showVehicleLeaseDetail(String alias) {
@@ -153,6 +164,14 @@ public class VehicleLeaseWorkflow {
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
         File file = chooser.showOpenDialog(config.owner().get());
         if (file == null) {
+            return;
+        }
+        PdfImportModeDialog.Mode mode = new PdfImportModeDialog().show(config.owner().get()).orElse(null);
+        if (mode == null) {
+            return;
+        }
+        if (mode == PdfImportModeDialog.Mode.AI) {
+            importVehicleLeasePdfWithAi(currentAlias, file);
             return;
         }
         try {

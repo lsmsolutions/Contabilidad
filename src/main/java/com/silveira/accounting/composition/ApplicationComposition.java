@@ -173,30 +173,6 @@ public class ApplicationComposition {
             new HouseExpenseRepository(databaseManager)
         );
 
-        MortgageDetailWorkflow mortgageDetailWorkflow = new MortgageDetailWorkflow(
-            mortgageApplication,
-            new MortgageImportService(),
-            new MortgageAnalysisService(),
-            excelExportService,
-            new MortgageDetailWorkflow.Config(
-                actions::selectedYearValue,
-                actions::selectedMonthValue,
-                actions::setSelectedYearValue,
-                actions::setSelectedMonthValue,
-                actions::rebuildSidebar,
-                actions::showMortgages,
-                actions::setPage,
-                actions::backButton,
-                actions::choosePdf,
-                actions::chooseExcel,
-                actions::alert,
-                actions::rootCauseMessage,
-                actions::confirm,
-                actions::addReviewMark,
-                actions::monthName
-            )
-        );
-
         HouseExpenseWorkflow houseExpenseWorkflow = new HouseExpenseWorkflow(
             mortgageApplication.houseExpenses(),
             new HouseExpenseWorkflow.Config(
@@ -210,6 +186,32 @@ public class ApplicationComposition {
                 actions::rootCauseMessage
             )
         );
+
+        MortgageDetailWorkflow mortgageDetailWorkflow = new MortgageDetailWorkflow(
+            mortgageApplication,
+            new MortgageImportService(),
+            new MortgageAnalysisService(),
+            excelExportService,
+            new MortgageDetailWorkflow.Config(
+                actions::selectedYearValue,
+                actions::selectedMonthValue,
+                actions::setSelectedYearValue,
+                actions::setSelectedMonthValue,
+                actions::rebuildSidebar,
+                actions::showMortgages,
+                houseExpenseWorkflow::showHouseExpenses,
+                actions::setPage,
+                actions::backButton,
+                actions::choosePdf,
+                actions::chooseExcel,
+                actions::alert,
+                actions::rootCauseMessage,
+                actions::confirm,
+                actions::addReviewMark,
+                actions::monthName
+            )
+        );
+
         MortgageWorkflow mortgageWorkflow = new MortgageWorkflow(
             mortgageApplication,
             mortgageDetailWorkflow,
@@ -217,6 +219,8 @@ public class ApplicationComposition {
             new MortgageWorkflow.Config(
                 actions::promptText,
                 actions::rebuildSidebar,
+                actions::setPage,
+                actions::backButton,
                 actions::setDarkHubPage,
                 actions::confirm
             )

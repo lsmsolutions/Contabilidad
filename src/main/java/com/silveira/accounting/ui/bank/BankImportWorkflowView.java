@@ -5,6 +5,7 @@ import com.silveira.accounting.application.bank.dto.BankImportSaveResult;
 import com.silveira.accounting.controllers.bank.BankImportController;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.application.bank.dto.BankPeriodSummary;
+import com.silveira.accounting.ui.common.PdfImportModeDialog;
 import com.silveira.accounting.utils.Money;
 import java.io.File;
 import java.nio.file.Path;
@@ -19,6 +20,8 @@ import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.layout.Region;
 import javafx.scene.control.TableView;
 import javafx.collections.FXCollections;
 
@@ -36,6 +39,14 @@ public class BankImportWorkflowView {
     public void importPdf(Runnable refresh) {
         File file = config.choosePdf().get();
         if (file == null) {
+            return;
+        }
+        PdfImportModeDialog.Mode mode = new PdfImportModeDialog().show(null).orElse(null);
+        if (mode == null) {
+            return;
+        }
+        if (mode == PdfImportModeDialog.Mode.AI) {
+            processAi(file.toPath(), refresh);
             return;
         }
         List<BankTransaction> parsed;
@@ -225,16 +236,19 @@ public class BankImportWorkflowView {
             ButtonBar.ButtonData.OK_DONE
         );
         ButtonType keepSelected = new ButtonType("Mantener " + selectedAccountAlias, ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alert = new Alert(
-            Alert.AlertType.CONFIRMATION,
-            "Estas importando dentro de:\n" + selectedAccountAlias
-                + "\n\nPero el PDF indica:\n" + String.join("\n", detectedAliases)
-                + "\n\nSi usas la cuenta detectada, la app creara la cuenta si no existe y guardara los movimientos ahi.",
-            useDetected,
-            keepSelected
-        );
+        String message = "Estas importando dentro de:\n" + selectedAccountAlias
+            + "\n\nPero el PDF indica:\n" + String.join("\n", detectedAliases)
+            + "\n\nSi usas la cuenta detectada, la app creara la cuenta si no existe y guardara los movimientos ahi.";
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "", useDetected, keepSelected);
+        Label content = new Label(message);
+        content.setWrapText(true);
+        content.setMaxWidth(520);
         alert.setTitle("Cuenta detectada en el PDF");
         alert.setHeaderText("El PDF parece pertenecer a otra cuenta");
+        alert.getDialogPane().setContent(content);
+        alert.getDialogPane().setMinWidth(560);
+        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         return alert.showAndWait()
             .filter(selected -> selected == useDetected)
             .map(selected -> (String) null)

@@ -3,6 +3,7 @@ package com.silveira.accounting.application.mortgage;
 import com.silveira.accounting.application.mortgage.service.HouseExpenseApplicationService;
 import com.silveira.accounting.application.mortgage.service.MortgageAlertApplicationService;
 import com.silveira.accounting.application.mortgage.service.MortgageFieldReviewApplicationService;
+import com.silveira.accounting.application.mortgage.service.MortgageLedgerApplicationService;
 import com.silveira.accounting.application.mortgage.service.MortgageStatementApplicationService;
 import com.silveira.accounting.application.mortgage.service.MortgageTransactionApplicationService;
 import com.silveira.accounting.repositories.mortgage.HouseExpenseRepository;
@@ -17,6 +18,7 @@ public class MortgageApplicationService {
     private final MortgageAlertApplicationService alerts;
     private final MortgageFieldReviewApplicationService fieldReviews;
     private final HouseExpenseApplicationService houseExpenses;
+    private final MortgageLedgerApplicationService ledger;
 
     public MortgageApplicationService(
         MortgageStatementRepository statements,
@@ -30,6 +32,7 @@ public class MortgageApplicationService {
         this.alerts = new MortgageAlertApplicationService(alerts);
         this.fieldReviews = new MortgageFieldReviewApplicationService(fieldReviews);
         this.houseExpenses = new HouseExpenseApplicationService(houseExpenses);
+        this.ledger = new MortgageLedgerApplicationService(this.statements);
     }
 
     public MortgageStatementApplicationService statements() {
@@ -50,6 +53,10 @@ public class MortgageApplicationService {
 
     public HouseExpenseApplicationService houseExpenses() {
         return houseExpenses;
+    }
+
+    public MortgageLedgerApplicationService ledger() {
+        return ledger;
     }
 
     public void renameLoan(String oldAlias, String newAlias) {

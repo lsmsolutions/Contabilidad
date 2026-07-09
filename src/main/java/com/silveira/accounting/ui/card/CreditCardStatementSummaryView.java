@@ -15,6 +15,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -23,14 +24,25 @@ import javafx.scene.layout.VBox;
 
 public class CreditCardStatementSummaryView {
     private static final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final double HERO_FIELD_WIDTH = 210;
+    private static final double SUMMARY_SECTION_WIDTH = 520;
+    private static final double CREDIT_SECTION_WIDTH = 540;
+    private static final double BODY_GAP = 14;
+    private static final double CARD_HORIZONTAL_PADDING = 28;
+    private static final double BODY_WIDTH = SUMMARY_SECTION_WIDTH + BODY_GAP + CREDIT_SECTION_WIDTH;
 
     public VBox build(CreditCardStatement statement, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged, Consumer<Boolean> allReviewedChanged, Runnable editAction) {
         VBox card = new VBox(14);
         card.getStyleClass().addAll("statement-card", "monthly-card");
+        setFixedWidth(card, BODY_WIDTH + CARD_HORIZONTAL_PADDING);
 
         CheckBox reviewed = new CheckBox("Todo revisado");
         reviewed.setSelected(fieldKeys(statement).stream().allMatch(fieldReviewed));
-        reviewed.setOnAction(event -> allReviewedChanged.accept(reviewed.isSelected()));
+        reviewed.setOnAction(event -> {
+            event.consume();
+            allReviewedChanged.accept(reviewed.isSelected());
+        });
+        consumeMouseClicks(reviewed);
         HBox header = new HBox(12, statementIdentity(statement), reviewed);
         header.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(header.getChildren().get(0), Priority.ALWAYS);
@@ -43,6 +55,7 @@ public class CreditCardStatementSummaryView {
         payment.getStyleClass().add("statement-field-row");
 
         GridPane accountSummary = section("Account Summary");
+        setSectionWidth(accountSummary, SUMMARY_SECTION_WIDTH);
         addMoneyRow(accountSummary, 1, "previous_balance", "Previous Balance", "+", statement.getPreviousBalance(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(accountSummary, 2, "payments", "Payments", "-", statement.getPayments(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(accountSummary, 3, "other_credits", "Other Credits", "-", statement.getOtherCredits(), fieldReviewed, fieldReviewedChanged);
@@ -54,18 +67,22 @@ public class CreditCardStatementSummaryView {
         addMoneyRow(accountSummary, 9, "new_balance", "New Balance", "=", accountSummaryBalance(statement), fieldReviewed, fieldReviewedChanged);
 
         GridPane creditLine = section("Credit Line");
+        setSectionWidth(creditLine, CREDIT_SECTION_WIDTH);
         addMoneyRow(creditLine, 1, "credit_limit", "Credit Limit", statement.getCreditLimit(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(creditLine, 2, "available_credit", "Available Credit", statement.getAvailableCredit(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(creditLine, 3, "cash_advance_limit", "Cash Advance Limit", statement.getCashAdvanceLimit(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(creditLine, 4, "available_cash_advance_credit", "Available Cash Advance Credit", statement.getAvailableCashAdvanceCredit(), fieldReviewed, fieldReviewedChanged);
 
-        HBox body = new HBox(14, accountSummary, creditLine);
-        HBox.setHgrow(accountSummary, Priority.ALWAYS);
-        HBox.setHgrow(creditLine, Priority.ALWAYS);
+        HBox body = new HBox(BODY_GAP, accountSummary, creditLine);
+        body.setAlignment(Pos.TOP_LEFT);
 
         VBox rewards = rewards(statement, fieldReviewed, fieldReviewedChanged);
         Button edit = new Button("Editar datos");
-        edit.setOnAction(event -> editAction.run());
+        edit.setOnAction(event -> {
+            event.consume();
+            editAction.run();
+        });
+        consumeMouseClicks(edit);
         HBox footer = new HBox(12, status(statement), edit);
         footer.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(footer.getChildren().get(0), Priority.ALWAYS);
@@ -107,6 +124,7 @@ public class CreditCardStatementSummaryView {
         period.getStyleClass().add("statement-field-label");
         VBox box = new VBox(3, bank, period);
         box.setMaxWidth(Double.MAX_VALUE);
+        consumeMouseClicks(box);
         return box;
     }
 
@@ -114,7 +132,7 @@ public class CreditCardStatementSummaryView {
         String bank = text(statement.getBankName()).isBlank() ? text(statement.getAccountAlias()) : text(statement.getBankName());
         String card = text(statement.getCardName());
         String digits = text(statement.getAccountLastDigits());
-        String suffix = digits.isBlank() ? "" : " ending in " + digits;
+        String suffix = digits.isBlank() || card.toLowerCase(java.util.Locale.ROOT).contains("ending in " + digits) ? "" : " ending in " + digits;
         return card.isBlank() ? bank + suffix : bank + " | " + card + suffix;
     }
 
@@ -134,8 +152,8 @@ public class CreditCardStatementSummaryView {
         valueLabel.getStyleClass().add("credit-info-title");
         VBox box = new VBox(4, titleLabel, valueLabel);
         box.getStyleClass().add("statement-section");
-        HBox.setHgrow(box, Priority.ALWAYS);
-        box.setMaxWidth(Double.MAX_VALUE);
+        setFixedWidth(box, HERO_FIELD_WIDTH);
+        consumeMouseClicks(box);
         return box;
     }
 
@@ -154,7 +172,7 @@ public class CreditCardStatementSummaryView {
         value.setMinWidth(120);
         ColumnConstraints review = new ColumnConstraints();
         review.setHalignment(HPos.CENTER);
-        review.setMinWidth(78);
+        review.setMinWidth(94);
         grid.getColumnConstraints().setAll(label, sign, value, review);
         Label heading = new Label(title);
         heading.getStyleClass().add("statement-section-title");
@@ -163,6 +181,16 @@ public class CreditCardStatementSummaryView {
         reviewTitle.getStyleClass().add("statement-field-label");
         grid.add(reviewTitle, 3, 0);
         return grid;
+    }
+
+    private void setSectionWidth(GridPane grid, double width) {
+        setFixedWidth(grid, width);
+    }
+
+    private void setFixedWidth(javafx.scene.layout.Region node, double width) {
+        node.setMinWidth(width);
+        node.setPrefWidth(width);
+        node.setMaxWidth(width);
     }
 
     private void addMoneyRow(GridPane grid, int row, String fieldName, String label, double amount, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
@@ -176,6 +204,9 @@ public class CreditCardStatementSummaryView {
         signNode.getStyleClass().add("statement-readonly-value");
         Label valueNode = new Label(Money.format(amount));
         valueNode.getStyleClass().add("statement-readonly-value");
+        consumeMouseClicks(labelNode);
+        consumeMouseClicks(signNode);
+        consumeMouseClicks(valueNode);
         grid.add(labelNode, 0, row);
         grid.add(signNode, 1, row);
         grid.add(valueNode, 2, row);
@@ -198,6 +229,7 @@ public class CreditCardStatementSummaryView {
             return null;
         }
         GridPane grid = section("Rewards");
+        setSectionWidth(grid, BODY_WIDTH);
         addMoneyRow(grid, 1, "rewards_previous_balance", "Previous Rewards", statement.getRewardsPreviousBalance(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(grid, 2, "rewards_earned", "Earned This Period", statement.getRewardsEarned(), fieldReviewed, fieldReviewedChanged);
         addMoneyRow(grid, 3, "rewards_redeemed", "Redeemed This Period", statement.getRewardsRedeemed(), fieldReviewed, fieldReviewedChanged);
@@ -208,10 +240,17 @@ public class CreditCardStatementSummaryView {
     }
 
     private boolean hasRewards(CreditCardStatement statement) {
-        return statement.getRewardsBalance() != 0
+        return isCapitalOneRewardsCard(statement)
+            || statement.getRewardsBalance() != 0
             || statement.getRewardsPreviousBalance() != 0
             || statement.getRewardsEarned() != 0
             || statement.getRewardsRedeemed() != 0;
+    }
+
+    private boolean isCapitalOneRewardsCard(CreditCardStatement statement) {
+        String bank = text(statement.getBankName()).toLowerCase(java.util.Locale.ROOT);
+        String card = text(statement.getCardName()).toLowerCase(java.util.Locale.ROOT);
+        return bank.contains("capital one") && card.contains("quicksilver");
     }
 
     private Node status(CreditCardStatement statement) {
@@ -228,8 +267,16 @@ public class CreditCardStatementSummaryView {
     private CheckBox reviewedCheck(String fieldName, Predicate<String> fieldReviewed, BiConsumer<String, Boolean> fieldReviewedChanged) {
         CheckBox check = new CheckBox();
         check.setSelected(fieldReviewed.test(fieldName));
-        check.setOnAction(event -> fieldReviewedChanged.accept(fieldName, check.isSelected()));
+        check.setOnAction(event -> {
+            event.consume();
+            fieldReviewedChanged.accept(fieldName, check.isSelected());
+        });
+        consumeMouseClicks(check);
         return check;
+    }
+
+    private void consumeMouseClicks(Node node) {
+        node.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> event.consume());
     }
 
     private String formatShortDate(LocalDate date) {

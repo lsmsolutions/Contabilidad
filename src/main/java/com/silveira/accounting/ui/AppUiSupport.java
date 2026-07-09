@@ -177,6 +177,10 @@ public class AppUiSupport {
     }
 
     public void showProcessing(String title, String message) {
+        showProcessing(title, message, null);
+    }
+
+    public void showProcessing(String title, String message, Runnable cancelAction) {
         ProgressIndicator progress = new ProgressIndicator();
         progress.setPrefSize(64, 64);
         Label heading = new Label(title);
@@ -185,6 +189,11 @@ public class AppUiSupport {
         detail.getStyleClass().add("processing-detail");
         detail.setWrapText(true);
         VBox box = new VBox(16, progress, heading, detail);
+        if (cancelAction != null) {
+            Button cancel = new Button("Cancelar");
+            cancel.setOnAction(event -> cancelAction.run());
+            box.getChildren().add(cancel);
+        }
         box.getStyleClass().add("processing-box");
         box.setAlignment(Pos.CENTER);
         setPage.accept(page(title, box));

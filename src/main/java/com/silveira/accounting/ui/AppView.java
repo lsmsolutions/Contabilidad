@@ -113,6 +113,7 @@ public class AppView {
             ui::alert,
             ui::rootCauseMessage,
             ui::showProcessing,
+            ui::showProcessing,
             ui::confirm,
             ui::promptText,
             this::showMortgages,
@@ -164,21 +165,25 @@ public class AppView {
 
         VBox bankSubmenu = new VBox(4);
         bankSubmenu.getStyleClass().add("submenu");
+        bankSubmenu.getChildren().add(ledgerSubnav("Bank Ledger", this::showBankLedger));
         for (BankAccount account : bankModule.accounts().list()) {
             bankSubmenu.getChildren().add(subnav(account.getAlias(), () -> showBankAccount(account.getAlias())));
         }
         VBox cardSubmenu = new VBox(4);
         cardSubmenu.getStyleClass().add("submenu");
+        cardSubmenu.getChildren().add(ledgerSubnav("Card Ledger", this::showCardLedger));
         for (CreditCardAccount account : creditCardAccountRepository.findAll()) {
             cardSubmenu.getChildren().add(subnav(account.getAlias(), () -> showCardAccount(account.getAlias())));
         }
         VBox mortgageSubmenu = new VBox(4);
         mortgageSubmenu.getStyleClass().add("submenu");
+        mortgageSubmenu.getChildren().add(ledgerSubnav("Mortgage Ledger", this::showMortgageLedger));
         for (String alias : mortgageApplication.statements().findLoanAliases()) {
             mortgageSubmenu.getChildren().add(subnav(alias, () -> showMortgageDetail(alias)));
         }
         VBox vehicleLeaseSubmenu = new VBox(4);
         vehicleLeaseSubmenu.getStyleClass().add("submenu");
+        vehicleLeaseSubmenu.getChildren().add(ledgerSubnav("Vehicle Ledger", vehicleLeaseWorkflow::showVehicleLedger));
         for (var account : vehicleLeaseWorkflow.accounts()) {
             vehicleLeaseSubmenu.getChildren().add(subnav(account.getAlias(), () -> vehicleLeaseWorkflow.showVehicleLeaseDetail(account.getAlias())));
         }
@@ -191,7 +196,7 @@ public class AppView {
         nylSubmenu.getStyleClass().add("submenu");
         nylSubmenu.getChildren().add(subnav("Resumen NYL", this::showNyl));
         nylSubmenu.getChildren().add(subnav("Análisis NYL", this::showAnalysis));
-        nylSubmenu.getChildren().add(subnav("Agent Ledger", agentLedgerWorkflow::showAgentLedger));
+        nylSubmenu.getChildren().add(ledgerSubnav("Agent Ledger", agentLedgerWorkflow::showAgentLedger));
 
         VBox menu = new VBox(8);
         menu.getChildren().addAll(
@@ -247,6 +252,12 @@ public class AppView {
             workspaceBackContext = false;
             action.run();
         }));
+        return button;
+    }
+
+    private Button ledgerSubnav(String text, Runnable action) {
+        Button button = subnav(text, action);
+        button.getStyleClass().add("ledger-subnav-button");
         return button;
     }
 
@@ -370,6 +381,10 @@ public class AppView {
         bankWorkflow.showBank();
     }
 
+    private void showBankLedger() {
+        bankWorkflow.showBankLedger();
+    }
+
     private void showBankAccount(String accountAlias) {
         bankWorkflow.showBankAccount(accountAlias);
     }
@@ -378,12 +393,20 @@ public class AppView {
         cardWorkflow.showCards();
     }
 
+    private void showCardLedger() {
+        cardWorkflow.showCardLedger();
+    }
+
     private void showCardAccount(String alias) {
         cardWorkflow.showCardAccount(alias);
     }
 
     private void showMortgages() {
         mortgageWorkflow.showMortgages();
+    }
+
+    private void showMortgageLedger() {
+        mortgageWorkflow.showMortgageLedger();
     }
 
     private void showMortgageDetail(String alias) {

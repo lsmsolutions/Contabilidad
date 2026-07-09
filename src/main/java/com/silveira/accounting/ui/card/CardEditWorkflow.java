@@ -37,7 +37,7 @@ public class CardEditWorkflow {
     ) {
         long statementId = statementTable.getItems().isEmpty() ? 0 : statementTable.getItems().get(0).getId();
         CreditCardTransaction movement = transactions.createManual(statementId, LocalDate.now());
-        movementTable.getItems().add(movement);
+        CardTransactionTableView.addBeforeTotal(movementTable, movement);
         movementTable.getSelectionModel().select(movement);
     }
 
@@ -53,7 +53,7 @@ public class CardEditWorkflow {
         Runnable refresh
     ) {
         long statementId = statementTable.getItems().isEmpty() ? 0 : statementTable.getItems().get(0).getId();
-        transactions.saveVisible(statementId, movementTable.getItems());
+        transactions.saveVisible(statementId, CardTransactionTableView.withoutTotalRow(movementTable.getItems()));
         refresh.run();
         config.alert().show(Alert.AlertType.INFORMATION, "Movimientos guardados", "Movimientos visibles guardados con su estado actual.");
     }

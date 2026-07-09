@@ -2,6 +2,7 @@ package com.silveira.accounting.application.bank;
 
 import com.silveira.accounting.application.bank.service.BankAccountApplicationService;
 import com.silveira.accounting.application.bank.service.BankImportApplicationService;
+import com.silveira.accounting.application.bank.service.BankLedgerApplicationService;
 import com.silveira.accounting.application.bank.service.BankPeriodApplicationService;
 import com.silveira.accounting.application.bank.service.BankTransactionApplicationService;
 import com.silveira.accounting.repositories.bank.BankAccountRepository;
@@ -14,6 +15,7 @@ public class BankApplicationService {
     private final BankTransactionApplicationService transactions;
     private final BankPeriodApplicationService periods;
     private final BankImportApplicationService imports;
+    private final BankLedgerApplicationService ledger;
 
     public BankApplicationService(
         BankTransactionRepository transactions,
@@ -25,6 +27,7 @@ public class BankApplicationService {
         this.transactions = new BankTransactionApplicationService(transactions);
         this.periods = new BankPeriodApplicationService(periods, closings, transactions);
         this.imports = new BankImportApplicationService(this.transactions, this.accounts, periods);
+        this.ledger = new BankLedgerApplicationService(this.accounts, this.periods);
     }
 
     public BankAccountApplicationService accounts() {
@@ -41,5 +44,9 @@ public class BankApplicationService {
 
     public BankImportApplicationService imports() {
         return imports;
+    }
+
+    public BankLedgerApplicationService ledger() {
+        return ledger;
     }
 }

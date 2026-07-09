@@ -7,6 +7,7 @@ import com.silveira.accounting.models.MonthlySourceTotals;
 import com.silveira.accounting.models.NylRecord;
 import com.silveira.accounting.models.SourceTotals;
 import com.silveira.accounting.services.ExcelExportService;
+import com.silveira.accounting.ui.common.PdfImportModeDialog;
 import com.silveira.accounting.utils.Fingerprint;
 import com.silveira.accounting.utils.Money;
 import java.io.File;
@@ -192,6 +193,14 @@ public class NylWorkflow {
     private void importNyl(Runnable refresh) {
         File file = config.choosePdf().choose();
         if (file == null) {
+            return;
+        }
+        PdfImportModeDialog.Mode mode = new PdfImportModeDialog().show(null).orElse(null);
+        if (mode == null) {
+            return;
+        }
+        if (mode == PdfImportModeDialog.Mode.AI) {
+            processAi(file.toPath(), refresh);
             return;
         }
         try {

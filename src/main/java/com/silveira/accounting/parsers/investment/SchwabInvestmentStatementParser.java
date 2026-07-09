@@ -60,6 +60,9 @@ public class SchwabInvestmentStatementParser implements DocumentImportGateway<In
 
         List<InvestmentPosition> positions = positions(text);
         List<Double> positionSummary = positionSummaryValues(text);
+        List<InvestmentAllocation> allocations = allocations(text);
+        List<InvestmentTransaction> transactions = transactions(text, period.end().getYear());
+        validateTransactionSummary(text, allocations, transactions);
 
         InvestmentStatement statement = new InvestmentStatement();
         statement.setAccountAlias(account.getAlias());
@@ -83,9 +86,9 @@ public class SchwabInvestmentStatementParser implements DocumentImportGateway<In
         return new InvestmentImportData(
             account,
             statement,
-            allocations(text),
+            allocations,
             positions,
-            transactions(text, period.end().getYear())
+            transactions
         );
     }
 
@@ -233,9 +236,14 @@ public class SchwabInvestmentStatementParser implements DocumentImportGateway<In
         if (securityAction && numbers.size() >= 3) {
             value.setQuantity(Math.abs(Money.parse(numbers.get(0))));
             value.setPrice(Math.abs(Money.parse(numbers.get(1))));
-            value.setAmount(Money.parse(numbers.get(2)));
-            if (numbers.size() >= 4) {
-                value.setRealizedGainLoss(transactionMoney(numbers.get(3)));
+            if (action.equals("Sale") && numbers.size() >= 5) {
+                value.setAmount(Money.parse(numbers.get(numbers.size() - 2)));
+                value.setRealizedGainLoss(transactionMoney(numbers.get(numbers.size() - 1)));
+            } else {
+                value.setAmount(Money.parse(numbers.get(2)));
+                if (numbers.size() >= 4) {
+                    value.setRealizedGainLoss(transactionMoney(numbers.get(3)));
+                }
             }
         } else {
             value.setAmount(Money.parse(numbers.get(numbers.size() - 1)));
@@ -244,6 +252,77 @@ public class SchwabInvestmentStatementParser implements DocumentImportGateway<In
             value.setAmount(-Math.abs(value.getAmount()));
         }
         return value;
+    }
+
+    private void validateTransactionSummary(
+        String text,
+        List<InvestmentAllocation> allocations,
+        List<InvestmentTransaction> transactions
+    ) {
+        TransactionSummary summary = transactionSummary(text);
+        if (summary == null) {
+            return;
+        }
+        double deposits = totalByCategory(transactions, "Deposits");
+        double withdrawals = totalByCategory(transactions, "Withdrawals");
+        double purchases = totalByCategory(transactions, "Purchases");
+        double salesRedemptions = totalByCategory(transactions, "Sales/Redemptions");
+        double dividendsInterest = totalByCategory(transactions, "Dividends/Interest");
+        double expenses = totalByCategory(transactions, "Expenses/Fees");
+        double endingCash = allocations.stream()
+            .filter(value -> value.getCategory() != null && value.getCategory().toLowerCase(Locale.ROOT).contains("cash"))
+            .mapToDouble(InvestmentAllocation::getMarketValue)
+            .sum();
+        double beginningCash = endingCash - deposits - withdrawals - purchases - salesRedemptions - dividendsInterest - expenses;
+
+        List<String> mismatches = new ArrayList<>();
+        addMismatch(mismatches, "Beginning Cash", summary.beginningCash(), beginningCash);
+        addMismatch(mismatches, "Deposits", summary.deposits(), deposits);
+        addMismatch(mismatches, "Withdrawals", summary.withdrawals(), withdrawals);
+        addMismatch(mismatches, "Purchases", summary.purchases(), purchases);
+        addMismatch(mismatches, "Sales/Redemptions", summary.salesRedemptions(), salesRedemptions);
+        addMismatch(mismatches, "Dividends/Interest", summary.dividendsInterest(), dividendsInterest);
+        addMismatch(mismatches, "Expenses", summary.expenses(), expenses);
+        addMismatch(mismatches, "Ending Cash", summary.endingCash(), endingCash);
+        if (!mismatches.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Los totales de Transactions - Summary no coinciden con Transaction Details: "
+                    + String.join("; ", mismatches)
+            );
+        }
+    }
+
+    private TransactionSummary transactionSummary(String text) {
+        String section = between(text, "Transactions - Summary", "Transaction Details");
+        for (String rawLine : section.split("\\R")) {
+            List<Double> values = moneyValues(rawLine);
+            if (values.size() >= 8) {
+                return new TransactionSummary(
+                    values.get(0),
+                    values.get(1),
+                    values.get(2),
+                    values.get(3),
+                    values.get(4),
+                    values.get(5),
+                    values.get(6),
+                    values.get(7)
+                );
+            }
+        }
+        return null;
+    }
+
+    private double totalByCategory(List<InvestmentTransaction> transactions, String category) {
+        return transactions.stream()
+            .filter(value -> category.equals(value.getCategory()))
+            .mapToDouble(InvestmentTransaction::getAmount)
+            .sum();
+    }
+
+    private void addMismatch(List<String> mismatches, String label, double expected, double actual) {
+        if (Math.abs(expected - actual) > 0.02) {
+            mismatches.add(label + " PDF " + Money.format(expected) + " vs parsed " + Money.format(actual));
+        }
     }
 
     private String categoryForAction(String action) {
@@ -323,5 +402,17 @@ public class SchwabInvestmentStatementParser implements DocumentImportGateway<In
     }
 
     private record DateRange(LocalDate start, LocalDate end) {
+    }
+
+    private record TransactionSummary(
+        double beginningCash,
+        double deposits,
+        double withdrawals,
+        double purchases,
+        double salesRedemptions,
+        double dividendsInterest,
+        double expenses,
+        double endingCash
+    ) {
     }
 }

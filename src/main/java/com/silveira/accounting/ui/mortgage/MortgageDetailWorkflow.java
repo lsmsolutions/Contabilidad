@@ -8,6 +8,7 @@ import com.silveira.accounting.parsers.MortgageStatementParser;
 import com.silveira.accounting.services.ExcelExportService;
 import com.silveira.accounting.services.MortgageAnalysisService;
 import com.silveira.accounting.services.MortgageImportService;
+import com.silveira.accounting.ui.common.PdfImportModeDialog;
 import com.silveira.accounting.utils.Money;
 import java.io.File;
 import java.time.LocalDate;
@@ -113,7 +114,6 @@ public class MortgageDetailWorkflow {
         HBox movementActions = new HBox(10, saveMovements);
         movementActions.getStyleClass().add("mortgage-tab-actions");
         movementActions.setAlignment(Pos.CENTER_LEFT);
-        VBox.setVgrow(movements, Priority.ALWAYS);
         VBox statementTabContent = new VBox(12, statementSummaries);
         statementTabContent.getStyleClass().add("mortgage-tab-content");
         VBox movementTabContent = new VBox(12, movementActions, movements);
@@ -123,9 +123,11 @@ public class MortgageDetailWorkflow {
             tab("Movimientos", movementTabContent)
         );
         VBox.setVgrow(tabs, Priority.ALWAYS);
+        Button expenses = new Button("Go to Expenses");
+        expenses.setOnAction(event -> config.showHouseExpenses().accept(alias));
         config.setPage().accept(page(
             "Hipoteca - " + alias,
-            config.backButton().create("Volver a Hipotecas", config.showMortgages()),
+            new HBox(10, config.backButton().create("Volver a Hipotecas", config.showMortgages()), expenses),
             actions,
             totals,
             monthlyMortgageCards(alias, statements, movements, totals, statementSummaries),
@@ -151,6 +153,14 @@ public class MortgageDetailWorkflow {
     private void importMortgagePdf(String alias) {
         File file = config.choosePdf().choose();
         if (file == null) {
+            return;
+        }
+        PdfImportModeDialog.Mode mode = new PdfImportModeDialog().show(null).orElse(null);
+        if (mode == null) {
+            return;
+        }
+        if (mode == PdfImportModeDialog.Mode.AI) {
+            importMortgagePdfWithAi(alias, file);
             return;
         }
         try {
@@ -677,6 +687,7 @@ public class MortgageDetailWorkflow {
         Consumer<Integer> setSelectedMonthValue,
         Runnable rebuildSidebar,
         Runnable showMortgages,
+        Consumer<String> showHouseExpenses,
         Consumer<Parent> setPage,
         BackButtonFactory backButton,
         ChooseFileAction choosePdf,

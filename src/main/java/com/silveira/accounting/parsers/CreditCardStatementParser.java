@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 public class CreditCardStatementParser {
     private static final Pattern MONEY = Pattern.compile("\\$?\\(?[0-9,]+(?:\\.\\d{2})?\\)?");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter LONG_DATE = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter NUMERIC_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter SHORT_NUMERIC_DATE = DateTimeFormatter.ofPattern("MM/dd/yy", Locale.ENGLISH);
 
@@ -356,6 +357,75 @@ public class CreditCardStatementParser {
             LocalDate postDate = parseCapitalOneMonthDay(matcher.group(3), matcher.group(4), year, statementEndDate);
             transactions.add(new CreditCardTransaction(0, 0, transactionDate, postDate, description, amount, classify(description, amount), ""));
         }
+        if (transactions.isEmpty()) {
+            transactions.addAll(parseCapitalOneOcrTransactions(text, statementEndDate));
+        }
+        return transactions;
+    }
+
+    private List<CreditCardTransaction> parseCapitalOneOcrTransactions(String text, LocalDate statementEndDate) {
+        List<CreditCardTransaction> transactions = new ArrayList<>();
+        List<String> lines = normalizedLines(text);
+        int year = statementEndDate == null ? LocalDate.now().getYear() : statementEndDate.getYear();
+        boolean inTransactionBlock = false;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (isCapitalOneTransactionBlock(line)) {
+                inTransactionBlock = true;
+                continue;
+            }
+            if (!inTransactionBlock) {
+                continue;
+            }
+            if (isCapitalOneTransactionBlockEnd(line)) {
+                inTransactionBlock = false;
+                continue;
+            }
+            if (!isCapitalOneMonthDay(line) || i + 1 >= lines.size() || !isCapitalOneMonthDay(lines.get(i + 1))) {
+                continue;
+            }
+            LocalDate transactionDate = parseCapitalOneOcrMonthDay(line, year, statementEndDate);
+            LocalDate postDate = parseCapitalOneOcrMonthDay(lines.get(i + 1), year, statementEndDate);
+            int cursor = i + 2;
+            List<String> descriptionParts = new ArrayList<>();
+            Double amount = null;
+            while (cursor < lines.size()) {
+                String current = lines.get(cursor);
+                if (isCapitalOneTransactionBlock(current)
+                    || isCapitalOneTransactionBlockEnd(current)
+                    || (isCapitalOneMonthDay(current) && cursor + 1 < lines.size() && isCapitalOneMonthDay(lines.get(cursor + 1)))) {
+                    break;
+                }
+                if (isCapitalOneTransactionHeader(current)) {
+                    cursor++;
+                    continue;
+                }
+                if (amount == null && isMoneyLine(current)) {
+                    amount = Money.parse(current);
+                    cursor++;
+                    if (descriptionParts.isEmpty()) {
+                        while (cursor < lines.size()
+                            && !isCapitalOneTransactionBlock(lines.get(cursor))
+                            && !isCapitalOneTransactionBlockEnd(lines.get(cursor))
+                            && !(isCapitalOneMonthDay(lines.get(cursor)) && cursor + 1 < lines.size() && isCapitalOneMonthDay(lines.get(cursor + 1)))) {
+                            String descriptionLine = lines.get(cursor);
+                            if (!isCapitalOneTransactionHeader(descriptionLine) && !isMoneyLine(descriptionLine)) {
+                                descriptionParts.add(descriptionLine);
+                            }
+                            cursor++;
+                        }
+                    }
+                    break;
+                }
+                descriptionParts.add(current);
+                cursor++;
+            }
+            if (amount != null && !descriptionParts.isEmpty()) {
+                String description = String.join(" ", descriptionParts).replaceAll("\\s+", " ").trim();
+                transactions.add(new CreditCardTransaction(0, 0, transactionDate, postDate, description, amount, classify(description, amount), ""));
+                i = Math.max(i + 1, cursor - 1);
+            }
+        }
         return transactions;
     }
 
@@ -670,10 +740,13 @@ public class CreditCardStatementParser {
         if (lower.contains("citicards.com") || lower.contains("citi double cash") || lower.contains("citi simplicity") || lower.contains("citi cards")) {
             return "Citi";
         }
+        if (lower.contains("capital one") || lower.contains("capitalone")) {
+            return "Capital One";
+        }
         if (lower.contains("discover it") || lower.contains("discover") || lower.contains("discover card") || lower.contains("card ending in")) {
             return "Discover";
         }
-        return lower.contains("capital one") || lower.contains("capitalone") ? "Capital One" : "Tarjeta";
+        return "Tarjeta";
     }
 
     private String detectCardName(String text) {
@@ -717,7 +790,11 @@ public class CreditCardStatementParser {
         if (normalized.matches("\\d{2}/\\d{2}/20\\d{2}")) {
             return LocalDate.parse(normalized, NUMERIC_DATE);
         }
-        return LocalDate.parse(normalized, DATE);
+        try {
+            return LocalDate.parse(normalized, DATE);
+        } catch (RuntimeException exception) {
+            return LocalDate.parse(normalized, LONG_DATE);
+        }
     }
 
     private LocalDate parseShortNumericDate(String value) {
@@ -760,6 +837,41 @@ public class CreditCardStatementParser {
             resolvedYear = statementEndDate.getYear() - 1;
         }
         return LocalDate.of(resolvedYear, month, Integer.parseInt(day));
+    }
+
+    private boolean isCapitalOneTransactionBlock(String line) {
+        String value = line.toLowerCase(Locale.ROOT);
+        return value.contains(": payments, credits and adjustments") || value.matches(".*#\\d{4}: transactions");
+    }
+
+    private boolean isCapitalOneTransactionBlockEnd(String line) {
+        String value = line.toLowerCase(Locale.ROOT);
+        return value.contains(": total transactions")
+            || value.startsWith("additional information")
+            || value.startsWith("estimating resolution")
+            || value.startsWith("--- page")
+            || value.contains("total fees for this period")
+            || value.contains("interest charge on");
+    }
+
+    private boolean isCapitalOneTransactionHeader(String line) {
+        return line.equalsIgnoreCase("Trans Date")
+            || line.equalsIgnoreCase("Post Date")
+            || line.equalsIgnoreCase("Description")
+            || line.equalsIgnoreCase("Amount");
+    }
+
+    private boolean isCapitalOneMonthDay(String line) {
+        return line.matches("(?i)^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{1,2}$");
+    }
+
+    private boolean isMoneyLine(String line) {
+        return line.matches("-?\\s*\\$\\s*[0-9,]+(?:\\.\\d{2})?");
+    }
+
+    private LocalDate parseCapitalOneOcrMonthDay(String value, int year, LocalDate statementEndDate) {
+        String[] parts = value.split("\\s+");
+        return parseCapitalOneMonthDay(parts[0], parts[1], year, statementEndDate);
     }
 
     public record ParsedCreditCardStatement(CreditCardStatement statement, List<CreditCardTransaction> transactions) {

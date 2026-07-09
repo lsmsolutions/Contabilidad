@@ -29,6 +29,7 @@ public class VehicleLeaseApplicationService {
     private final VehicleLeaseStatementRepository statements;
     private final VehicleLeaseFieldReviewRepository reviews;
     private final DocumentImportService<VehicleLeaseImportData> imports;
+    private final VehicleLeaseLedgerApplicationService ledger;
 
     public VehicleLeaseApplicationService(
         VehicleLeaseAccountRepository accounts,
@@ -40,6 +41,7 @@ public class VehicleLeaseApplicationService {
         this.statements = statements;
         this.reviews = reviews;
         this.imports = imports;
+        this.ledger = new VehicleLeaseLedgerApplicationService(accounts, statements);
     }
 
     public VehicleLeaseStatement importPdf(Path pdf) {
@@ -82,6 +84,10 @@ public class VehicleLeaseApplicationService {
 
     public List<VehicleLeaseAccount> accounts() {
         return accounts.findAll();
+    }
+
+    public VehicleLeaseLedgerApplicationService ledger() {
+        return ledger;
     }
 
     public Optional<VehicleLeaseAccount> account(String alias) {

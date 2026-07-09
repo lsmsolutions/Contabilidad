@@ -21,6 +21,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -32,10 +33,10 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -44,6 +45,9 @@ import javafx.util.StringConverter;
 
 public class HouseExpensePageView {
     private static final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final double HOUSE_EXPENSE_ROW_HEIGHT = 38;
+    private static final double HOUSE_EXPENSE_TABLE_HEADER_HEIGHT = 44;
+    private static final double HOUSE_EXPENSE_TABLE_EXTRA_HEIGHT = 20;
 
     private final HouseExpenseApplicationService houseExpenses;
     private final Config config;
@@ -66,6 +70,7 @@ public class HouseExpensePageView {
         Runnable refresh = () -> {
             table.setItems(FXCollections.observableArrayList(houseExpenses.findByLoan(loanAlias, null, null)));
             captureHouseExpenseRows(table, originalRows);
+            updateHouseExpenseTableHeight(table);
             refreshTotal[0].run();
         };
         refresh.run();
@@ -74,8 +79,14 @@ public class HouseExpensePageView {
         sizeActionButton(add);
         add.setOnAction(event -> {
             HouseExpense expense = new HouseExpense(0, loanAlias == null ? "" : loanAlias, LocalDate.now(), "Gasto manual", "", 0, "", "");
-            table.getItems().add(expense);
+            table.getItems().add(0, expense);
             table.getSelectionModel().select(expense);
+            table.scrollTo(0);
+            table.requestFocus();
+            if (!table.getColumns().isEmpty()) {
+                table.edit(0, table.getColumns().get(0));
+            }
+            updateHouseExpenseTableHeight(table);
             refreshTotal[0].run();
         });
         Button save = new Button("Save changes");
@@ -112,10 +123,12 @@ public class HouseExpensePageView {
     private TableView<HouseExpense> houseExpenseTable(Runnable rowsChanged, Map<Long, String> originalRows) {
         TableView<HouseExpense> table = new TableView<>();
         table.getStyleClass().add("house-expenses-table");
-        table.setMaxHeight(Double.MAX_VALUE);
-        VBox.setVgrow(table, Priority.ALWAYS);
+        table.setFixedCellSize(HOUSE_EXPENSE_ROW_HEIGHT);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.setMaxWidth(Double.MAX_VALUE);
         table.setEditable(true);
-        TableColumn<HouseExpense, String> date = new TableColumn<>("Fecha");
+        TableColumn<HouseExpense, String> date = new TableColumn<>("Date");
+        configureDateHeader(date);
         date.setCellValueFactory(data -> new SimpleStringProperty(formatShortDate(data.getValue().getExpenseDate())));
         date.setComparator((left, right) -> compareDates(parseDateOrNull(left), parseDateOrNull(right)));
         date.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
@@ -123,79 +136,83 @@ public class HouseExpensePageView {
             event.getRowValue().setExpenseDate(parseDateOrNull(event.getNewValue()));
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        date.setPrefWidth(120);
+        date.setPrefWidth(145);
         date.setStyle("-fx-alignment: CENTER-LEFT;");
-        TableColumn<HouseExpense, String> mortgageColumn = new TableColumn<>("Hipoteca");
+        TableColumn<HouseExpense, String> mortgageColumn = new TableColumn<>("Loan");
         mortgageColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getLoanAlias()));
         mortgageColumn.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         mortgageColumn.setOnEditCommit(event -> {
             event.getRowValue().setLoanAlias(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        mortgageColumn.setPrefWidth(130);
+        mortgageColumn.setPrefWidth(70);
         mortgageColumn.setStyle("-fx-alignment: CENTER-LEFT;");
-        TableColumn<HouseExpense, String> description = new TableColumn<>("Descripción");
+        TableColumn<HouseExpense, String> description = new TableColumn<>("Description");
         description.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
         description.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         description.setOnEditCommit(event -> {
             event.getRowValue().setDescription(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        description.setPrefWidth(260);
+        description.setPrefWidth(215);
         description.setStyle("-fx-alignment: CENTER-LEFT;");
-        TableColumn<HouseExpense, String> provider = new TableColumn<>("Proveedor");
+        TableColumn<HouseExpense, String> provider = new TableColumn<>("Provider");
         provider.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getProvider()));
         provider.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         provider.setOnEditCommit(event -> {
             event.getRowValue().setProvider(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        provider.setPrefWidth(180);
+        provider.setPrefWidth(130);
         provider.setStyle("-fx-alignment: CENTER-LEFT;");
-        TableColumn<HouseExpense, Double> amount = new TableColumn<>("Importe");
+        TableColumn<HouseExpense, Double> amount = new TableColumn<>("Amount");
         amount.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getAmount()).asObject());
         amount.setCellFactory(commitOnFocusLostCellFactory(twoDecimalConverter()));
         amount.setOnEditCommit(event -> {
             event.getRowValue().setAmount(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        amount.setPrefWidth(110);
+        amount.setPrefWidth(85);
         amount.setStyle("-fx-alignment: CENTER-RIGHT;");
-        TableColumn<HouseExpense, String> invoice = new TableColumn<>("Factura");
+        TableColumn<HouseExpense, String> invoice = new TableColumn<>("Invoice");
         invoice.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getInvoice()));
         invoice.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         invoice.setOnEditCommit(event -> {
             event.getRowValue().setInvoice(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        invoice.setPrefWidth(160);
+        invoice.setPrefWidth(105);
         invoice.setStyle("-fx-alignment: CENTER-LEFT;");
-        TableColumn<HouseExpense, String> paymentSource = new TableColumn<>("Pagado con");
+        TableColumn<HouseExpense, String> paymentSource = new TableColumn<>("Paid With");
         paymentSource.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getPaymentSource()));
         paymentSource.setCellFactory(ComboBoxTableCell.forTableColumn(FXCollections.observableArrayList(config.paymentSourceOptions().get())));
         paymentSource.setOnEditCommit(event -> {
             event.getRowValue().setPaymentSource(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        paymentSource.setPrefWidth(210);
+        paymentSource.setPrefWidth(140);
         paymentSource.setStyle("-fx-alignment: CENTER-LEFT;");
         TableColumn<HouseExpense, Boolean> reviewed = houseExpenseReviewedColumn(rowsChanged);
+        reviewed.setEditable(false);
+        reviewed.setPrefWidth(76);
         reviewed.setStyle("-fx-alignment: CENTER;");
-        TableColumn<HouseExpense, String> notes = new TableColumn<>("Nota");
+        TableColumn<HouseExpense, String> notes = new TableColumn<>("Notes");
         notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNotes()));
         notes.setCellFactory(commitOnFocusLostCellFactory(stringConverter()));
         notes.setOnEditCommit(event -> {
             event.getRowValue().setNotes(event.getNewValue());
             updateHouseExpenseIfSaved(event.getRowValue(), rowsChanged);
         });
-        notes.setPrefWidth(240);
+        notes.setPrefWidth(124);
         notes.setStyle("-fx-alignment: CENTER-LEFT;");
         TableColumn<HouseExpense, Void> document = houseExpenseDocumentColumn(rowsChanged, originalRows);
-        TableColumn<HouseExpense, Void> actions = new TableColumn<>("Acciones");
+        document.setEditable(false);
+        TableColumn<HouseExpense, Void> actions = new TableColumn<>("Actions");
+        actions.setEditable(false);
         actions.setCellFactory(column -> new TableCell<>() {
-            private final Button save = new Button("Guardar");
-            private final Button edit = new Button("Editar");
-            private final Button delete = new Button("Eliminar");
+            private final Button save = iconButton("\uD83D\uDCBE", "Save");
+            private final Button edit = iconButton("\u270E", "Edit");
+            private final Button delete = iconButton("\uD83D\uDDD1", "Delete");
             private final HBox buttons = new HBox(6, save, edit, delete);
             {
                 save.setOnAction(event -> {
@@ -220,6 +237,7 @@ public class HouseExpensePageView {
                         originalRows.remove(expense.getId());
                     }
                     getTableView().getItems().remove(expense);
+                    updateHouseExpenseTableHeight(getTableView());
                     refreshRowsChanged(rowsChanged);
                 });
             }
@@ -230,24 +248,69 @@ public class HouseExpensePageView {
                 setGraphic(empty ? null : buttons);
             }
         });
-        actions.setPrefWidth(230);
-        table.getColumns().setAll(date, mortgageColumn, description, provider, amount, invoice, paymentSource, document, reviewed, notes, actions);
+        actions.setPrefWidth(150);
+        table.getColumns().setAll(date, mortgageColumn, description, provider, amount, invoice, paymentSource, document, reviewed, actions, notes);
         return table;
     }
 
+    private void updateHouseExpenseTableHeight(TableView<HouseExpense> table) {
+        double height = HOUSE_EXPENSE_TABLE_HEADER_HEIGHT
+            + Math.max(1, table.getItems().size()) * HOUSE_EXPENSE_ROW_HEIGHT
+            + HOUSE_EXPENSE_TABLE_EXTRA_HEIGHT;
+        table.setMinHeight(height);
+        table.setPrefHeight(height);
+        table.setMaxHeight(height);
+    }
+
+    private void configureDateHeader(TableColumn<HouseExpense, String> date) {
+        Label title = new Label("Date");
+        Label inputFormat = new Label("(dd/MM/yyyy)");
+        inputFormat.setStyle("-fx-font-size: 10px; -fx-text-fill: #66736e;");
+        HBox header = new HBox(6, title, inputFormat);
+        header.setAlignment(Pos.CENTER_LEFT);
+        Tooltip.install(header, new Tooltip("Enter dates as dd/MM/yyyy"));
+        date.setText(null);
+        date.setGraphic(header);
+    }
+
+    private Button iconButton(String icon, String tooltip) {
+        Button button = new Button(icon);
+        button.setTooltip(new Tooltip(tooltip));
+        button.setMinWidth(34);
+        button.setPrefWidth(34);
+        button.setMinHeight(28);
+        button.setPrefHeight(28);
+        return button;
+    }
+
+    private Button textButton(String text, String tooltip) {
+        Button button = new Button(text);
+        button.setTooltip(new Tooltip(tooltip));
+        return button;
+    }
+
     private TableColumn<HouseExpense, Void> houseExpenseDocumentColumn(Runnable rowsChanged, Map<Long, String> originalRows) {
-        TableColumn<HouseExpense, Void> document = new TableColumn<>("Documento");
+        TableColumn<HouseExpense, Void> document = new TableColumn<>("Document");
         document.setCellFactory(column -> new TableCell<>() {
-            private final Button attach = new Button("Adjuntar");
-            private final Button view = new Button("Ver");
-            private final Button change = new Button("Cambiar");
-            private final Button remove = new Button("Quitar");
+            private final Button attach = textButton("Attach", "Attach document");
+            private final Button view = textButton("View", "View document");
+            private final Button change = textButton("Change", "Change document");
+            private final Button remove = textButton("Remove", "Remove document");
             private final HBox buttons = new HBox(6);
             {
-                attach.setOnAction(event -> attachHouseExpenseDocument(currentExpense(), originalRows, rowsChanged));
+                attach.setOnAction(event -> {
+                    attachHouseExpenseDocument(currentExpense(), originalRows, rowsChanged);
+                    getTableView().refresh();
+                });
                 view.setOnAction(event -> openHouseExpenseDocument(currentExpense()));
-                change.setOnAction(event -> attachHouseExpenseDocument(currentExpense(), originalRows, rowsChanged));
-                remove.setOnAction(event -> removeHouseExpenseDocument(currentExpense(), originalRows, rowsChanged));
+                change.setOnAction(event -> {
+                    attachHouseExpenseDocument(currentExpense(), originalRows, rowsChanged);
+                    getTableView().refresh();
+                });
+                remove.setOnAction(event -> {
+                    removeHouseExpenseDocument(currentExpense(), originalRows, rowsChanged);
+                    getTableView().refresh();
+                });
             }
 
             @Override
@@ -269,12 +332,12 @@ public class HouseExpensePageView {
                 return getTableView().getItems().get(getIndex());
             }
         });
-        document.setPrefWidth(220);
+        document.setPrefWidth(235);
         return document;
     }
 
     private TableColumn<HouseExpense, Boolean> houseExpenseReviewedColumn(Runnable rowsChanged) {
-        TableColumn<HouseExpense, Boolean> reviewed = new TableColumn<>("Revisado");
+        TableColumn<HouseExpense, Boolean> reviewed = new TableColumn<>("Reviewed");
         reviewed.setCellValueFactory(data -> new SimpleBooleanProperty(!data.getValue().isPendingReview()).asObject());
         reviewed.setCellFactory(column -> new TableCell<>() {
             private final CheckBox checkBox = new CheckBox();
@@ -541,6 +604,10 @@ public class HouseExpensePageView {
                     textField.setOnKeyPressed(event -> {
                         if (event.getCode() == KeyCode.ESCAPE) {
                             cancelEdit();
+                        } else if (event.getCode() == KeyCode.TAB) {
+                            commitCurrentEdit();
+                            moveToAdjacentEditableCell(this, event.isShiftDown());
+                            event.consume();
                         }
                     });
                     textField.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
@@ -590,6 +657,38 @@ public class HouseExpensePageView {
                 }
             }
         };
+    }
+
+    private void moveToAdjacentEditableCell(TableCell<?, ?> cell, boolean reverse) {
+        TableView<?> table = cell.getTableView();
+        if (table == null) {
+            return;
+        }
+        int rowIndex = cell.getIndex();
+        if (rowIndex < 0 || rowIndex >= table.getItems().size()) {
+            return;
+        }
+        int columnIndex = table.getVisibleLeafColumns().indexOf(cell.getTableColumn());
+        int step = reverse ? -1 : 1;
+        int nextColumnIndex = columnIndex + step;
+        while (nextColumnIndex >= 0 && nextColumnIndex < table.getVisibleLeafColumns().size()) {
+            TableColumn<?, ?> nextColumn = table.getVisibleLeafColumns().get(nextColumnIndex);
+            if (nextColumn.isEditable()) {
+                editCell(table, rowIndex, nextColumn);
+                return;
+            }
+            nextColumnIndex += step;
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void editCell(TableView<?> table, int rowIndex, TableColumn<?, ?> column) {
+        Platform.runLater(() -> {
+            table.getSelectionModel().clearAndSelect(rowIndex, (TableColumn) column);
+            table.scrollTo(rowIndex);
+            table.requestFocus();
+            ((TableView) table).edit(rowIndex, (TableColumn) column);
+        });
     }
 
     public boolean confirmNavigation(TableView<HouseExpense> table, Map<Long, String> originalRows, Runnable refresh) {

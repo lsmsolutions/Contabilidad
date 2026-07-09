@@ -25,14 +25,25 @@ public class BankImportReviewPageView {
         TableView<BankTransaction> table = new BankTransactionTableView(bank).build();
         table.setItems(FXCollections.observableArrayList(newTransactions));
 
-        VBox warnings = warningBox(importReview.existingCount() == 0
-            ? List.of(newTransactions.size() + " transacciones nuevas detectadas. Marca como revisadas las verificadas contra el PDF.")
-            : List.of(newTransactions.size() + " transacciones nuevas detectadas.", importReview.existingCount() + " transacciones ya existian y se ocultaron."));
+        VBox warnings = warningBox(reviewWarnings(newTransactions.size(), importReview.existingCount()));
 
         Button saveProgress = new Button("Guardar progreso");
         saveProgress.getStyleClass().add("primary");
 
         return new Page(table, new VBox(10, warnings, saveProgress), saveProgress);
+    }
+
+    private List<String> reviewWarnings(int newCount, int existingCount) {
+        if (newCount == 0 && existingCount > 0) {
+            return List.of(
+                "Este periodo ya esta registrado en la app.",
+                existingCount + " transacciones ya existian y se ocultaron porque coinciden con movimientos guardados."
+            );
+        }
+        if (existingCount == 0) {
+            return List.of(newCount + " transacciones nuevas detectadas. Marca como revisadas las verificadas contra el PDF.");
+        }
+        return List.of(newCount + " transacciones nuevas detectadas.", existingCount + " transacciones ya existian y se ocultaron.");
     }
 
     private VBox warningBox(List<String> warnings) {

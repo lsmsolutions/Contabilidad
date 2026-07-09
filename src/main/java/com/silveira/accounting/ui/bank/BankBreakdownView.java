@@ -21,6 +21,7 @@ public class BankBreakdownView {
     private static final Pattern ACCOUNT_TRANSFER = Pattern.compile(
         "(?i)\\b(?:online\\s+)?transfer\\s+(to|from)\\s+(?:sav(?:ings)?|chk|checking|account)?\\s*\\.{0,3}\\s*(\\d{4})\\b"
     );
+    private static final Pattern ORIGIN_COMPANY_NAME = Pattern.compile("(?i)orig\\s+co\\s+name\\s*:\\s*([^\\s].*?)(?:\\s+orig\\s+id\\s*:|\\s+desc\\s+date\\s*:|\\s+co\\s+entry\\b|$)");
     private static final Pattern ACCOUNT_ENDING = Pattern.compile("(?i)(?:chk|checking|account)[^0-9]{0,12}(?:\\.{0,3})?(\\d{4})");
     private static final Pattern CARD_ENDING = Pattern.compile("(?i)(discover|capital one|citi|best buy|mastercard).*?(\\d{4})");
     private final VBox content = new VBox(18);
@@ -129,6 +130,10 @@ public class BankBreakdownView {
         Matcher transfer = ACCOUNT_TRANSFER.matcher(description);
         if (transfer.find()) {
             return "Transfer " + titleCase(transfer.group(1)) + " " + transfer.group(2);
+        }
+        Matcher originCompany = ORIGIN_COMPANY_NAME.matcher(description);
+        if (originCompany.find()) {
+            return titleCase(originCompany.group(1).trim());
         }
         String merchant = merchantName(description);
         if (!merchant.isBlank()) {

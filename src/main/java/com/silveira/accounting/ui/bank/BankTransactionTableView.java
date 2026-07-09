@@ -15,6 +15,7 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
@@ -145,13 +146,13 @@ public class BankTransactionTableView {
             updateBankRowIfSaved(event.getRowValue());
             refreshAfterBankRowChange(rowsChanged);
         });
-        notes.setPrefWidth(220);
+        notes.setPrefWidth(110);
 
-        TableColumn<BankTransaction, Void> actions = new TableColumn<>("Acciones");
+        TableColumn<BankTransaction, Void> actions = new TableColumn<>("Actions");
         actions.setCellFactory(column -> new TableCell<>() {
-            private final Button save = new Button("Guardar");
-            private final Button edit = new Button("Editar");
-            private final Button delete = new Button("Eliminar");
+            private final Button save = iconButton("\uD83D\uDCBE", "Save");
+            private final Button edit = iconButton("\u270E", "Edit");
+            private final Button delete = iconButton("\uD83D\uDDD1", "Delete");
             private final HBox buttons = new HBox(6, save, edit, delete);
             {
                 save.setOnAction(event -> {
@@ -184,10 +185,21 @@ public class BankTransactionTableView {
                 setGraphic(empty ? null : buttons);
             }
         });
-        actions.setPrefWidth(230);
+        actions.setPrefWidth(150);
 
         table.getColumns().setAll(date, description, amount, reviewed, type, provider, reference, review, notes, actions);
+        table.setMinWidth(1280);
         return table;
+    }
+
+    private Button iconButton(String icon, String tooltip) {
+        Button button = new Button(icon);
+        button.setTooltip(new Tooltip(tooltip));
+        button.setMinWidth(34);
+        button.setPrefWidth(34);
+        button.setMinHeight(28);
+        button.setPrefHeight(28);
+        return button;
     }
 
     private void refreshAfterBankRowChange(Runnable rowsChanged) {

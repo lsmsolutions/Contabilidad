@@ -1,6 +1,7 @@
 package com.silveira.accounting.controllers.vehiclelease;
 
 import com.silveira.accounting.application.vehiclelease.VehicleLeaseApplicationService;
+import com.silveira.accounting.application.vehiclelease.dto.VehicleLeaseLedgerSnapshot;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseAccount;
 import com.silveira.accounting.models.vehiclelease.VehicleLeaseStatement;
 import java.nio.file.Path;
@@ -32,6 +33,10 @@ public class VehicleLeaseController {
 
     public List<VehicleLeaseAccount> accounts() {
         return application.accounts();
+    }
+
+    public VehicleLeaseLedgerSnapshot ledger(String accountAlias, int year) {
+        return application.ledger().snapshot(accountAlias, year);
     }
 
     public Optional<VehicleLeaseAccount> account(String alias) {

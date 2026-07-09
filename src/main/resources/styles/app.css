@@ -71,6 +71,22 @@
     -fx-text-fill: #ffffff;
 }
 
+.ledger-subnav-button {
+    -fx-text-fill: #d9f3ff;
+    -fx-font-size: 13.5px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 12 8 16;
+    -fx-border-color: transparent transparent transparent #4db9df;
+    -fx-border-width: 0 0 0 3;
+    -fx-background-color: rgba(15, 52, 84, 0.28);
+}
+
+.ledger-subnav-button:hover {
+    -fx-background-color: #123f62;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: transparent transparent transparent #8ee0ff;
+}
+
 .primary {
     -fx-background-color: #1d5b46;
     -fx-text-fill: white;
@@ -466,11 +482,6 @@
     -fx-font-size: 19px;
     -fx-font-weight: 800;
     -fx-text-fill: #18362e;
-}
-
-.house-expenses-table {
-    -fx-min-height: 560;
-    -fx-pref-height: 720;
 }
 
 .bank-section {
@@ -1031,6 +1042,633 @@
     -fx-alignment: center;
 }
 
+.bank-ledger-page {
+    -fx-background-color: #f8fbfa;
+}
+
+.bank-ledger-controls {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.bank-ledger-year {
+    -fx-min-width: 120;
+    -fx-pref-height: 34;
+}
+
+.bank-ledger-months {
+    -fx-spacing: 6;
+}
+
+.bank-ledger-month-button {
+    -fx-min-width: 78;
+    -fx-pref-width: 78;
+    -fx-min-height: 32;
+    -fx-pref-height: 32;
+    -fx-padding: 6 10;
+}
+
+.bank-ledger-month-selected {
+    -fx-background-color: #155f86;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+}
+
+.bank-ledger-section {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.bank-ledger-section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #155f86;
+}
+
+.bank-ledger-table {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cddbd3;
+    -fx-border-width: 1;
+}
+
+.bank-ledger-table-row {
+    -fx-alignment: top-left;
+    -fx-spacing: 18;
+}
+
+.bank-ledger-table-block {
+    -fx-alignment: top-center;
+}
+
+.bank-ledger-table-title {
+    -fx-text-fill: #155f86;
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-max-width: Infinity;
+}
+
+.bank-ledger-table-monthly {
+    -fx-min-width: 590;
+    -fx-pref-width: 640;
+}
+
+.bank-ledger-table-accumulated {
+    -fx-min-width: 430;
+    -fx-pref-width: 470;
+}
+
+.bank-ledger-header {
+    -fx-background-color: #eaf1f4;
+    -fx-text-fill: #102f28;
+    -fx-font-weight: 800;
+    -fx-padding: 8 8;
+    -fx-border-color: transparent #b6c6bf #cddbd3 transparent;
+    -fx-border-width: 0 1.4 1 0;
+}
+
+.bank-ledger-number-header {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.bank-ledger-cell {
+    -fx-text-fill: #102f28;
+    -fx-padding: 8 8;
+    -fx-border-color: transparent #c9d8d2 #e1e8e4 transparent;
+    -fx-border-width: 0 1.4 1 0;
+}
+
+.bank-ledger-total-cell {
+    -fx-background-color: #dbeeff;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-padding: 9 8;
+    -fx-border-color: #9fc1e8 #7fb0df #9fc1e8 transparent;
+    -fx-border-width: 1.4 1.4 1.4 0;
+}
+
+.bank-ledger-money {
+    -fx-alignment: center-right;
+}
+
+.bank-ledger-deposits {
+    -fx-background-color: #eef8f1;
+    -fx-text-fill: #1f6b3a;
+    -fx-border-color: transparent #a9cfb4 #dce9df transparent;
+}
+
+.bank-ledger-withdrawals {
+    -fx-background-color: #fff0f0;
+    -fx-text-fill: #9b2f2f;
+    -fx-border-color: transparent #e1aaaa #ead5d5 transparent;
+}
+
+.bank-ledger-balance {
+    -fx-background-color: #eef5ff;
+    -fx-text-fill: #0f4f8f;
+    -fx-border-color: transparent #aac4e3 #d5e0ee transparent;
+}
+
+.bank-ledger-deposits-total {
+    -fx-background-color: #d9f0df;
+    -fx-text-fill: #155c2e;
+    -fx-font-weight: 900;
+    -fx-border-color: #88bd96 #88bd96 #88bd96 transparent;
+}
+
+.bank-ledger-withdrawals-total {
+    -fx-background-color: #ffdede;
+    -fx-text-fill: #842525;
+    -fx-font-weight: 900;
+    -fx-border-color: #d98f8f #d98f8f #d98f8f transparent;
+}
+
+.bank-ledger-balance-total {
+    -fx-background-color: #cfe4fb;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-border-color: #7fb0df #7fb0df #7fb0df transparent;
+}
+
+.card-ledger-page {
+    -fx-background-color: #f8fbfa;
+}
+
+.card-ledger-controls {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.card-ledger-year {
+    -fx-min-width: 120;
+    -fx-pref-height: 34;
+}
+
+.card-ledger-months {
+    -fx-spacing: 6;
+}
+
+.card-ledger-month-button {
+    -fx-min-width: 78;
+    -fx-pref-width: 78;
+    -fx-min-height: 32;
+    -fx-pref-height: 32;
+    -fx-padding: 6 10;
+}
+
+.card-ledger-month-selected {
+    -fx-background-color: #155f86;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+}
+
+.card-ledger-section {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.card-ledger-section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #155f86;
+}
+
+.card-ledger-table-row {
+    -fx-alignment: top-left;
+    -fx-spacing: 18;
+}
+
+.card-ledger-table-block {
+    -fx-alignment: top-center;
+}
+
+.card-ledger-table-title {
+    -fx-text-fill: #155f86;
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-max-width: Infinity;
+}
+
+.card-ledger-table {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cddbd3;
+    -fx-border-width: 1;
+}
+
+.card-ledger-table-monthly {
+    -fx-min-width: 760;
+    -fx-pref-width: 820;
+}
+
+.card-ledger-table-accumulated {
+    -fx-min-width: 170;
+    -fx-pref-width: 190;
+}
+
+.card-ledger-header {
+    -fx-background-color: #eaf1f4;
+    -fx-text-fill: #102f28;
+    -fx-font-weight: 800;
+    -fx-padding: 8 8;
+    -fx-border-color: transparent #b6c6bf #cddbd3 transparent;
+    -fx-border-width: 0 1.4 1 0;
+}
+
+.card-ledger-number-header {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.card-ledger-cell {
+    -fx-text-fill: #102f28;
+    -fx-padding: 8 8;
+    -fx-border-color: transparent #c9d8d2 #e1e8e4 transparent;
+    -fx-border-width: 0 1.4 1 0;
+}
+
+.card-ledger-total-cell {
+    -fx-background-color: #dbeeff;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-padding: 9 8;
+    -fx-border-color: #9fc1e8 #7fb0df #9fc1e8 transparent;
+    -fx-border-width: 1.4 1.4 1.4 0;
+}
+
+.card-ledger-money {
+    -fx-alignment: center-right;
+}
+
+.card-ledger-limit {
+    -fx-background-color: #eef5ff;
+    -fx-text-fill: #0f4f8f;
+    -fx-border-color: transparent #aac4e3 #d5e0ee transparent;
+}
+
+.card-ledger-used {
+    -fx-background-color: #fff0f0;
+    -fx-text-fill: #9b2f2f;
+    -fx-border-color: transparent #e1aaaa #ead5d5 transparent;
+}
+
+.card-ledger-available {
+    -fx-background-color: #eef8f1;
+    -fx-text-fill: #1f6b3a;
+    -fx-border-color: transparent #a9cfb4 #dce9df transparent;
+}
+
+.card-ledger-interest {
+    -fx-background-color: #fff7e8;
+    -fx-text-fill: #9a5a00;
+    -fx-border-color: transparent #d9bd7a #eadfc3 transparent;
+}
+
+.card-ledger-limit-total {
+    -fx-background-color: #cfe4fb;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-border-color: #7fb0df #7fb0df #7fb0df transparent;
+}
+
+.card-ledger-used-total {
+    -fx-background-color: #ffdede;
+    -fx-text-fill: #842525;
+    -fx-font-weight: 900;
+    -fx-border-color: #d98f8f #d98f8f #d98f8f transparent;
+}
+
+.card-ledger-available-total {
+    -fx-background-color: #d9f0df;
+    -fx-text-fill: #155c2e;
+    -fx-font-weight: 900;
+    -fx-border-color: #88bd96 #88bd96 #88bd96 transparent;
+}
+
+.card-ledger-interest-total {
+    -fx-background-color: #ffe6b8;
+    -fx-text-fill: #8a4f00;
+    -fx-font-weight: 900;
+    -fx-border-color: #d6a644 #d6a644 #d6a644 transparent;
+}
+
+.mortgage-ledger-page {
+    -fx-background-color: #f8fbfa;
+}
+
+.mortgage-ledger-controls {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.mortgage-ledger-combo {
+    -fx-min-width: 220;
+    -fx-pref-height: 34;
+}
+
+.mortgage-ledger-year {
+    -fx-min-width: 120;
+    -fx-pref-height: 34;
+}
+
+.mortgage-ledger-initial {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #89c9c6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+    -fx-max-width: 240;
+}
+
+.mortgage-ledger-initial-label {
+    -fx-text-fill: #52677a;
+    -fx-font-size: 14px;
+}
+
+.mortgage-ledger-initial-value {
+    -fx-text-fill: #0c6367;
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+}
+
+.mortgage-ledger-section {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.mortgage-ledger-table {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cddbd3;
+    -fx-border-width: 1;
+    -fx-min-width: 760;
+    -fx-pref-width: 820;
+}
+
+.mortgage-ledger-header {
+    -fx-background-color: #eaf1f4;
+    -fx-text-fill: #102f28;
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-padding: 10 8;
+    -fx-border-color: #9fb5ad #8ea9a0 #8ea9a0 #9fb5ad;
+    -fx-border-width: 1.6;
+}
+
+.mortgage-ledger-header.mortgage-ledger-debt-paid,
+.mortgage-ledger-header.mortgage-ledger-outstanding,
+.mortgage-ledger-header.mortgage-ledger-interest,
+.mortgage-ledger-header.mortgage-ledger-escrow {
+    -fx-border-color: #9fb5ad #8ea9a0 #8ea9a0 #9fb5ad;
+    -fx-border-width: 1.6;
+}
+
+.mortgage-ledger-number-header {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.mortgage-ledger-cell {
+    -fx-text-fill: #102f28;
+    -fx-padding: 8 8;
+    -fx-border-color: transparent #c9d8d2 #e1e8e4 transparent;
+    -fx-border-width: 0 1.4 1 0;
+}
+
+.mortgage-ledger-total-cell {
+    -fx-background-color: #dbeeff;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-padding: 9 8;
+    -fx-border-color: #9fc1e8 #7fb0df #9fc1e8 transparent;
+    -fx-border-width: 1.4 1.4 1.4 0;
+}
+
+.mortgage-ledger-money {
+    -fx-alignment: center-right;
+}
+
+.mortgage-ledger-debt-paid {
+    -fx-background-color: #eef8f1;
+    -fx-text-fill: #1f6b3a;
+    -fx-border-color: transparent #a9cfb4 #dce9df transparent;
+}
+
+.mortgage-ledger-outstanding {
+    -fx-background-color: #d9ecff;
+    -fx-text-fill: #064b93;
+    -fx-border-color: transparent #7aaedf #bed6ef transparent;
+}
+
+.mortgage-ledger-interest {
+    -fx-background-color: #fff0f0;
+    -fx-text-fill: #9b2f2f;
+    -fx-border-color: transparent #e1aaaa #ead5d5 transparent;
+}
+
+.mortgage-ledger-escrow {
+    -fx-background-color: #fff7e8;
+    -fx-text-fill: #9a5a00;
+    -fx-border-color: transparent #d9bd7a #eadfc3 transparent;
+}
+
+.mortgage-ledger-debt-paid-total {
+    -fx-background-color: #d9f0df;
+    -fx-text-fill: #155c2e;
+    -fx-font-weight: 900;
+    -fx-border-color: #88bd96 #88bd96 #88bd96 transparent;
+}
+
+.mortgage-ledger-outstanding-total {
+    -fx-background-color: #9fcafa;
+    -fx-text-fill: #003f80;
+    -fx-font-weight: 900;
+    -fx-border-color: #4d91d6 #4d91d6 #4d91d6 transparent;
+}
+
+.mortgage-ledger-interest-total {
+    -fx-background-color: #ffdede;
+    -fx-text-fill: #842525;
+    -fx-font-weight: 900;
+    -fx-border-color: #d98f8f #d98f8f #d98f8f transparent;
+}
+
+.mortgage-ledger-escrow-total {
+    -fx-background-color: #ffe6b8;
+    -fx-text-fill: #8a4f00;
+    -fx-font-weight: 900;
+    -fx-border-color: #d6a644 #d6a644 #d6a644 transparent;
+}
+
+.mortgage-ledger-total-paid-label {
+    -fx-background-color: #d6f1df;
+    -fx-text-fill: #064f24;
+    -fx-font-weight: 900;
+    -fx-padding: 9 8;
+    -fx-border-color: #4f9f66 #4f9f66 #4f9f66 transparent;
+    -fx-border-width: 1.4 1.4 1.4 0;
+}
+
+.mortgage-ledger-total-paid {
+    -fx-background-color: #8fd19f;
+    -fx-text-fill: #063f1f;
+    -fx-font-weight: 900;
+    -fx-padding: 9 8;
+    -fx-border-color: #4f9f66 #4f9f66 #4f9f66 transparent;
+    -fx-border-width: 1.4 1.4 1.4 0;
+}
+
+.vehicle-ledger-page {
+    -fx-background-color: #f8fbfa;
+}
+
+.vehicle-ledger-controls {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.vehicle-ledger-combo {
+    -fx-min-width: 260;
+    -fx-pref-height: 34;
+}
+
+.vehicle-ledger-year {
+    -fx-min-width: 120;
+    -fx-pref-height: 34;
+}
+
+.vehicle-ledger-section {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2dc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.vehicle-ledger-table {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cddbd3;
+    -fx-border-width: 1;
+    -fx-min-width: 880;
+    -fx-pref-width: 940;
+}
+
+.vehicle-ledger-header {
+    -fx-background-color: #eaf1f4;
+    -fx-text-fill: #102f28;
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-padding: 10 8;
+    -fx-border-color: #9fb5ad #8ea9a0 #8ea9a0 #9fb5ad;
+    -fx-border-width: 1.6;
+}
+
+.vehicle-ledger-header.vehicle-ledger-statement-date,
+.vehicle-ledger-header.vehicle-ledger-due-date,
+.vehicle-ledger-header.vehicle-ledger-total-due,
+.vehicle-ledger-header.vehicle-ledger-payments-made,
+.vehicle-ledger-header.vehicle-ledger-remaining {
+    -fx-border-color: #9fb5ad #8ea9a0 #8ea9a0 #9fb5ad;
+    -fx-border-width: 1.6;
+}
+
+.vehicle-ledger-number-header {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.vehicle-ledger-cell {
+    -fx-text-fill: #102f28;
+    -fx-padding: 8 8;
+    -fx-border-color: transparent #c9d8d2 #e1e8e4 transparent;
+    -fx-border-width: 0 1.4 1 0;
+}
+
+.vehicle-ledger-total-cell {
+    -fx-background-color: #dbeeff;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-padding: 9 8;
+    -fx-border-color: #9fc1e8 #7fb0df #9fc1e8 transparent;
+    -fx-border-width: 1.4 1.4 1.4 0;
+}
+
+.vehicle-ledger-money {
+    -fx-alignment: center-right;
+}
+
+.vehicle-ledger-statement-date {
+    -fx-background-color: #f7faf7;
+}
+
+.vehicle-ledger-due-date {
+    -fx-background-color: #fff7e8;
+    -fx-text-fill: #7a4b00;
+    -fx-border-color: transparent #d9bd7a #eadfc3 transparent;
+}
+
+.vehicle-ledger-total-due {
+    -fx-background-color: #eef5ff;
+    -fx-text-fill: #0f4f8f;
+    -fx-border-color: transparent #aac4e3 #d5e0ee transparent;
+}
+
+.vehicle-ledger-payments-made {
+    -fx-background-color: #eef8f1;
+    -fx-text-fill: #1f6b3a;
+    -fx-border-color: transparent #a9cfb4 #dce9df transparent;
+}
+
+.vehicle-ledger-remaining {
+    -fx-background-color: #fff0f0;
+    -fx-text-fill: #9b2f2f;
+    -fx-border-color: transparent #e1aaaa #ead5d5 transparent;
+}
+
+.vehicle-ledger-total-due-total {
+    -fx-background-color: #cfe4fb;
+    -fx-text-fill: #0f4f8f;
+    -fx-font-weight: 900;
+    -fx-border-color: #7fb0df #7fb0df #7fb0df transparent;
+}
+
+.vehicle-ledger-payments-made-total {
+    -fx-background-color: #d9f0df;
+    -fx-text-fill: #155c2e;
+    -fx-font-weight: 900;
+    -fx-border-color: #88bd96 #88bd96 #88bd96 transparent;
+}
+
+.vehicle-ledger-remaining-total {
+    -fx-background-color: #ffdede;
+    -fx-text-fill: #842525;
+    -fx-font-weight: 900;
+    -fx-border-color: #d98f8f #d98f8f #d98f8f transparent;
+}
+
 .bank-breakdown {
     -fx-padding: 18;
     -fx-background-color: #ffffff;
@@ -1195,6 +1833,21 @@
 
 .card-period-title-row .monthly-card-title {
     -fx-text-fill: #ffffff;
+}
+
+.card-period-month-range {
+    -fx-background-color: #d7eef4;
+    -fx-text-fill: #0f5268;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-padding: 6 10;
+}
+
+.card-transaction-total-row {
+    -fx-background-color: #e8f3ee;
+    -fx-font-weight: 800;
 }
 
 .bank-period-edit {
@@ -1637,7 +2290,7 @@
 }
 
 .mortgage-top-summary {
-    -fx-alignment: top-right;
+    -fx-alignment: center-left;
 }
 
 .mortgage-due-box {
@@ -1812,28 +2465,28 @@
 }
 
 .mortgage-activity-date {
-    -fx-min-width: 88;
-    -fx-pref-width: 88;
-    -fx-max-width: 88;
+    -fx-min-width: 76;
+    -fx-pref-width: 82;
+    -fx-max-width: 82;
 }
 
 .mortgage-activity-description {
-    -fx-min-width: 190;
-    -fx-pref-width: 220;
-    -fx-max-width: 260;
+    -fx-min-width: 150;
+    -fx-pref-width: 190;
+    -fx-max-width: 220;
 }
 
 .mortgage-activity-money {
-    -fx-min-width: 95;
-    -fx-pref-width: 105;
-    -fx-max-width: 105;
+    -fx-min-width: 72;
+    -fx-pref-width: 82;
+    -fx-max-width: 86;
 }
 
 .mortgage-activity-review,
 .mortgage-activity-review-cell {
-    -fx-min-width: 70;
-    -fx-pref-width: 70;
-    -fx-max-width: 70;
+    -fx-min-width: 46;
+    -fx-pref-width: 52;
+    -fx-max-width: 56;
     -fx-alignment: center;
 }
 
@@ -2018,6 +2671,28 @@
     -fx-spacing: 14;
 }
 
+.discover-account-column {
+    -fx-min-width: 500;
+    -fx-pref-width: 520;
+    -fx-max-width: 520;
+}
+
+.discover-reviewed-row {
+    -fx-min-width: 500;
+    -fx-pref-width: 520;
+    -fx-max-width: 520;
+    -fx-min-height: 24;
+    -fx-pref-height: 24;
+}
+
+.discover-reviewed-row-spacer {
+    -fx-min-width: 500;
+    -fx-pref-width: 520;
+    -fx-max-width: 520;
+    -fx-min-height: 24;
+    -fx-pref-height: 24;
+}
+
 .discover-payment-column {
     -fx-spacing: 12;
 }
@@ -2042,9 +2717,9 @@
 }
 
 .discover-panel {
-    -fx-min-width: 610;
-    -fx-pref-width: 690;
-    -fx-max-width: 760;
+    -fx-min-width: 500;
+    -fx-pref-width: 520;
+    -fx-max-width: 520;
 }
 
 .discover-payment-panel {
@@ -2099,14 +2774,14 @@
 }
 
 .discover-line-label {
-    -fx-min-width: 250;
-    -fx-pref-width: 285;
+    -fx-min-width: 205;
+    -fx-pref-width: 225;
 }
 
 .discover-line-amount {
     -fx-alignment: center-right;
-    -fx-min-width: 130;
-    -fx-pref-width: 140;
+    -fx-min-width: 105;
+    -fx-pref-width: 115;
 }
 
 .discover-sign {
@@ -2151,8 +2826,8 @@
     -fx-font-size: 13px;
     -fx-font-weight: 800;
     -fx-text-fill: #102f28;
-    -fx-min-width: 210;
-    -fx-pref-width: 230;
+    -fx-min-width: 180;
+    -fx-pref-width: 200;
 }
 
 .discover-large-input {
@@ -2160,12 +2835,21 @@
     -fx-font-weight: 800;
     -fx-text-fill: #102f28;
     -fx-alignment: center-right;
-    -fx-min-width: 130;
-    -fx-pref-width: 140;
+    -fx-min-width: 105;
+    -fx-pref-width: 115;
 }
 
 .discover-large-amount {
     -fx-alignment: center-left;
+}
+
+.discover-inline-editor {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-alignment: center-right;
+    -fx-min-height: 26;
+    -fx-pref-height: 26;
+    -fx-padding: 2 6;
 }
 
 .discover-warning-box {
@@ -2281,19 +2965,19 @@
 }
 
 .discover-date-cell {
-    -fx-pref-width: 90;
+    -fx-pref-width: 78;
 }
 
 .discover-description-cell {
-    -fx-pref-width: 270;
+    -fx-pref-width: 220;
 }
 
 .discover-amount-cell {
-    -fx-pref-width: 110;
+    -fx-pref-width: 96;
 }
 
 .discover-check-cell {
-    -fx-pref-width: 68;
+    -fx-pref-width: 58;
     -fx-alignment: center;
     -fx-text-alignment: center;
 }
@@ -2344,4 +3028,14 @@
     -fx-background-color: #eeeeee;
     -fx-font-weight: 800;
     -fx-padding: 8 12 8 12;
+}
+
+.card-transaction-block-row {
+    -fx-background-color: #eef6f3;
+    -fx-font-weight: 800;
+}
+
+.table-row-cell.card-transaction-total-row {
+    -fx-background-color: #dbeeff;
+    -fx-font-weight: 800;
 }

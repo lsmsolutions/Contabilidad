@@ -2,6 +2,7 @@ package com.silveira.accounting.ui.card;
 
 import com.silveira.accounting.application.card.service.CardAccountApplicationService;
 import com.silveira.accounting.application.card.service.CardImportApplicationService;
+import com.silveira.accounting.application.card.service.CardLedgerApplicationService;
 import com.silveira.accounting.application.card.service.CardReviewApplicationService;
 import com.silveira.accounting.application.card.service.CardStatementApplicationService;
 import com.silveira.accounting.application.card.service.CardTransactionApplicationService;
@@ -58,6 +59,20 @@ public class CardWorkflow {
 
     public void showCardAccount(String alias) {
         cardShellWorkflow().showAccount(alias);
+    }
+
+    public void showCardLedger() {
+        new CardLedgerWorkflow(
+            new CardLedgerApplicationService(accounts, statements),
+            new CardLedgerWorkflow.Config(
+                config.setPage(),
+                config.backButton(),
+                this::showCards,
+                config.selectedYear(),
+                config.selectedMonth(),
+                config.selectedPeriodChanged()
+            )
+        ).showLedger();
     }
 
     public void showCardPeriodDetail(String alias, int year, int month) {
@@ -208,7 +223,7 @@ public class CardWorkflow {
         ReviewMarkLabelFactory reviewMarkLabel,
         Supplier<File> choosePdf,
         Function<String, File> chooseExcel,
-        BiConsumer<String, String> showProcessing,
+        CardImportWorkflow.ProcessingPresenter showProcessing,
         Consumer<Boolean> importingChanged,
         Function<Throwable, String> rootCauseMessage,
         Function<String, LocalDate> parseDate,

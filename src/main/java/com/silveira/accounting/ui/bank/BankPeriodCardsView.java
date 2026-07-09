@@ -60,8 +60,10 @@ public class BankPeriodCardsView {
                     });
             addMonthlyCardLine(card, "Dep\u00f3sitos: " + Money.format(totals.income()));
             addMonthlyCardLine(card, "Salidas: " + Money.format(Math.abs(totals.expenses())));
-            addMonthlyCardLine(card,
-                    "Ingreso NYL: " + Money.format(bank.transactions().nylIncome(period.transactions())));
+            double nylIncome = bank.transactions().nylIncome(period.transactions());
+            if (nylIncome != 0) {
+                addMonthlyCardLine(card, "Ingreso NYL: " + Money.format(nylIncome));
+            }
             addMonthlyCardLine(card, "Movimiento neto: " + Money.format(totals.net()));
             addMonthlyCardLine(card, "Pendientes: " + totals.pendingCount());
             addMonthlyCardLine(card, "Saldo inicial: " + Money.format(statementPeriod.openingBalance()));

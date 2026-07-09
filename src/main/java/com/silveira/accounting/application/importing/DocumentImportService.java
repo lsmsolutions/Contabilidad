@@ -16,10 +16,7 @@ public class DocumentImportService<T> {
     }
 
     public T importPdfWithAi(Path pdf) {
-        try {
-            return knownParser.importPdf(pdf);
-        } catch (RuntimeException parserFailure) {
-            return aiFallback.importPdf(pdf, parserFailure).orElseThrow(() -> parserFailure);
-        }
+        RuntimeException aiRequest = new IllegalArgumentException("Lectura solicitada con IA.");
+        return aiFallback.importPdf(pdf, aiRequest).orElseThrow(() -> aiRequest);
     }
 }

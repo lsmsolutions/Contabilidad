@@ -86,6 +86,10 @@ public class AppViewActions {
         requireDelegate().showProcessing().accept(title, message);
     }
 
+    public void showProcessing(String title, String message, Runnable cancelAction) {
+        requireDelegate().showProcessingWithCancel().show(title, message, cancelAction);
+    }
+
     public boolean confirm(String title, String message, String confirmText) {
         return requireDelegate().confirm().confirm(title, message, confirmText);
     }
@@ -212,6 +216,7 @@ public class AppViewActions {
         AlertAction alert,
         Function<Throwable, String> rootCauseMessage,
         BiConsumer<String, String> showProcessing,
+        ProcessingWithCancelAction showProcessingWithCancel,
         ConfirmAction confirm,
         BiFunction<String, String, Optional<String>> promptText,
         Runnable showMortgages,
@@ -242,6 +247,11 @@ public class AppViewActions {
     @FunctionalInterface
     public interface AlertAction {
         void show(Alert.AlertType type, String title, String message);
+    }
+
+    @FunctionalInterface
+    public interface ProcessingWithCancelAction {
+        void show(String title, String message, Runnable cancelAction);
     }
 
     @FunctionalInterface

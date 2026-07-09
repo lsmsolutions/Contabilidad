@@ -36,11 +36,11 @@ public class CardStatementCardCoordinator {
             fieldName -> actions.isFieldReviewed(statement, fieldName, defaultReviewed),
             (fieldName, reviewed) -> {
                 actions.updateFieldReview(statement, fieldName, reviewed, fieldKeys);
-                actions.refreshAll();
+                actions.refreshTableAndTotals();
             },
             reviewed -> {
                 actions.updateAllFieldReviews(statement, fieldKeys, reviewed);
-                actions.refreshAll();
+                actions.refreshTableAndTotals();
             },
             () -> actions.edit(statement)
         );
@@ -150,7 +150,10 @@ public class CardStatementCardCoordinator {
         String bank = text(statement.getBankName()).toLowerCase(Locale.ROOT);
         String alias = text(statement.getAccountAlias()).toLowerCase(Locale.ROOT);
         String card = text(statement.getCardName()).toLowerCase(Locale.ROOT);
-        return bank.contains("capital one") || alias.contains("capitalone") || card.contains("capital one");
+        return bank.contains("capital one")
+            || alias.contains("capitalone")
+            || card.contains("capital one")
+            || card.contains("quicksilver");
     }
 
     private boolean isBestBuyStatement(CreditCardStatement statement) {

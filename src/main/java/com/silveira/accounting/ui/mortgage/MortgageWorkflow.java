@@ -3,6 +3,7 @@ package com.silveira.accounting.ui.mortgage;
 import com.silveira.accounting.application.mortgage.MortgageApplicationService;
 import java.util.Optional;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 
 public class MortgageWorkflow {
     private final MortgageApplicationService mortgageApplication;
@@ -30,6 +31,17 @@ public class MortgageWorkflow {
         mortgageDetailWorkflow.showMortgageDetail(alias);
     }
 
+    public void showMortgageLedger() {
+        new MortgageLedgerWorkflow(
+            mortgageApplication,
+            new MortgageLedgerWorkflow.Config(
+                page -> config.setPage().set(page),
+                (text, action) -> config.backButton().apply(text, action),
+                this::showMortgages
+            )
+        ).showLedger();
+    }
+
     private MortgageHubWorkflow mortgageHubWorkflow() {
         return new MortgageHubWorkflow(
             mortgageApplication,
@@ -47,6 +59,8 @@ public class MortgageWorkflow {
     public record Config(
         PromptTextAction promptText,
         Runnable rebuildSidebar,
+        SetPageAction setPage,
+        BackButtonAction backButton,
         SetDarkHubPageAction setDarkHubPage,
         ConfirmAction confirm
     ) {
@@ -60,6 +74,16 @@ public class MortgageWorkflow {
     @FunctionalInterface
     public interface SetDarkHubPageAction {
         void set(String title, Node... nodes);
+    }
+
+    @FunctionalInterface
+    public interface SetPageAction {
+        void set(Parent page);
+    }
+
+    @FunctionalInterface
+    public interface BackButtonAction {
+        Node apply(String text, Runnable action);
     }
 
     @FunctionalInterface

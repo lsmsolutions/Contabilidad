@@ -4,7 +4,11 @@ import com.silveira.accounting.application.card.dto.CardPeriodSummary;
 import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.ui.common.PeriodActionCardView;
 import com.silveira.accounting.utils.Money;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -15,6 +19,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 public class CardMonthlyCardsView {
+    private static final DateTimeFormatter SHORT_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
     public VBox build(List<CardPeriodSummary> periods, Function<CardPeriodSummary, Node> reviewMark, Actions actions) {
         Label title = new Label("Resumen mensual Tarjeta");
         title.getStyleClass().add("section-title");
@@ -22,14 +28,15 @@ public class CardMonthlyCardsView {
         cards.getStyleClass().add("monthly-card-row");
 
         for (CardPeriodSummary period : periods) {
+            CreditCardStatement openingStatement = period.openingStatement();
+            CreditCardStatement closingStatement = period.closingStatement();
             VBox card = new PeriodActionCardView().build(
-                period.title(),
+                cardTitle(period, closingStatement),
                 reviewMark.apply(period),
                 () -> actions.open(period)
             );
             card.getChildren().get(0).getStyleClass().add("card-period-title-row");
-            CreditCardStatement openingStatement = period.openingStatement();
-            CreditCardStatement closingStatement = period.closingStatement();
+            addPeriodLabel(card, openingStatement, closingStatement);
             if (openingStatement != null) {
                 addLine(card, "Saldo inicial: " + Money.format(openingStatement.getPreviousBalance()), null);
             }
@@ -68,6 +75,57 @@ public class CardMonthlyCardsView {
         VBox box = new VBox(10, title, cards);
         box.getStyleClass().add("monthly-section");
         return box;
+    }
+
+    private String cardTitle(CardPeriodSummary period, CreditCardStatement closingStatement) {
+        LocalDate closingDate = closingStatement == null ? null : closingStatement.getStatementEndDate();
+        if (isBestBuy(closingStatement) && closingDate != null) {
+            return "Closing Date " + closingDate.format(SHORT_DATE);
+        }
+        return period.title();
+    }
+
+    private void addPeriodLabel(VBox card, CreditCardStatement openingStatement, CreditCardStatement closingStatement) {
+        if (isBestBuy(closingStatement)) {
+            addBestBuyClosingDate(card, closingStatement);
+            return;
+        }
+        addMonthRange(card, openingStatement, closingStatement);
+    }
+
+    private void addBestBuyClosingDate(VBox card, CreditCardStatement closingStatement) {
+        LocalDate closingDate = closingStatement == null ? null : closingStatement.getStatementEndDate();
+        if (closingDate == null) {
+            return;
+        }
+        addPeriodLabel(card, closingDate.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + closingDate.getDayOfMonth());
+    }
+
+    private void addMonthRange(VBox card, CreditCardStatement openingStatement, CreditCardStatement closingStatement) {
+        LocalDate start = openingStatement == null ? null : openingStatement.getStatementStartDate();
+        LocalDate end = closingStatement == null ? null : closingStatement.getStatementEndDate();
+        if (start == null || end == null) {
+            return;
+        }
+        addPeriodLabel(card, monthName(start) + " - " + monthName(end));
+    }
+
+    private void addPeriodLabel(VBox card, String text) {
+        if (card.getChildren().size() < 2 || !(card.getChildren().get(1) instanceof GridPane grid)) {
+            return;
+        }
+        Label label = new Label(text);
+        label.getStyleClass().add("card-period-month-range");
+        label.setMaxWidth(Double.MAX_VALUE);
+        grid.add(label, 0, 0, 2, 1);
+    }
+
+    private boolean isBestBuy(CreditCardStatement statement) {
+        return statement != null && "Best Buy".equalsIgnoreCase(statement.getBankName());
+    }
+
+    private String monthName(LocalDate date) {
+        return date.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
     }
 
     private void addLine(VBox card, String text, String valueStyleClass) {

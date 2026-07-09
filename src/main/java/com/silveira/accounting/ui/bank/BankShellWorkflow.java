@@ -83,6 +83,21 @@ public class BankShellWorkflow {
         ));
     }
 
+    public void showLedger() {
+        config.selectedAccountAliasChanged().accept(null);
+        new BankLedgerWorkflow(
+            bank,
+            new BankLedgerWorkflow.Config(
+                config.setPage(),
+                config.backButton(),
+                this::showHub,
+                config.selectedYear(),
+                config.selectedMonth(),
+                config.selectedPeriodChanged()
+            )
+        ).showLedger();
+    }
+
     private void showPeriod(String accountAlias, BankPeriodSummary selected) {
         BankPeriodSummary period = details.periodSummaries(accountAlias).stream()
             .filter(candidate -> candidate.samePeriodAs(selected.statementPeriod()))
