@@ -575,7 +575,7 @@ public class CreditCardStatementParser {
         if (value.contains("fee")) return "fee";
         if (value.contains("cash advance")) return "cash advance";
         if (amount < 0) return "credito";
-        return "compra";
+        return "purchase";
     }
 
     private double amountAfter(String text, String label) {

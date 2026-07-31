@@ -13,12 +13,14 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 public class BankPeriodDetailScreenView {
@@ -112,9 +114,17 @@ public class BankPeriodDetailScreenView {
 
         Label heading = new Label(config.title() + " - " + BankPeriodTextFormatter.title(statement));
         heading.getStyleClass().add("heading");
-        VBox page = new VBox(18, heading, config.backButton(), totalCards, periodSummary(period), tabs);
+        VBox stickyHeader = new VBox(18, heading, config.backButton());
+        VBox scrollContent = new VBox(18, totalCards, periodSummary(period), tabs);
+        ScrollPane scroll = new ScrollPane(scrollContent);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(false);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+        VBox page = new VBox(18, stickyHeader, scroll);
         page.setPadding(new Insets(28));
-        page.getStyleClass().add("page");
+        page.getStyleClass().addAll("page", "self-scroll-page");
         return page;
     }
 

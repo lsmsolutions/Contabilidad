@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -21,6 +22,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
@@ -306,6 +308,10 @@ public class AppUiSupport {
                     textField.setOnKeyPressed(event -> {
                         if (event.getCode() == KeyCode.ESCAPE) {
                             cancelEdit();
+                        } else if (event.getCode() == KeyCode.TAB) {
+                            commitCurrentEdit();
+                            moveToAdjacentEditableCell(this, event.isShiftDown());
+                            event.consume();
                         }
                     });
                     textField.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
@@ -355,6 +361,38 @@ public class AppUiSupport {
                 }
             }
         };
+    }
+
+    private void moveToAdjacentEditableCell(TableCell<?, ?> cell, boolean reverse) {
+        TableView<?> table = cell.getTableView();
+        if (table == null) {
+            return;
+        }
+        int rowIndex = cell.getIndex();
+        if (rowIndex < 0 || rowIndex >= table.getItems().size()) {
+            return;
+        }
+        int columnIndex = table.getVisibleLeafColumns().indexOf(cell.getTableColumn());
+        int step = reverse ? -1 : 1;
+        int nextColumnIndex = columnIndex + step;
+        while (nextColumnIndex >= 0 && nextColumnIndex < table.getVisibleLeafColumns().size()) {
+            TableColumn<?, ?> nextColumn = table.getVisibleLeafColumns().get(nextColumnIndex);
+            if (nextColumn.isEditable()) {
+                editCell(table, rowIndex, nextColumn);
+                return;
+            }
+            nextColumnIndex += step;
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void editCell(TableView<?> table, int rowIndex, TableColumn<?, ?> column) {
+        Platform.runLater(() -> {
+            table.getSelectionModel().clearAndSelect(rowIndex, (TableColumn) column);
+            table.scrollTo(rowIndex);
+            table.requestFocus();
+            ((TableView) table).edit(rowIndex, (TableColumn) column);
+        });
     }
 
     public VBox page(String title, Node... nodes) {

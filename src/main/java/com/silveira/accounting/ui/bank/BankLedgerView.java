@@ -142,17 +142,19 @@ public class BankLedgerView {
 
     private void addRow(GridPane table, int rowIndex, BankLedgerRow row, boolean total) {
         String style = total ? "bank-ledger-total-cell" : "bank-ledger-cell";
-        table.add(cell(accountText(row), style), 0, rowIndex);
-        table.add(cell(Money.format(row.deposits()), style, "bank-ledger-money", columnStyle(1, total)), 1, rowIndex);
-        table.add(cell(Money.format(row.withdrawals()), style, "bank-ledger-money", columnStyle(2, total)), 2, rowIndex);
-        table.add(cell(Money.format(row.calculatedBalance()), style, "bank-ledger-money", columnStyle(3, total)), 3, rowIndex);
+        String highlightStyle = highlightedBusinessChase5705(row, total) ? "bank-ledger-highlight-cell" : "";
+        table.add(cell(accountText(row), style, highlightStyle), 0, rowIndex);
+        table.add(cell(Money.format(row.deposits()), style, "bank-ledger-money", columnStyle(1, total), highlightStyle), 1, rowIndex);
+        table.add(cell(Money.format(row.withdrawals()), style, "bank-ledger-money", columnStyle(2, total), highlightStyle), 2, rowIndex);
+        table.add(cell(Money.format(row.calculatedBalance()), style, "bank-ledger-money", columnStyle(3, total), highlightStyle), 3, rowIndex);
     }
 
     private void addAccumulatedRow(GridPane table, int rowIndex, BankLedgerRow row, boolean total) {
         String style = total ? "bank-ledger-total-cell" : "bank-ledger-cell";
-        table.add(cell(Money.format(row.deposits()), style, "bank-ledger-money", columnStyle(1, total)), 0, rowIndex);
-        table.add(cell(Money.format(row.withdrawals()), style, "bank-ledger-money", columnStyle(2, total)), 1, rowIndex);
-        table.add(cell(Money.format(row.calculatedBalance()), style, "bank-ledger-money", columnStyle(3, total)), 2, rowIndex);
+        String highlightStyle = highlightedBusinessChase5705(row, total) ? "bank-ledger-highlight-cell" : "";
+        table.add(cell(Money.format(row.deposits()), style, "bank-ledger-money", columnStyle(1, total), highlightStyle), 0, rowIndex);
+        table.add(cell(Money.format(row.withdrawals()), style, "bank-ledger-money", columnStyle(2, total), highlightStyle), 1, rowIndex);
+        table.add(cell(Money.format(row.calculatedBalance()), style, "bank-ledger-money", columnStyle(3, total), highlightStyle), 2, rowIndex);
     }
 
     private String accountText(BankLedgerRow row) {
@@ -173,10 +175,26 @@ public class BankLedgerView {
         };
     }
 
+    private boolean highlightedBusinessChase5705(BankLedgerRow row, boolean total) {
+        if (total) {
+            return false;
+        }
+        String account = text(row.account()).toLowerCase(Locale.ROOT);
+        String bank = text(row.bank()).toLowerCase(Locale.ROOT);
+        String ending = text(row.ending()).replaceAll("\\D", "");
+        return (account.contains("bussines account") || account.contains("business account"))
+            && bank.contains("chase")
+            && ending.endsWith("5705");
+    }
+
     private Label cell(String text, String... styleClasses) {
         Label label = new Label(text == null ? "" : text);
         label.getStyleClass().addAll(styleClasses);
         label.setMaxWidth(Double.MAX_VALUE);
         return label;
+    }
+
+    private String text(String value) {
+        return value == null ? "" : value;
     }
 }

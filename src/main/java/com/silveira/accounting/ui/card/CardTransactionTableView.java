@@ -4,6 +4,7 @@ import com.silveira.accounting.models.CreditCardTransaction;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -13,6 +14,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TableCell;
@@ -36,6 +38,7 @@ public class CardTransactionTableView {
     ) {
         TableView<CreditCardTransaction> table = new TableView<>();
         table.setEditable(true);
+        table.getSelectionModel().setCellSelectionEnabled(true);
         table.setRowFactory(view -> {
             javafx.scene.control.TableRow<CreditCardTransaction> row = new javafx.scene.control.TableRow<>();
             row.itemProperty().addListener((observable, oldItem, newItem) -> {
@@ -82,6 +85,7 @@ public class CardTransactionTableView {
         });
         amount.setPrefWidth(110);
         TableColumn<CreditCardTransaction, Boolean> reviewed = new TableColumn<>("Revisado");
+        reviewed.setEditable(false);
         reviewed.setCellValueFactory(data -> new SimpleBooleanProperty(!data.getValue().isPendingReview()).asObject());
         reviewed.setCellFactory(column -> new TableCell<>() {
             private final CheckBox checkBox = new CheckBox();
@@ -108,11 +112,13 @@ public class CardTransactionTableView {
             }
         });
         TableColumn<CreditCardTransaction, String> type = new TableColumn<>("Tipo");
-        type.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getType()));
+        type.setCellValueFactory(data -> new SimpleStringProperty(
+            isSyntheticRow(data.getValue()) ? "" : normalizeType(data.getValue().getType())
+        ));
         type.setCellFactory(stringCellFactory);
         type.setOnEditCommit(event -> {
             if (!isSyntheticRow(event.getRowValue())) {
-                event.getRowValue().setType(event.getNewValue());
+                event.getRowValue().setType(normalizeType(event.getNewValue()));
             }
         });
         TableColumn<CreditCardTransaction, String> category = new TableColumn<>("Categor\u00eda");
@@ -124,6 +130,7 @@ public class CardTransactionTableView {
             }
         });
         TableColumn<CreditCardTransaction, String> status = new TableColumn<>("Revisi\u00f3n");
+        status.setEditable(false);
         status.setCellValueFactory(data -> new SimpleStringProperty(isSyntheticRow(data.getValue()) ? "" : data.getValue().isPendingReview() ? "Pdte revision" : "OK"));
         TableColumn<CreditCardTransaction, String> notes = new TableColumn<>("Notas");
         notes.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReviewNotes()));
@@ -135,6 +142,7 @@ public class CardTransactionTableView {
         });
         notes.setPrefWidth(170);
         TableColumn<CreditCardTransaction, Void> delete = new TableColumn<>("Eliminar");
+        delete.setEditable(false);
         delete.setCellFactory(column -> new TableCell<>() {
             private final Button button = new Button("Eliminar");
             {
@@ -162,7 +170,7 @@ public class CardTransactionTableView {
     }
 
     public static ObservableList<CreditCardTransaction> withTotalRow(List<CreditCardTransaction> movements) {
-        return FXCollections.observableArrayList(rowsWithTotalRow(movements));
+        return FXCollections.observableArrayList(rowsWithGroupedTotals(movements));
     }
 
     public static ObservableList<CreditCardTransaction> withCapitalOneBlockTotals(List<CreditCardTransaction> movements) {
@@ -184,6 +192,7 @@ public class CardTransactionTableView {
         }
         table.getItems().add(totalIndex, movement);
         refreshTotalRow(table);
+        focusFirstEditableCell(table, movement);
     }
 
     public static boolean isTotalRow(CreditCardTransaction movement) {
@@ -211,6 +220,37 @@ public class CardTransactionTableView {
         return rows;
     }
 
+    private static List<CreditCardTransaction> rowsWithGroupedTotals(List<CreditCardTransaction> movements) {
+        List<CreditCardTransaction> paymentRows = movements.stream()
+            .filter(movement -> !isSyntheticRow(movement))
+            .filter(CardTransactionTableView::isPaymentCreditOrAdjustment)
+            .toList();
+        List<CreditCardTransaction> feeRows = movements.stream()
+            .filter(movement -> !isSyntheticRow(movement))
+            .filter(movement -> !isPaymentCreditOrAdjustment(movement))
+            .filter(CardTransactionTableView::isFeeOrInterest)
+            .toList();
+        List<CreditCardTransaction> purchaseRows = movements.stream()
+            .filter(movement -> !isSyntheticRow(movement))
+            .filter(movement -> !isPaymentCreditOrAdjustment(movement))
+            .filter(movement -> !isFeeOrInterest(movement))
+            .filter(movement -> !isCashAdvance(movement))
+            .toList();
+        List<CreditCardTransaction> cashAdvanceRows = movements.stream()
+            .filter(movement -> !isSyntheticRow(movement))
+            .filter(movement -> !isPaymentCreditOrAdjustment(movement))
+            .filter(movement -> !isFeeOrInterest(movement))
+            .filter(CardTransactionTableView::isCashAdvance)
+            .toList();
+
+        List<CreditCardTransaction> rows = new java.util.ArrayList<>();
+        addBlock(rows, "Payments, Credits and Adjustments", paymentRows);
+        addBlock(rows, "Standard Purchases", purchaseRows);
+        addBlock(rows, "Cash Advances", cashAdvanceRows);
+        addBlock(rows, "Fees and Interest", feeRows);
+        return rows.isEmpty() ? rowsWithTotalRow(movements) : rows;
+    }
+
     private static List<CreditCardTransaction> rowsWithCapitalOneBlockTotals(List<CreditCardTransaction> movements) {
         List<CreditCardTransaction> rewardRows = movements.stream()
             .filter(movement -> !isSyntheticRow(movement))
@@ -229,7 +269,7 @@ public class CardTransactionTableView {
         List<CreditCardTransaction> rows = new java.util.ArrayList<>();
         addBlock(rows, "Rewards", rewardRows);
         addBlock(rows, "Payments, Credits and Adjustments", paymentRows);
-        addBlock(rows, "Transactions", transactionRows);
+        addBlock(rows, "Standard Purchases", transactionRows);
         return rows;
     }
 
@@ -243,8 +283,8 @@ public class CardTransactionTableView {
     }
 
     private static boolean isCapitalOnePaymentOrCredit(CreditCardTransaction movement) {
-        String type = text(movement.getType()).toLowerCase(java.util.Locale.ROOT);
-        String description = text(movement.getDescription()).toLowerCase(java.util.Locale.ROOT);
+        String type = normalizeType(movement.getType()).toLowerCase(Locale.ROOT);
+        String description = text(movement.getDescription()).toLowerCase(Locale.ROOT);
         return type.equals("pago")
             || type.equals("credito")
             || description.contains("payment")
@@ -254,8 +294,46 @@ public class CardTransactionTableView {
     }
 
     private static boolean isCapitalOneReward(CreditCardTransaction movement) {
-        String description = text(movement.getDescription()).toLowerCase(java.util.Locale.ROOT);
+        String description = text(movement.getDescription()).toLowerCase(Locale.ROOT);
         return description.contains("cash back reward") || description.contains("cashback reward");
+    }
+
+    private static boolean isPaymentCreditOrAdjustment(CreditCardTransaction movement) {
+        String type = normalizeType(movement.getType()).toLowerCase(Locale.ROOT);
+        String description = text(movement.getDescription()).toLowerCase(Locale.ROOT);
+        return type.equals("pago")
+            || type.equals("credito")
+            || type.equals("payment")
+            || type.equals("credit")
+            || movement.getAmount() < 0
+            || description.contains("payment")
+            || description.contains("pymt")
+            || description.contains("credit")
+            || description.contains("cash back")
+            || description.contains("cashback")
+            || description.contains("reward")
+            || description.contains("thankyou points");
+    }
+
+    private static boolean isFeeOrInterest(CreditCardTransaction movement) {
+        String type = normalizeType(movement.getType()).toLowerCase(Locale.ROOT);
+        String description = text(movement.getDescription()).toLowerCase(Locale.ROOT);
+        return type.equals("fee")
+            || type.equals("interes")
+            || type.equals("interest")
+            || description.contains("fee")
+            || description.contains("interest");
+    }
+
+    private static boolean isCashAdvance(CreditCardTransaction movement) {
+        String type = normalizeType(movement.getType()).toLowerCase(Locale.ROOT);
+        String description = text(movement.getDescription()).toLowerCase(Locale.ROOT);
+        return type.equals("cash advance") || description.contains("cash advance");
+    }
+
+    private static String normalizeType(String value) {
+        String normalized = text(value).trim();
+        return normalized.equalsIgnoreCase("compra") ? "purchase" : normalized;
     }
 
     private static CreditCardTransaction blockRow(String title) {
@@ -280,6 +358,28 @@ public class CardTransactionTableView {
 
     private static boolean usesCapitalOneBlockTotals(TableView<CreditCardTransaction> table) {
         return Boolean.TRUE.equals(table.getProperties().get(CAPITAL_ONE_BLOCK_TOTALS));
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void focusFirstEditableCell(TableView<CreditCardTransaction> table, CreditCardTransaction movement) {
+        Platform.runLater(() -> {
+            int rowIndex = table.getItems().indexOf(movement);
+            if (rowIndex < 0) {
+                return;
+            }
+            TableColumn<CreditCardTransaction, ?> firstEditable = table.getVisibleLeafColumns().stream()
+                .filter(TableColumn::isEditable)
+                .findFirst()
+                .orElse(null);
+            if (firstEditable == null) {
+                table.getSelectionModel().select(movement);
+                return;
+            }
+            table.getSelectionModel().clearAndSelect(rowIndex, firstEditable);
+            table.scrollTo(rowIndex);
+            table.requestFocus();
+            ((TableView) table).edit(rowIndex, (TableColumn) firstEditable);
+        });
     }
 
     private TableColumn<CreditCardTransaction, String> dateColumn(

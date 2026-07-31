@@ -223,12 +223,21 @@ public class DiscoverStatementSummaryView {
         DoubleConsumer amountChanged
     ) {
         HBox row = new HBox(8);
-        row.getStyleClass().add(total ? "discover-total-row" : "discover-line-row");
+        row.getStyleClass().add("discover-line-row");
+        if (total) {
+            row.getStyleClass().add("discover-total-row");
+        }
         Label labelNode = new Label(label);
-        labelNode.getStyleClass().add(total ? "discover-total-label" : "discover-line-label");
+        labelNode.getStyleClass().add("discover-line-label");
+        if (total) {
+            labelNode.getStyleClass().add("discover-total-label");
+        }
         Label signNode = new Label(sign);
         signNode.getStyleClass().add("discover-sign");
         Node amountNode = editableMoneyValue(Money.format(amount), total ? "discover-total-input" : "discover-line-amount", amountChanged);
+        if (total) {
+            amountNode.getStyleClass().add("discover-line-amount");
+        }
         CheckBox check = new CheckBox();
         check.getStyleClass().add("discover-line-check");
         check.setSelected(fieldReviewed.test(fieldName));

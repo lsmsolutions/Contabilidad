@@ -48,6 +48,7 @@ public class HouseExpensePageView {
     private static final double HOUSE_EXPENSE_ROW_HEIGHT = 38;
     private static final double HOUSE_EXPENSE_TABLE_HEADER_HEIGHT = 44;
     private static final double HOUSE_EXPENSE_TABLE_EXTRA_HEIGHT = 20;
+    private static final double HOUSE_EXPENSE_TABLE_WIDTH = 1475;
 
     private final HouseExpenseApplicationService houseExpenses;
     private final Config config;
@@ -124,8 +125,9 @@ public class HouseExpensePageView {
         TableView<HouseExpense> table = new TableView<>();
         table.getStyleClass().add("house-expenses-table");
         table.setFixedCellSize(HOUSE_EXPENSE_ROW_HEIGHT);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.setMaxWidth(Double.MAX_VALUE);
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        table.setMinWidth(HOUSE_EXPENSE_TABLE_WIDTH);
+        table.setPrefWidth(HOUSE_EXPENSE_TABLE_WIDTH);
         table.setEditable(true);
         TableColumn<HouseExpense, String> date = new TableColumn<>("Date");
         configureDateHeader(date);
@@ -231,6 +233,9 @@ public class HouseExpensePageView {
                 });
                 delete.setOnAction(event -> {
                     HouseExpense expense = getTableView().getItems().get(getIndex());
+                    if (!confirmHouseExpenseDeletion(expense)) {
+                        return;
+                    }
                     if (expense.getId() > 0) {
                         deleteHouseExpenseDocumentFile(expense);
                         houseExpenses.delete(expense.getId());
@@ -251,6 +256,28 @@ public class HouseExpensePageView {
         actions.setPrefWidth(150);
         table.getColumns().setAll(date, mortgageColumn, description, provider, amount, invoice, paymentSource, document, reviewed, actions, notes);
         return table;
+    }
+
+    private boolean confirmHouseExpenseDeletion(HouseExpense expense) {
+        String description = expense.getDescription() == null || expense.getDescription().isBlank()
+            ? "este gasto"
+            : "\"" + expense.getDescription() + "\"";
+        Alert alert = new Alert(
+            Alert.AlertType.WARNING,
+            "Se eliminará " + description + " por " + Money.format(expense.getAmount())
+                + ".\n\nEsta acción no se puede deshacer.",
+            new ButtonType("Eliminar"),
+            ButtonType.CANCEL
+        );
+        ButtonType delete = alert.getButtonTypes().get(0);
+        alert.setTitle("Confirmar eliminación");
+        alert.setHeaderText("¿Quieres eliminar este gasto?");
+        if (config.owner().get() != null) {
+            alert.initOwner(config.owner().get());
+        }
+        alert.getDialogPane().setMinWidth(560);
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == delete;
     }
 
     private void updateHouseExpenseTableHeight(TableView<HouseExpense> table) {

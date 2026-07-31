@@ -1198,6 +1198,13 @@
     -fx-border-color: #7fb0df #7fb0df #7fb0df transparent;
 }
 
+.bank-ledger-highlight-cell {
+    -fx-background-color: #ff9f1c;
+    -fx-text-fill: #3b1f00;
+    -fx-font-weight: 900;
+    -fx-border-color: #b85f00 #b85f00 #b85f00 transparent;
+}
+
 .card-ledger-page {
     -fx-background-color: #f8fbfa;
 }
@@ -1678,6 +1685,15 @@
     -fx-padding: 0 0 12 0;
 }
 
+.bank-breakdown-columns {
+    -fx-alignment: top-left;
+}
+
+.bank-breakdown-column {
+    -fx-min-width: 300;
+    -fx-pref-width: 420;
+}
+
 .bank-breakdown-section-title {
     -fx-font-size: 18px;
     -fx-font-weight: 800;
@@ -1691,6 +1707,21 @@
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-padding: 12;
+}
+
+.bank-breakdown-transfer-8187 {
+    -fx-background-color: #ffe2b8;
+    -fx-border-color: #f2ad55;
+}
+
+.bank-breakdown-transfer-8187 .bank-breakdown-group-title {
+    -fx-text-fill: #8a4700;
+}
+
+.bank-breakdown-transfer-8187 .bank-breakdown-group-total,
+.bank-breakdown-transfer-8187 .bank-breakdown-group-total .label {
+    -fx-background-color: #ffd39a;
+    -fx-text-fill: #713900;
 }
 
 .bank-breakdown-group-title {

@@ -479,11 +479,16 @@ public class AppView {
         Parent displayedPage = workspaceBackContext && !page.getStyleClass().contains("workspace-page")
             ? pageWithWorkspaceBackButton(page)
             : page;
+        if (displayedPage.getStyleClass().contains("self-scroll-page")) {
+            content.getChildren().setAll(displayedPage);
+            return;
+        }
         ScrollPane scroll = new ScrollPane(displayedPage);
         if (displayedPage.getStyleClass().contains("dark-hub-page") || displayedPage.getStyleClass().contains("dashboard-page")) {
             scroll.getStyleClass().add("dark-page-scroll");
         }
-        scroll.setFitToWidth(true);
+        scroll.setFitToWidth(!displayedPage.getStyleClass().contains("horizontal-page"));
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setFitToHeight(false);
         content.getChildren().setAll(scroll);
     }

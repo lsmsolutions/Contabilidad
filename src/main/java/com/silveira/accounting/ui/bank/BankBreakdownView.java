@@ -14,6 +14,8 @@ import javafx.geometry.HPos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 public class BankBreakdownView {
@@ -44,12 +46,29 @@ public class BankBreakdownView {
             return;
         }
 
-        addSection("Deposits", rows.stream().filter(this::isDeposit).toList());
-        addSection("Withdrawals", rows.stream().filter(row -> !isDeposit(row) && !isCardPayment(row)).toList());
-        addSection("Card Payments", rows.stream().filter(this::isCardPayment).toList());
+        VBox withdrawalsColumn = breakdownColumn();
+        VBox depositsColumn = breakdownColumn();
+        VBox cardPaymentsColumn = breakdownColumn();
+        addSection(withdrawalsColumn, "Withdrawals", rows.stream().filter(row -> !isDeposit(row) && !isCardPayment(row)).toList());
+        addSection(depositsColumn, "Deposits", rows.stream().filter(this::isDeposit).toList());
+        addSection(cardPaymentsColumn, "Card Payments", rows.stream().filter(this::isCardPayment).toList());
+
+        HBox columns = new HBox(18, withdrawalsColumn, depositsColumn, cardPaymentsColumn);
+        columns.getStyleClass().add("bank-breakdown-columns");
+        HBox.setHgrow(withdrawalsColumn, Priority.ALWAYS);
+        HBox.setHgrow(depositsColumn, Priority.ALWAYS);
+        HBox.setHgrow(cardPaymentsColumn, Priority.ALWAYS);
+        content.getChildren().add(columns);
     }
 
-    private void addSection(String title, List<BankTransaction> transactions) {
+    private VBox breakdownColumn() {
+        VBox column = new VBox(18);
+        column.getStyleClass().add("bank-breakdown-column");
+        column.setMaxWidth(Double.MAX_VALUE);
+        return column;
+    }
+
+    private void addSection(VBox column, String title, List<BankTransaction> transactions) {
         if (transactions.isEmpty()) {
             return;
         }
@@ -67,12 +86,15 @@ public class BankBreakdownView {
 
         double sectionTotal = transactions.stream().mapToDouble(BankTransaction::getAmount).sum();
         section.getChildren().add(totalRow("Section total", sectionTotal, "bank-breakdown-section-total"));
-        content.getChildren().add(section);
+        column.getChildren().add(section);
     }
 
     private VBox group(String name, List<BankTransaction> transactions) {
         VBox group = new VBox(5);
         group.getStyleClass().add("bank-breakdown-group");
+        if ("Transfer To 8187".equalsIgnoreCase(name)) {
+            group.getStyleClass().add("bank-breakdown-transfer-8187");
+        }
         Label heading = new Label(name);
         heading.getStyleClass().add("bank-breakdown-group-title");
         GridPane rows = breakdownGrid();

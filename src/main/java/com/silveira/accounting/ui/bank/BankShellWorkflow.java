@@ -107,7 +107,7 @@ public class BankShellWorkflow {
             period,
             new BankPeriodDetailScreenView.Config(
                 accountPageTitle(accountAlias),
-                config.backButton().apply("Volver a la cuenta", () -> showAccount(accountAlias)),
+                config.backButton().apply("Volver", () -> showAccount(accountAlias)),
                 () -> showPeriod(accountAlias, period),
                 (title, message) -> config.alert().accept(Alert.AlertType.INFORMATION, title, message),
                 summary -> periodWorkflow().showPeriodDialog(summary, () -> showPeriod(accountAlias, summary)),

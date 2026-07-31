@@ -49,6 +49,7 @@ public class HouseExpenseWorkflow {
     private List<String> paymentSourceOptions() {
         List<String> options = new ArrayList<>();
         options.add("");
+        options.add("Cash");
         for (BankAccount account : config.bankAccounts().get()) {
             options.add("Cuenta: " + account.getAlias());
         }
@@ -65,7 +66,7 @@ public class HouseExpenseWorkflow {
         box.getChildren().add(heading);
         box.getChildren().addAll(nodes);
         box.setPadding(new javafx.geometry.Insets(28));
-        box.getStyleClass().add("page");
+        box.getStyleClass().addAll("page", "horizontal-page");
         return box;
     }
 
