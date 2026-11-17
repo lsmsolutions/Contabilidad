@@ -11,10 +11,11 @@ import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseFieldReview
 import com.silveira.accounting.repositories.vehiclelease.VehicleLeaseStatementRepository;
 
 public class VehicleLeaseModule {
+    private final VehicleLeaseApplicationService application;
     private final VehicleLeaseController controller;
 
     public VehicleLeaseModule(DatabaseManager databaseManager) {
-        controller = new VehicleLeaseController(new VehicleLeaseApplicationService(
+        application = new VehicleLeaseApplicationService(
             new VehicleLeaseAccountRepository(databaseManager),
             new VehicleLeaseStatementRepository(databaseManager),
             new VehicleLeaseFieldReviewRepository(databaseManager),
@@ -22,10 +23,15 @@ public class VehicleLeaseModule {
                 new VolvoVehicleLeaseParser(),
                 new OpenAiVehicleLeaseAiImportGateway()
             )
-        ));
+        );
+        controller = new VehicleLeaseController(application);
     }
 
     public VehicleLeaseController controller() {
         return controller;
+    }
+
+    public VehicleLeaseApplicationService application() {
+        return application;
     }
 }

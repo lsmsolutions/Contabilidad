@@ -333,6 +333,46 @@ public class DatabaseManager {
                 statement.execute("CREATE INDEX IF NOT EXISTS idx_house_expenses_loan_date_id ON house_expenses(loan_alias, expense_date DESC, id DESC)");
                 statement.execute("CREATE INDEX IF NOT EXISTS idx_house_expenses_date_id ON house_expenses(expense_date DESC, id DESC)");
                 statement.execute("""
+                    CREATE TABLE IF NOT EXISTS businesses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL UNIQUE,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS business_expenses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        business_id INTEGER NOT NULL,
+                        expense_date TEXT,
+                        description TEXT NOT NULL,
+                        provider TEXT,
+                        amount REAL NOT NULL DEFAULT 0,
+                        invoice TEXT,
+                        payment_source TEXT,
+                        reviewed INTEGER NOT NULL DEFAULT 0,
+                        notes TEXT,
+                        document_path TEXT,
+                        document_name TEXT,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                    )
+                    """);
+                statement.execute("CREATE INDEX IF NOT EXISTS idx_business_expenses_business_date ON business_expenses(business_id, expense_date DESC, id DESC)");
+                statement.execute("""
+                    CREATE TABLE IF NOT EXISTS app_settings (
+                        setting_key TEXT PRIMARY KEY,
+                        setting_value TEXT
+                    )
+                    """);
+                statement.execute("""
+                    INSERT OR IGNORE INTO businesses(name)
+                    SELECT 'Backed by Rey'
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM app_settings WHERE setting_key='businesses_seeded'
+                    )
+                    """);
+                statement.execute("INSERT OR IGNORE INTO app_settings(setting_key, setting_value) VALUES ('businesses_seeded', '1')");
+                statement.execute("""
                     CREATE TABLE IF NOT EXISTS vehicle_lease_accounts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         alias TEXT NOT NULL UNIQUE,

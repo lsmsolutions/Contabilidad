@@ -1,6 +1,7 @@
 package com.silveira.accounting.composition;
 
 import com.silveira.accounting.application.card.CardApplicationService;
+import com.silveira.accounting.application.business.BusinessApplicationService;
 import com.silveira.accounting.application.mortgage.MortgageApplicationService;
 import com.silveira.accounting.database.DatabaseManager;
 import com.silveira.accounting.repositories.NylMonthlyResultRepository;
@@ -11,6 +12,8 @@ import com.silveira.accounting.repositories.card.CreditCardStatementFieldReviewR
 import com.silveira.accounting.repositories.card.CreditCardStatementRepository;
 import com.silveira.accounting.repositories.card.CreditCardTransactionRepository;
 import com.silveira.accounting.repositories.card.FinancialAlertRepository;
+import com.silveira.accounting.repositories.business.SqliteBusinessExpenseRepository;
+import com.silveira.accounting.repositories.business.SqliteBusinessRepository;
 import com.silveira.accounting.repositories.mortgage.HouseExpenseRepository;
 import com.silveira.accounting.repositories.mortgage.MortgageAlertRepository;
 import com.silveira.accounting.repositories.mortgage.MortgageStatementFieldReviewRepository;
@@ -26,6 +29,7 @@ import com.silveira.accounting.ui.AppViewActions;
 import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankWorkflow;
 import com.silveira.accounting.ui.card.CardWorkflow;
+import com.silveira.accounting.ui.business.BusinessWorkflow;
 import com.silveira.accounting.ui.dashboard.DashboardModule;
 import com.silveira.accounting.ui.dashboard.DashboardWorkflow;
 import com.silveira.accounting.ui.internalmovement.InternalMovementModule;
@@ -81,6 +85,23 @@ public class ApplicationComposition {
                 actions::selectedYearValue,
                 actions::selectedMonthValue,
                 (source, accountAlias, year, month) -> (javafx.scene.control.Label) actions.reviewMarkLabel(source, accountAlias, year, month)
+            )
+        );
+
+        BusinessApplicationService businessApplication = new BusinessApplicationService(
+            new SqliteBusinessRepository(databaseManager),
+            new SqliteBusinessExpenseRepository(databaseManager)
+        );
+        BusinessWorkflow businessWorkflow = new BusinessWorkflow(
+            businessApplication,
+            new BusinessWorkflow.Config(
+                actions::owner,
+                () -> bankModule.accounts().list(),
+                () -> cardsForPaymentOptions(databaseManager),
+                actions::setPage,
+                actions::rebuildSidebar,
+                actions::alert,
+                actions::rootCauseMessage
             )
         );
 
@@ -278,7 +299,9 @@ public class ApplicationComposition {
             cards.statements(),
             bankModule.application(),
             nylRepository,
-            mortgageApplication
+            mortgageApplication,
+            investmentModule.application(),
+            vehicleLeaseModule.application()
         );
         DashboardWorkflow dashboardWorkflow = new DashboardWorkflow(
             dashboardModule.controller(),
@@ -293,6 +316,7 @@ public class ApplicationComposition {
             actions,
             bankModule,
             bankWorkflow,
+            businessWorkflow,
             investmentWorkflow,
             vehicleLeaseWorkflow,
             cards.accounts(),
@@ -306,5 +330,9 @@ public class ApplicationComposition {
             reviewMarkRepository,
             dashboardWorkflow
         );
+    }
+
+    private java.util.List<com.silveira.accounting.models.CreditCardAccount> cardsForPaymentOptions(DatabaseManager databaseManager) {
+        return new CreditCardAccountRepository(databaseManager).findAll();
     }
 }

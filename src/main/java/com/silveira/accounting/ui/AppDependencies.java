@@ -5,6 +5,7 @@ import com.silveira.accounting.application.mortgage.MortgageApplicationService;
 import com.silveira.accounting.repositories.ReviewMarkRepository;
 import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankWorkflow;
+import com.silveira.accounting.ui.business.BusinessWorkflow;
 import com.silveira.accounting.ui.card.CardWorkflow;
 import com.silveira.accounting.ui.dashboard.DashboardWorkflow;
 import com.silveira.accounting.ui.internalmovement.InternalMovementWorkflow;
@@ -19,6 +20,7 @@ public record AppDependencies(
     AppViewActions actions,
     BankModule bankModule,
     BankWorkflow bankWorkflow,
+    BusinessWorkflow businessWorkflow,
     InvestmentWorkflow investmentWorkflow,
     VehicleLeaseWorkflow vehicleLeaseWorkflow,
     CardAccountApplicationService creditCardAccountRepository,

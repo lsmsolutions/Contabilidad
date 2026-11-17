@@ -1,12 +1,14 @@
 package com.silveira.accounting.application.bank.service;
 
 import com.silveira.accounting.application.bank.dto.BankImportReview;
+import com.silveira.accounting.application.bank.dto.BankImportAccountResolution;
 import com.silveira.accounting.application.bank.dto.BankImportSaveResult;
 import com.silveira.accounting.application.bank.usecase.CreateManualBankTransactionUseCase;
 import com.silveira.accounting.application.bank.usecase.DeleteBankPeriodUseCase;
 import com.silveira.accounting.application.bank.usecase.PrepareBankImportReviewUseCase;
 import com.silveira.accounting.application.bank.usecase.SaveBankImportRowsUseCase;
 import com.silveira.accounting.application.bank.usecase.SaveBankPendingReviewRowsUseCase;
+import com.silveira.accounting.application.bank.usecase.ResolveBankImportAccountUseCase;
 import com.silveira.accounting.models.bank.BankStatementPeriod;
 import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.repositories.bank.BankStatementPeriodRepository;
@@ -20,17 +22,28 @@ public class BankImportApplicationService {
     private final CreateManualBankTransactionUseCase createManualTransaction;
     private final SaveBankPendingReviewRowsUseCase savePendingReviewRows;
     private final DeleteBankPeriodUseCase deletePeriod;
+    private final ResolveBankImportAccountUseCase resolveAccount;
+    private final BankAccountApplicationService accounts;
 
     public BankImportApplicationService(BankTransactionApplicationService transactions, BankAccountApplicationService accounts, BankStatementPeriodRepository periods) {
+        this.accounts = accounts;
         prepareReview = new PrepareBankImportReviewUseCase(transactions, accounts);
         saveRows = new SaveBankImportRowsUseCase(transactions);
         createManualTransaction = new CreateManualBankTransactionUseCase(transactions);
         savePendingReviewRows = new SaveBankPendingReviewRowsUseCase(transactions);
         deletePeriod = new DeleteBankPeriodUseCase(transactions, periods);
+        resolveAccount = new ResolveBankImportAccountUseCase();
     }
 
     public BankImportReview prepareReview(List<BankTransaction> parsed, String selectedAccountAlias) {
         return prepareReview.execute(parsed, selectedAccountAlias);
+    }
+
+    public BankImportAccountResolution resolveAccount(String selectedAccountAlias, List<String> detectedAliases) {
+        String configuredNumber = accounts.find(selectedAccountAlias)
+            .map(account -> account.getAccountNumber())
+            .orElse("");
+        return resolveAccount.execute(selectedAccountAlias, configuredNumber, detectedAliases);
     }
 
     public BankImportSaveResult saveRows(List<BankTransaction> rows) {

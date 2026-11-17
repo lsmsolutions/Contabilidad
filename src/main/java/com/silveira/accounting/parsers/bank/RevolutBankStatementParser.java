@@ -27,6 +27,13 @@ public class RevolutBankStatementParser {
         "Account transactions from\\s+([A-Za-z]+\\s+\\d{1,2},\\s+20\\d{2})\\s+to\\s+([A-Za-z]+\\s+\\d{1,2},\\s+20\\d{2})",
         Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern STATEMENT_PERIOD = Pattern.compile(
+        "Summary of fees from\\s+([A-Za-z]+\\s+\\d{1,2},\\s+20\\d{2})\\s+to\\s+([A-Za-z]+\\s+\\d{1,2},\\s+20\\d{2})",
+        Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern BALANCE_SUMMARY = Pattern.compile(
+        "(?m)^Account\\s+(\\S?[0-9,]+\\.\\d{2})\\s+(\\S?[0-9,]+\\.\\d{2})\\s+(\\S?[0-9,]+\\.\\d{2})\\s+(\\S?[0-9,]+\\.\\d{2})\\s*$"
+    );
     private static final Pattern SUMMARY = Pattern.compile(
         "(?m)^Account\\s+([€$][0-9,]+\\.\\d{2})\\s+([€$][0-9,]+\\.\\d{2})\\s+([€$][0-9,]+\\.\\d{2})\\s+([€$][0-9,]+\\.\\d{2})\\s*$"
     );
@@ -160,9 +167,15 @@ public class RevolutBankStatementParser {
     private BankStatementPeriod detectPeriod(String text, String accountAlias, String sourcePdf) {
         Matcher periodMatcher = PERIOD.matcher(text);
         boolean hasPeriod = periodMatcher.find();
-        LocalDate start = hasPeriod ? LocalDate.parse(periodMatcher.group(1), LONG_DATE) : LocalDate.now();
-        LocalDate end = hasPeriod ? LocalDate.parse(periodMatcher.group(2), LONG_DATE) : start;
-        Matcher summaryMatcher = SUMMARY.matcher(text);
+        Matcher statementPeriodMatcher = STATEMENT_PERIOD.matcher(text);
+        boolean hasStatementPeriod = !hasPeriod && statementPeriodMatcher.find();
+        LocalDate start = hasPeriod
+            ? LocalDate.parse(periodMatcher.group(1), LONG_DATE)
+            : hasStatementPeriod ? LocalDate.parse(statementPeriodMatcher.group(1), LONG_DATE) : LocalDate.now();
+        LocalDate end = hasPeriod
+            ? LocalDate.parse(periodMatcher.group(2), LONG_DATE)
+            : hasStatementPeriod ? LocalDate.parse(statementPeriodMatcher.group(2), LONG_DATE) : start;
+        Matcher summaryMatcher = BALANCE_SUMMARY.matcher(text);
         double openingBalance = 0;
         double endingBalance = 0;
         if (summaryMatcher.find()) {

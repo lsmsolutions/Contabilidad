@@ -12,7 +12,9 @@ public final class BankAccountTextFormatter {
             title += " - " + account.getBankName();
         }
         if (account.getAccountNumber() != null && !account.getAccountNumber().isBlank()) {
-            title += " - Cuenta: " + account.getAccountNumber();
+            String digits = account.getAccountNumber().replaceAll("\\D", "");
+            String ending = digits.length() <= 4 ? digits : digits.substring(digits.length() - 4);
+            title += ending.isBlank() ? "" : " - Cuenta terminada en: " + ending;
         }
         return title;
     }

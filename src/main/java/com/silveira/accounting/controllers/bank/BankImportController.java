@@ -10,26 +10,31 @@ import com.silveira.accounting.models.bank.BankTransaction;
 import com.silveira.accounting.parsers.bank.BankStatementParser;
 import com.silveira.accounting.parsers.bank.OpenAiBankAiImportGateway;
 import com.silveira.accounting.parsers.bank.RevolutBankStatementParser;
+import com.silveira.accounting.parsers.bank.RevolutSavingsStatementParser;
 import com.silveira.accounting.services.OcrService;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class BankImportController {
     private final BankApplicationService bank;
     private final BankStatementParser parser;
     private final RevolutBankStatementParser revolutParser;
+    private final RevolutSavingsStatementParser revolutSavingsParser;
     private final OcrService ocrService;
     private final DocumentImportService<BankImportData> documentImports;
     private final Map<String, BankStatementPeriod> pendingPeriods = new HashMap<>();
+    private BankStatementPeriod lastPendingPeriod;
 
     public BankImportController(BankApplicationService bank, OcrService ocrService) {
         this.bank = bank;
         this.ocrService = ocrService;
         this.parser = new BankStatementParser();
         this.revolutParser = new RevolutBankStatementParser();
+        this.revolutSavingsParser = new RevolutSavingsStatementParser();
         this.documentImports = new DocumentImportService<>(this::parseWithKnownReaders, new OpenAiBankAiImportGateway());
     }
 
@@ -42,6 +47,10 @@ public class BankImportController {
     }
 
     private BankImportData parseWithKnownReaders(Path pdf) {
+        var savings = revolutSavingsParser.parseIfSupported(pdf);
+        if (savings.isPresent()) {
+            return savings.get();
+        }
         var revolut = revolutParser.parseIfRevolut(pdf);
         if (revolut.isPresent()) {
             BankStatementPeriod period = revolut.get().period();
@@ -51,8 +60,32 @@ public class BankImportController {
     }
 
     private BankImportData trackPeriod(BankImportData data) {
-        data.period().ifPresent(period -> pendingPeriods.put(period.sourcePdf(), period));
+        data.period().ifPresent(period -> {
+            pendingPeriods.put(period.sourcePdf(), period);
+            lastPendingPeriod = period;
+        });
         return data;
+    }
+
+    public Optional<BankStatementPeriod> pendingStatementPeriod() {
+        return Optional.ofNullable(lastPendingPeriod);
+    }
+
+    public void savePendingStatementPeriod(String accountAlias) {
+        if (lastPendingPeriod == null) {
+            throw new IllegalStateException("No statement period is waiting to be saved");
+        }
+        BankStatementPeriod period = lastPendingPeriod;
+        bank.periods().updatePeriod(
+            accountAlias,
+            period.sourcePdf(),
+            period.periodStart(),
+            period.periodEnd(),
+            period.openingBalance(),
+            period.statementEndingBalance()
+        );
+        pendingPeriods.remove(period.sourcePdf());
+        lastPendingPeriod = null;
     }
 
     public List<BankTransaction> parseScannedPdf(Path pdf) {

@@ -53,17 +53,7 @@ public class BankDashboardPanelView {
             .orElseGet(() -> bars(0, 0));
         VBox box = new VBox(8, name, period, bars);
         box.getStyleClass().add("dashboard-bank-card");
-        Label expectedPdf = new Label(expectedPdfLabel(account.getAlias()));
-        expectedPdf.getStyleClass().add("dashboard-bank-pdf");
-        return new VBox(5, box, expectedPdf);
-    }
-
-    private String expectedPdfLabel(String alias) {
-        return switch (alias == null ? "" : alias.trim()) {
-            case "cta_15705" -> "PDF: fin/inicio";
-            case "cta_55385" -> "PDF: 14-17 cada mes";
-            default -> "PDF: -";
-        };
+        return box;
     }
 
     private HBox bars(double deposits, double withdrawals) {

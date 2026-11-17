@@ -38,6 +38,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -452,7 +453,8 @@ public class MortgageDetailWorkflow {
     ) {
         Label title = new Label("Resumen mensual Hipoteca");
         title.getStyleClass().add("section-title");
-        HBox cards = new HBox(12);
+        FlowPane cards = new FlowPane(12, 12);
+        cards.setMaxWidth(Double.MAX_VALUE);
         cards.getStyleClass().add("monthly-card-row");
 
         VBox general = monthlyActionCard("General", "Ver todos", "", "", "", () -> {

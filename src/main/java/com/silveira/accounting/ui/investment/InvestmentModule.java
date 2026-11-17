@@ -11,20 +11,26 @@ import com.silveira.accounting.repositories.investment.InvestmentStatementReposi
 import com.silveira.accounting.repositories.investment.InvestmentTransactionRepository;
 
 public class InvestmentModule {
+    private final InvestmentApplicationService application;
     private final InvestmentController controller;
 
     public InvestmentModule(DatabaseManager databaseManager) {
-        controller = new InvestmentController(new InvestmentApplicationService(
+        application = new InvestmentApplicationService(
             new InvestmentAccountRepository(databaseManager),
             new InvestmentStatementRepository(databaseManager),
             new InvestmentAllocationRepository(databaseManager),
             new InvestmentPositionRepository(databaseManager),
             new InvestmentTransactionRepository(databaseManager),
             new SchwabInvestmentStatementParser()
-        ));
+        );
+        controller = new InvestmentController(application);
     }
 
     public InvestmentController controller() {
         return controller;
+    }
+
+    public InvestmentApplicationService application() {
+        return application;
     }
 }

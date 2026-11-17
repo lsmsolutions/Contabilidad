@@ -2,18 +2,17 @@ package com.silveira.accounting.ui.dashboard;
 
 import com.silveira.accounting.application.dashboard.DashboardSnapshot;
 import com.silveira.accounting.controllers.dashboard.DashboardController;
-import com.silveira.accounting.models.CreditCardAccount;
-import com.silveira.accounting.models.CreditCardStatement;
 import com.silveira.accounting.models.MortgageStatement;
 import com.silveira.accounting.ui.bank.BankDashboardPanelView;
-import com.silveira.accounting.utils.Money;
 import java.time.LocalDate;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
-import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.chart.BarChart;
@@ -22,11 +21,18 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
+import javafx.scene.control.Button;
+import javafx.scene.control.Alert;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 
 public class DashboardWorkflow {
     private final DashboardController controller;
@@ -43,7 +49,7 @@ public class DashboardWorkflow {
         dashboardCharts.getStyleClass().add("dashboard-chart-row");
         VBox compactDashboard = new VBox(
             18,
-            dashboardPaymentsPanel(snapshot),
+            dashboardLatestStatementsPanel(snapshot),
             dashboardBankPanel(snapshot),
             dashboardCharts
         );
@@ -53,89 +59,164 @@ public class DashboardWorkflow {
         config.setPage().accept(compactDashboardPage);
     }
 
-    private VBox dashboardPaymentsPanel(DashboardSnapshot snapshot) {
-        Label title = new Label("Proximos pagos");
+    private VBox dashboardLatestStatementsPanel(DashboardSnapshot snapshot) {
+        Label title = new Label("Statements to request");
         title.getStyleClass().add("dashboard-panel-title");
         GridPane table = new GridPane();
-        table.getStyleClass().add("dashboard-payments-table");
-        ColumnConstraints cardColumn = dashboardPaymentColumn(560);
-        cardColumn.setHgrow(Priority.ALWAYS);
-        ColumnConstraints numberColumn = dashboardPaymentColumn(130);
-        ColumnConstraints dateColumn = dashboardPaymentColumn(150);
-        ColumnConstraints amountColumn = dashboardPaymentColumn(140);
-        amountColumn.setHalignment(HPos.LEFT);
-        ColumnConstraints pdfColumn = dashboardPaymentColumn(170);
-        table.getColumnConstraints().setAll(cardColumn, numberColumn, dateColumn, amountColumn, pdfColumn);
-        dashboardPaymentCell(table, 0, 0, "Tarjeta", "dashboard-table-header");
-        dashboardPaymentCell(table, 1, 0, "Numero", "dashboard-table-header");
-        dashboardPaymentCell(table, 2, 0, "Fecha limite", "dashboard-table-header");
-        dashboardPaymentCell(table, 3, 0, "Cantidad limite", "dashboard-table-header");
-        dashboardPaymentCell(table, 4, 0, "PDF esperado", "dashboard-table-header");
+        table.getStyleClass().add("dashboard-latest-table");
+        table.getColumnConstraints().setAll(
+            dashboardLatestColumn(13),
+            dashboardLatestColumn(22),
+            dashboardLatestColumn(15),
+            dashboardLatestColumn(50)
+        );
+        dashboardLatestHeaderCell(table, 0, 0, "Type", "dashboard-table-header");
+        dashboardLatestHeaderCell(table, 1, 0, "Account", "dashboard-table-header");
+        dashboardLatestHeaderCell(table, 2, 0, "Last statement", "dashboard-table-header");
+        dashboardLatestHeaderCell(table, 3, 0, "Statements to request", "dashboard-table-header");
         int row = 1;
-        for (DashboardSnapshot.CardPayment payment : snapshot.cardPayments()) {
-            CreditCardAccount account = payment.account();
-            Optional<CreditCardStatement> latest = payment.latestStatement();
-            String digits = latest.map(CreditCardStatement::getAccountLastDigits)
-                .filter(value -> value != null && !value.isBlank())
-                .orElse(account.getAccountLastDigits());
-            String name = dashboardCardDisplayName(account);
-            dashboardPaymentCell(table, 0, row, name, "dashboard-table-text");
-            dashboardPaymentCell(table, 1, row, digits == null || digits.isBlank() ? "-" : "**** " + digits, "dashboard-table-muted");
-            dashboardPaymentCell(
-                table,
-                2,
-                row,
-                latest.map(CreditCardStatement::getPaymentDueDate).map(this::shortDate).orElse("Sin fecha"),
-                "dashboard-table-date"
-            );
-            dashboardPaymentCell(
-                table,
-                3,
-                row,
-                latest.map(statement -> Money.format(statement.getMinimumPaymentDue())).orElse("-"),
-                "dashboard-table-amount"
-            );
-            dashboardPaymentCell(table, 4, row, dashboardExpectedCardPdf(digits), "dashboard-table-muted");
+        for (DashboardSnapshot.LatestStatement statement : snapshot.latestStatements()) {
+            dashboardLatestCell(table, 0, row, statement.source(), "dashboard-table-muted");
+            dashboardLatestCell(table, 1, row, statement.account(), "dashboard-table-text");
+            dashboardLatestCell(table, 2, row, statement.date() == null ? "None" : shortDate(statement.date()), "dashboard-table-muted");
+            dashboardLatestCell(table, 3, row, statement.missingPeriods(), "dashboard-table-muted");
             row++;
         }
         if (row == 1) {
-            dashboardPaymentCell(table, 0, row, "No hay tarjetas registradas.", "dashboard-table-muted");
+            dashboardLatestHeaderCell(table, 0, row, "No accounts registered.", "dashboard-table-muted");
         }
-        VBox panel = new VBox(10, title, table);
-        panel.getStyleClass().add("dashboard-panel");
+        Button download = new Button("Download Excel");
+        download.getStyleClass().add("dashboard-export-button");
+        download.setOnAction(event -> exportStatements(snapshot, download));
+        Button pdf = new Button("Download PDF");
+        pdf.getStyleClass().add("dashboard-export-button");
+        pdf.setOnAction(event -> exportStatementsPdf(snapshot, pdf));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox heading = new HBox(10, title, spacer, download, pdf);
+        heading.setAlignment(Pos.CENTER_LEFT);
+        Label subtitle = new Label("Statements needed since the latest recorded document, including this month.");
+        subtitle.getStyleClass().add("dashboard-statements-subtitle");
+        VBox panel = new VBox(6, heading, subtitle, table);
+        panel.getStyleClass().addAll("dashboard-panel", "dashboard-latest-panel");
         return panel;
     }
 
-    private String dashboardExpectedCardPdf(String digits) {
-        return switch (digits == null ? "" : digits.trim()) {
-            case "0782" -> "17-18 de cada mes";
-            case "2512", "2518" -> "03-04 de cada mes";
-            case "9497" -> "15-18 de cada mes";
-            case "5211" -> "23-24 de cada mes";
-            case "5632" -> "06-07 de cada mes";
-            default -> "-";
-        };
+    private void exportStatementsPdf(DashboardSnapshot snapshot, Button button) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Save statements to request");
+        chooser.setInitialFileName("statements-to-request.pdf");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF document", "*.pdf"));
+        File file = chooser.showSaveDialog(button.getScene().getWindow());
+        if (file == null) return;
+        try {
+            StatementsPdfExporter.export(file.toPath(), snapshot.latestStatements());
+        } catch (IOException | IllegalArgumentException exception) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Could not save the file: " + exception.getMessage());
+            alert.initOwner(button.getScene().getWindow());
+            alert.setHeaderText("Export failed");
+            alert.showAndWait();
+        }
     }
 
-    private String dashboardCardDisplayName(CreditCardAccount account) {
-        return account == null ? "-" : account.getAlias();
+    private void exportStatements(DashboardSnapshot snapshot, Button button) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Save statements to request");
+        chooser.setInitialFileName("statements-to-request.xlsx");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel workbook", "*.xlsx"));
+        File file = chooser.showSaveDialog(button.getScene().getWindow());
+        if (file == null) return;
+        try (var workbook = new XSSFWorkbook(); var output = Files.newOutputStream(file.toPath())) {
+            var sheet = workbook.createSheet("Statements to request");
+            sheet.setDisplayGridlines(false);
+            sheet.createFreezePane(0, 3);
+            sheet.setColumnWidth(0, 18 * 256);
+            sheet.setColumnWidth(1, 25 * 256);
+            sheet.setColumnWidth(2, 19 * 256);
+            sheet.setColumnWidth(3, 65 * 256);
+            var titleStyle = workbook.createCellStyle();
+            titleStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            titleStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            var titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+            titleFont.setColor(IndexedColors.WHITE.getIndex());
+            titleStyle.setFont(titleFont);
+            titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            var titleRow = sheet.createRow(0);
+            titleRow.setHeightInPoints(32);
+            var titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("Statements to request");
+            titleCell.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 3));
+            var subtitle = sheet.createRow(1);
+            subtitle.createCell(0).setCellValue("Prepared on " + shortDate(LocalDate.now()) + " | Includes the current month");
+            sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 3));
+            var headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.TEAL.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            var headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            var header = sheet.createRow(2);
+            header.setHeightInPoints(24);
+            String[] titles = {"Type", "Account", "Last statement", "Statements to request"};
+            for (int i = 0; i < titles.length; i++) {
+                var cell = header.createCell(i);
+                cell.setCellValue(titles[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            var regular = workbook.createCellStyle();
+            regular.setVerticalAlignment(VerticalAlignment.CENTER);
+            regular.setWrapText(true);
+            var alternate = workbook.createCellStyle();
+            alternate.cloneStyleFrom(regular);
+            alternate.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+            alternate.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            int index = 3;
+            for (var statement : snapshot.latestStatements()) {
+                var row = sheet.createRow(index++);
+                String[] values = {statement.source(), statement.account(), statement.date() == null ? "None" : shortDate(statement.date()), statement.missingPeriods()};
+                for (int i = 0; i < values.length; i++) {
+                    var cell = row.createCell(i);
+                    cell.setCellValue(values[i]);
+                    cell.setCellStyle(index % 2 == 0 ? regular : alternate);
+                }
+                int lines = Math.max(1, (statement.missingPeriods().length() + 64) / 65);
+                row.setHeightInPoints(Math.min(409, Math.max(24, lines * 16)));
+            }
+            sheet.setAutoFilter(new CellRangeAddress(2, Math.max(2, index - 1), 0, 3));
+            workbook.write(output);
+        } catch (IOException exception) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Could not save the file: " + exception.getMessage());
+            alert.initOwner(button.getScene().getWindow());
+            alert.setHeaderText("Export failed");
+            alert.showAndWait();
+        }
     }
 
-    private void dashboardPaymentCell(GridPane table, int column, int row, String text, String styleClass) {
+    private void dashboardLatestHeaderCell(GridPane table, int column, int row, String text, String styleClass) {
         Label label = new Label(text);
         label.getStyleClass().add(styleClass);
         label.setMaxWidth(Double.MAX_VALUE);
         GridPane.setFillWidth(label, true);
-        if (column == 3 || column == 4) {
-            GridPane.setHalignment(label, HPos.LEFT);
-        }
         table.add(label, column, row);
     }
 
-    private ColumnConstraints dashboardPaymentColumn(double width) {
+    private void dashboardLatestCell(GridPane table, int column, int row, String text, String styleClass) {
+        Label label = new Label(text);
+        label.getStyleClass().addAll(styleClass, "dashboard-latest-row-cell");
+        label.setWrapText(true);
+        label.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setFillWidth(label, true);
+        table.add(label, column, row);
+    }
+
+    private ColumnConstraints dashboardLatestColumn(double percent) {
         ColumnConstraints column = new ColumnConstraints();
-        column.setMinWidth(width);
-        column.setPrefWidth(width);
+        column.setPercentWidth(percent);
         return column;
     }
 

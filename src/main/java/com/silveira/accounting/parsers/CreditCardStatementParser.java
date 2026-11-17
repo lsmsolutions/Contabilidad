@@ -71,7 +71,9 @@ public class CreditCardStatementParser {
             ? parseBestBuyTransactions(text, statement.getStatementEndDate())
             : "Capital One".equalsIgnoreCase(statement.getBankName())
                 ? parseCapitalOneTransactions(text, statement.getStatementEndDate())
-                : parseTransactions(text, statement.getStatementEndDate());
+                : "Discover".equalsIgnoreCase(statement.getBankName())
+                    ? parseDiscoverTransactions(text, statement.getStatementEndDate())
+                    : parseTransactions(text, statement.getStatementEndDate());
         if ("Discover".equalsIgnoreCase(statement.getBankName())) {
             double paymentsFromRows = parsedTransactions.stream()
                 .filter(transaction -> "pago".equalsIgnoreCase(transaction.getType()))
@@ -309,6 +311,40 @@ public class CreditCardStatementParser {
                 transactions.add(new CreditCardTransaction(0, 0, parseMonthDay(discoverMatcher.group(1), year), parseMonthDay(discoverMatcher.group(1), year),
                     description, amount, classify(description, amount), ""));
             }
+        }
+        return transactions;
+    }
+
+    private List<CreditCardTransaction> parseDiscoverTransactions(String text, LocalDate statementEndDate) {
+        List<CreditCardTransaction> transactions = new ArrayList<>();
+        int year = statementEndDate == null ? LocalDate.now().getYear() : statementEndDate.getYear();
+        Pattern row = Pattern.compile(
+            "^(\\d{1,2}/\\d{1,2})\\s+(.+?)\\s+(-?\\$[0-9,]+(?:\\.\\d{2})?)(?:\\s+.*)?$",
+            Pattern.CASE_INSENSITIVE);
+        boolean inTransactions = false;
+
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            String upper = line.toUpperCase(Locale.ROOT);
+            if (upper.contains("DATE PAYMENTS AND CREDITS AMOUNT") || upper.contains("DATE PURCHASES MERCHANT CATEGORY AMOUNT")) {
+                inTransactions = true;
+                continue;
+            }
+            if (inTransactions && upper.startsWith("FEES AND INTEREST CHARGED")) {
+                break;
+            }
+            if (!inTransactions) {
+                continue;
+            }
+            Matcher matcher = row.matcher(line);
+            if (!matcher.matches()) {
+                continue;
+            }
+            String description = matcher.group(2).trim();
+            double amount = Money.parse(matcher.group(3));
+            transactions.add(new CreditCardTransaction(0, 0,
+                parseMonthDay(matcher.group(1), year), parseMonthDay(matcher.group(1), year),
+                description, amount, classify(description, amount), ""));
         }
         return transactions;
     }
@@ -740,10 +776,16 @@ public class CreditCardStatementParser {
         if (lower.contains("citicards.com") || lower.contains("citi double cash") || lower.contains("citi simplicity") || lower.contains("citi cards")) {
             return "Citi";
         }
+        // Discover statements can mention Capital One in their legal footer because
+        // Discover is now issued by a division of Capital One. Prefer the statement's
+        // own branded header/domain over that incidental legal reference.
+        if (lower.contains("discover it") || lower.contains("discover card") || lower.contains("discover.com")) {
+            return "Discover";
+        }
         if (lower.contains("capital one") || lower.contains("capitalone")) {
             return "Capital One";
         }
-        if (lower.contains("discover it") || lower.contains("discover") || lower.contains("discover card") || lower.contains("card ending in")) {
+        if (lower.contains("discover")) {
             return "Discover";
         }
         return "Tarjeta";

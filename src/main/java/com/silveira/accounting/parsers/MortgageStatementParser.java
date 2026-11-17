@@ -51,6 +51,7 @@ public class MortgageStatementParser {
         statement.setTotalDue(amountInSection(amountDueSearch, "Total Due", "Total Amount Due"));
         applyPastPaymentSummary(text, statement);
         applyInterleavedSummaryLayout(text, statement);
+        applyUwmPaymentBreakdownLayout(text, statement);
         if (statement.getPaymentAmountDue() == 0) {
             statement.setPaymentAmountDue(statement.getTotalDue());
         }
@@ -110,6 +111,46 @@ public class MortgageStatementParser {
             statement.setPastPaidTotalSinceLastStatement(total[0]);
             statement.setPastPaidTotalYearToDate(total[1]);
         }
+    }
+
+    private void applyUwmPaymentBreakdownLayout(String text, MortgageStatement statement) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (!lower.contains("loan information")
+            || !lower.contains("payment breakdown")
+            || !lower.contains("payment history")) {
+            return;
+        }
+
+        String summary = sectionBetween(text, "Payment Breakdown", "Easy ways to pay", 2600);
+        statement.setOriginalPrincipalBalance(amountBeforeLabel(summary, "Original Principal Balance", statement.getOriginalPrincipalBalance()));
+        statement.setOutstandingPrincipalBalance(amountBeforeLabel(summary, "Outstanding Principal Balance", statement.getOutstandingPrincipalBalance()));
+        statement.setPrincipalDue(amountBeforeLine(summary, "Principal", statement.getPrincipalDue()));
+        statement.setInterestDue(amountBeforeLine(summary, "Interest", statement.getInterestDue()));
+        statement.setEscrowDue(amountBeforeLine(summary, "Escrow", statement.getEscrowDue()));
+        statement.setRegularMonthlyPayment(amountBeforeLine(summary, "Regular Monthly Payment", statement.getRegularMonthlyPayment()));
+        statement.setCurrentPaymentDue(statement.getRegularMonthlyPayment());
+        statement.setPastDueAmount(amountBeforeLabel(summary, "0 Payments", statement.getPastDueAmount()));
+        statement.setFees(amountBeforeLine(summary, "Late Fees", statement.getFees()));
+        statement.setOtherFeesAndCharges(amountBeforeLine(summary, "Other Fees & Charges**", statement.getOtherFeesAndCharges()));
+        statement.setTotalDue(amountOnLabelLine(summary, "Total Due", statement.getTotalDue()));
+
+        statement.setMaturityDate(dateBeforeLabel(summary, "Maturity Date", statement.getMaturityDate()));
+        statement.setInterestRate(percentBeforeLabel(summary, "Interest Rate", statement.getInterestRate()));
+        statement.setEscrowBalance(amountBeforeLabel(summary, "Escrow Balance", statement.getEscrowBalance()));
+        statement.setUnappliedFunds(amountBeforeLabel(summary, "Unapplied Funds", statement.getUnappliedFunds()));
+
+        double[] principal = firstTwoAmountsBeforeLine(summary, "Principal:");
+        double[] interest = firstTwoAmountsBeforeLine(summary, "Interest:");
+        double[] escrow = firstTwoAmountsBeforeLine(summary, "Escrow:");
+        double[] total = firstTwoAmountsOnLabelLine(summary, "Total Paid");
+        statement.setPastPaidPrincipalSinceLastStatement(principal[0]);
+        statement.setPastPaidPrincipalYearToDate(principal[1]);
+        statement.setPastPaidInterestSinceLastStatement(interest[0]);
+        statement.setPastPaidInterestYearToDate(interest[1]);
+        statement.setPastPaidEscrowSinceLastStatement(escrow[0]);
+        statement.setPastPaidEscrowYearToDate(escrow[1]);
+        statement.setPastPaidTotalSinceLastStatement(total[0]);
+        statement.setPastPaidTotalYearToDate(total[1]);
     }
 
     private void applyPastPaymentSummary(String text, MortgageStatement statement) {
@@ -266,6 +307,62 @@ public class MortgageStatementParser {
             }
             if (!line.isBlank()) {
                 previous = line;
+            }
+        }
+        return new double[] { 0, 0 };
+    }
+
+    private double amountBeforeLabel(String text, String label, double fallback) {
+        Matcher matcher = Pattern.compile("(" + MONEY.pattern() + ")\\s*" + Pattern.quote(label), Pattern.CASE_INSENSITIVE).matcher(text);
+        return matcher.find() ? Math.abs(amount(matcher.group(1))) : fallback;
+    }
+
+    private double amountOnLabelLine(String text, String label, double fallback) {
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            if (line.toLowerCase(Locale.ROOT).startsWith(label.toLowerCase(Locale.ROOT))) {
+                List<Double> values = amounts(line);
+                return values.isEmpty() ? fallback : Math.abs(values.get(0));
+            }
+        }
+        return fallback;
+    }
+
+    private LocalDate dateBeforeLabel(String text, String label, LocalDate fallback) {
+        Matcher matcher = Pattern.compile("(\\d{1,2}/(?:\\d{1,2}/)?20\\d{2})\\s*" + Pattern.quote(label), Pattern.CASE_INSENSITIVE).matcher(text);
+        return matcher.find() ? parseDate(matcher.group(1).contains("/") && matcher.group(1).length() == 7 ? "01/" + matcher.group(1) : matcher.group(1)) : fallback;
+    }
+
+    private double percentBeforeLabel(String text, String label, double fallback) {
+        Matcher matcher = Pattern.compile("(" + PERCENT.pattern() + ")\\s*" + Pattern.quote(label), Pattern.CASE_INSENSITIVE).matcher(text);
+        return matcher.find() ? Double.parseDouble(matcher.group(1).replace("%", "").trim()) : fallback;
+    }
+
+    private double[] firstTwoAmountsBeforeLine(String text, String label) {
+        String previous = "";
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            if (line.equalsIgnoreCase(label)) {
+                List<Double> values = amounts(previous);
+                if (values.size() >= 2) {
+                    return new double[] { Math.abs(values.get(0)), Math.abs(values.get(1)) };
+                }
+            }
+            if (!line.isBlank()) {
+                previous = line;
+            }
+        }
+        return new double[] { 0, 0 };
+    }
+
+    private double[] firstTwoAmountsOnLabelLine(String text, String label) {
+        for (String raw : text.split("\\R")) {
+            String line = raw.replaceAll("\\s+", " ").trim();
+            if (line.toLowerCase(Locale.ROOT).startsWith(label.toLowerCase(Locale.ROOT))) {
+                List<Double> values = amounts(line);
+                if (values.size() >= 2) {
+                    return new double[] { Math.abs(values.get(0)), Math.abs(values.get(1)) };
+                }
             }
         }
         return new double[] { 0, 0 };

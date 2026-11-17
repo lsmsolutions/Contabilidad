@@ -8,6 +8,7 @@ import com.silveira.accounting.repositories.ReviewMarkRepository;
 import com.silveira.accounting.ui.bank.BankModule;
 import com.silveira.accounting.ui.bank.BankWorkflow;
 import com.silveira.accounting.ui.card.CardWorkflow;
+import com.silveira.accounting.ui.business.BusinessWorkflow;
 import com.silveira.accounting.ui.dashboard.DashboardWorkflow;
 import com.silveira.accounting.ui.mortgage.HouseExpenseWorkflow;
 import com.silveira.accounting.ui.mortgage.MortgageWorkflow;
@@ -43,6 +44,7 @@ import java.util.function.BooleanSupplier;
 public class AppView {
     private final BankModule bankModule;
     private final BankWorkflow bankWorkflow;
+    private final BusinessWorkflow businessWorkflow;
     private final InvestmentWorkflow investmentWorkflow;
     private final VehicleLeaseWorkflow vehicleLeaseWorkflow;
     private final CardAccountApplicationService creditCardAccountRepository;
@@ -71,6 +73,7 @@ public class AppView {
     private boolean cardImportInProgress;
     private BooleanSupplier navigationGuard;
     private boolean bankMenuExpanded;
+    private boolean businessMenuExpanded;
     private boolean cardMenuExpanded;
     private boolean mortgageMenuExpanded;
     private boolean investmentMenuExpanded;
@@ -81,6 +84,7 @@ public class AppView {
     public AppView(AppDependencies dependencies) {
         bankModule = dependencies.bankModule();
         bankWorkflow = dependencies.bankWorkflow();
+        businessWorkflow = dependencies.businessWorkflow();
         investmentWorkflow = dependencies.investmentWorkflow();
         vehicleLeaseWorkflow = dependencies.vehicleLeaseWorkflow();
         creditCardAccountRepository = dependencies.creditCardAccountRepository();
@@ -169,6 +173,12 @@ public class AppView {
         for (BankAccount account : bankModule.accounts().list()) {
             bankSubmenu.getChildren().add(subnav(account.getAlias(), () -> showBankAccount(account.getAlias())));
         }
+        VBox businessSubmenu = new VBox(4);
+        businessSubmenu.getStyleClass().add("submenu");
+        businessSubmenu.getChildren().add(subnav("Create Business", businessWorkflow::createBusiness));
+        for (var business : businessWorkflow.businesses()) {
+            businessSubmenu.getChildren().add(subnav(business.name(), () -> businessWorkflow.showExpenses(business)));
+        }
         VBox cardSubmenu = new VBox(4);
         cardSubmenu.getStyleClass().add("submenu");
         cardSubmenu.getChildren().add(ledgerSubnav("Card Ledger", this::showCardLedger));
@@ -202,6 +212,7 @@ public class AppView {
         menu.getChildren().addAll(
             nav("Inicio", this::showWorkspace),
             nav("Dashboard", this::showDashboard),
+            collapsibleNav("Businesses", businessWorkflow::showBusinesses, businessSubmenu, () -> businessMenuExpanded, value -> businessMenuExpanded = value),
             collapsibleNav("Banco", this::showBank, bankSubmenu, () -> bankMenuExpanded, value -> bankMenuExpanded = value),
             collapsibleNav("Tarjetas", this::showCards, cardSubmenu, () -> cardMenuExpanded, value -> cardMenuExpanded = value),
             collapsibleNav("Hipotecas", this::showMortgages, mortgageSubmenu, () -> mortgageMenuExpanded, value -> mortgageMenuExpanded = value),
@@ -342,6 +353,7 @@ public class AppView {
             this::toggleSidebar,
             List.of(
                 new WorkspaceView.LinkGroup("Financial", List.of(
+                    new WorkspaceView.WorkspaceLink("Businesses", () -> openFromWorkspace(businessWorkflow::showBusinesses)),
                     new WorkspaceView.WorkspaceLink("Banco", () -> openFromWorkspace(this::showBank)),
                     new WorkspaceView.WorkspaceLink("Tarjetas", () -> openFromWorkspace(this::showCards)),
                     new WorkspaceView.WorkspaceLink("Hipotecas", () -> openFromWorkspace(this::showMortgages)),

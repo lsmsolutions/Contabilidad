@@ -7,13 +7,14 @@
 .sidebar {
     -fx-background-color: #061a2e;
     -fx-padding: 24 18;
-    -fx-border-color: transparent #143a58 transparent transparent;
 }
 
 .sidebar-scroll {
     -fx-background-color: #061a2e;
     -fx-background-insets: 0;
     -fx-padding: 0;
+    -fx-border-color: transparent #143a58 transparent transparent;
+    -fx-border-width: 0 1 0 0;
 }
 
 .sidebar-scroll > .viewport {
@@ -320,15 +321,44 @@
     -fx-text-fill: #f4f8fb;
 }
 
-.dashboard-payments-table {
-    -fx-hgap: 18;
-    -fx-vgap: 8;
+.dashboard-latest-panel {
+    -fx-max-width: Infinity;
+    -fx-padding: 14;
+}
+
+.dashboard-latest-table {
+    -fx-hgap: 12;
+    -fx-vgap: 0;
+    -fx-max-width: Infinity;
+}
+
+.dashboard-statements-subtitle {
+    -fx-text-fill: #9fc3d6;
+    -fx-font-size: 12px;
+    -fx-wrap-text: true;
+}
+
+.dashboard-export-button {
+    -fx-background-color: #1977a5;
+    -fx-background-radius: 6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8 14;
+    -fx-cursor: hand;
+}
+
+.dashboard-export-button:hover {
+    -fx-background-color: #2294c9;
 }
 
 .dashboard-table-header {
-    -fx-font-size: 11px;
-    -fx-font-weight: 800;
-    -fx-text-fill: #8fb3ca;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #6fd1ff;
+    -fx-alignment: center-left;
+    -fx-text-alignment: left;
+    -fx-letter-spacing: 0;
+    -fx-padding: 0 0 2 0;
 }
 
 .dashboard-table-text {
@@ -357,6 +387,12 @@
     -fx-text-fill: #8ee0ff;
     -fx-min-width: 140;
     -fx-alignment: center-left;
+}
+
+.dashboard-latest-row-cell {
+    -fx-border-color: transparent transparent #184b6f transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 3 0 4 0;
 }
 
 .dashboard-bank-accounts {
@@ -3069,4 +3105,36 @@
 .table-row-cell.card-transaction-total-row {
     -fx-background-color: #dbeeff;
     -fx-font-weight: 800;
+}
+.business-card {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #9dbdb3;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #173d32;
+    -fx-cursor: hand;
+}
+
+.business-card:hover {
+    -fx-background-color: #e2f1ed;
+    -fx-border-color: #1d5b46;
+}
+
+.business-month-card {
+    -fx-background-color: #f7faf7;
+    -fx-border-color: #cddbd3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #173d32;
+    -fx-text-alignment: center;
+    -fx-cursor: hand;
+}
+
+.business-month-card:hover {
+    -fx-background-color: #eef7f6;
+    -fx-border-color: #1d5b46;
 }

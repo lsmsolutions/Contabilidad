@@ -1,6 +1,8 @@
 package com.silveira.accounting;
 
 import com.silveira.accounting.parsers.bank.BankStatementParser;
+import com.silveira.accounting.parsers.bank.RevolutBankStatementParser;
+import com.silveira.accounting.parsers.bank.RevolutSavingsStatementParser;
 import com.silveira.accounting.parsers.NylPdfParser;
 import com.silveira.accounting.parsers.PdfTextExtractor;
 import com.silveira.accounting.database.DatabaseManager;
@@ -73,6 +75,8 @@ public class ParserSmokeCheck {
             System.out.println("UTILIZATION=" + analysis.creditUtilizationPercent());
             System.out.println("ALERTS=" + analysis.alerts().size());
             System.out.println("TX=" + parsed.transactions().size());
+            parsed.transactions().forEach(transaction -> System.out.println(
+                "CARD_TX=" + transaction.getTransactionDate() + "|" + transaction.getDescription() + "|" + transaction.getAmount() + "|" + transaction.getType()));
             return;
         }
         if (args.length > 2 && args[2].equals("--parse-mortgage")) {
@@ -92,6 +96,18 @@ public class ParserSmokeCheck {
             System.out.println("DAYS=" + analysis.daysUntilDue());
             System.out.println("ALERTS=" + analysis.alerts().size());
             System.out.println("TX=" + parsed.transactions().size());
+            return;
+        }
+        if (args.length > 2 && args[2].equals("--parse-revolut")) {
+            var parsed = new RevolutBankStatementParser().parseIfRevolut(Path.of(args[3])).orElseThrow();
+            System.out.println("REVOLUT_PERIOD=" + parsed.period());
+            System.out.println("REVOLUT_TX=" + parsed.transactions().size());
+            return;
+        }
+        if (args.length > 2 && args[2].equals("--parse-revolut-savings")) {
+            var parsed = new RevolutSavingsStatementParser().parseIfSupported(Path.of(args[3])).orElseThrow();
+            System.out.println("SAVINGS_PERIOD=" + parsed.period().orElseThrow());
+            parsed.transactions().forEach(transaction -> System.out.println("SAVINGS_TX=" + transaction.getDate() + "|" + transaction.getDescription() + "|" + transaction.getAmount()));
             return;
         }
         if (args.length > 2 && args[2].equals("--parse-bank")) {
